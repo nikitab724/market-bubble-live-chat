@@ -349,32 +349,28 @@ h2 {
 .source-chip.twitch,
 .chat-message.twitch,
 .platform-badge.twitch,
-.source-label.twitch,
-.avatar.twitch {
+.source-label.twitch {
   --source-color: var(--twitch);
 }
 
 .source-chip.kick,
 .chat-message.kick,
 .platform-badge.kick,
-.source-label.kick,
-.avatar.kick {
+.source-label.kick {
   --source-color: var(--kick);
 }
 
 .source-chip.x,
 .chat-message.x,
 .platform-badge.x,
-.source-label.x,
-.avatar.x {
+.source-label.x {
   --source-color: var(--x);
 }
 
 .source-chip.room,
 .chat-message.room,
 .platform-badge.room,
-.source-label.room,
-.avatar.room {
+.source-label.room {
   --source-color: var(--native);
 }
 
@@ -394,9 +390,7 @@ h2 {
 
 .chat-message {
   position: relative;
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 12px;
+  display: block;
   padding: 13px 15px;
   border: 0;
   border-bottom: 1px solid var(--line-soft);
@@ -412,30 +406,6 @@ h2 {
 
 .chat-message:hover {
   background: rgba(255, 255, 255, 0.07);
-}
-
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 0;
-  background: var(--text);
-  color: var(--ink);
-  font-family: var(--label-font);
-  font-size: 18px;
-  font-weight: 900;
-}
-
-.avatar.twitch,
-.avatar.kick,
-.avatar.x,
-.avatar.room {
-  border-color: var(--source-color);
-  background: #080808;
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px rgba(231, 228, 216, 0.05);
 }
 
 .message-body {
@@ -536,10 +506,7 @@ h2 {
 }
 
 .profile-card-header {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
+  display: block;
   margin-bottom: 12px;
 }
 
@@ -839,14 +806,7 @@ button:hover {
   }
 
   .chat-message {
-    grid-template-columns: 36px minmax(0, 1fr);
-    gap: 9px;
     padding: 10px;
-  }
-
-  .avatar {
-    width: 36px;
-    height: 36px;
   }
 
   .message-meta strong,

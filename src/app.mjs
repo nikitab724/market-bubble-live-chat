@@ -409,7 +409,6 @@ function renderMessage(message) {
 
   return `
     <article class="chat-message ${message.platform}">
-      <div class="avatar ${message.platform}">${message.avatar}</div>
       <div class="message-body">
         <div class="message-meta">
           <strong title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong>
@@ -421,7 +420,6 @@ function renderMessage(message) {
       </div>
       <div class="profile-card" role="tooltip">
         <div class="profile-card-header">
-          <div class="avatar ${message.platform}">${message.avatar}</div>
           <div>
             <strong>${escapeHtml(profile.author)}</strong>
             <span>${escapeHtml(profile.displayHandle)}</span>

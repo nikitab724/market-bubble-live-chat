@@ -37,6 +37,14 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".chat-message:focus"), false);
   });
 
+  it("does not render user profile picture placeholders in chat rows", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes('class="avatar'), false);
+    assert.equal(styles.includes(".avatar"), false);
+  });
+
   it("uses the Market Bubble broadcast treatment with platform color accents", () => {
     const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
