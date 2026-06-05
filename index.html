@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Market Bubble Live</title>
+    <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="10" fill="%23090b0f"/><text x="32" y="40" text-anchor="middle" font-family="Arial" font-size="22" font-weight="900" fill="%2317a7ff">MB</text></svg>' />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="broadcast-clock" aria-hidden="true">
+      <span>New York<br /><strong>4:57 PM ET</strong></span>
+      <span>Los Angeles<br /><strong>1:57 PM PT</strong></span>
+    </div>
+    <main class="app-shell viewer-shell">
+      <section class="stream-view" aria-label="Market Bubble stream">
+        <header class="stream-header">
+          <div class="stream-title">
+            <p>Market Bubble</p>
+            <h1>Live Stream</h1>
+          </div>
+        </header>
+
+        <div class="video-frame">
+          <div class="ticker-row" aria-hidden="true">
+            <span>BTC $104,820</span>
+            <span class="up">+2.4%</span>
+            <span>ETH $5,812</span>
+            <span class="down">-0.7%</span>
+            <span>SOL $218</span>
+          </div>
+
+          <svg viewBox="0 0 760 280" role="img" aria-label="Live market chart">
+            <defs>
+              <linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#3be88b" stop-opacity="0.38" />
+                <stop offset="100%" stop-color="#3be88b" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <path class="grid-line" d="M0 66H760M0 132H760M0 198H760" />
+            <path class="chart-fill" d="M0 218 C70 205 98 161 152 172 C212 186 246 101 312 120 C365 136 403 74 456 90 C520 109 548 43 604 58 C666 75 694 38 760 46 L760 280 L0 280 Z" />
+            <path class="chart-line" d="M0 218 C70 205 98 161 152 172 C212 186 246 101 312 120 C365 136 403 74 456 90 C520 109 548 43 604 58 C666 75 694 38 760 46" />
+          </svg>
+
+          <div class="video-copy">
+            <span>LIVE</span>
+            <h2>Market Bubble C-Suite</h2>
+            <p>Twitch / Kick / X / MarketBubble.com</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="chat-view" aria-label="Combined live chat">
+        <header class="chat-header">
+          <div class="brand-mark chat-brand" aria-hidden="true">
+            <span>Market</span>
+            <span>Bubble</span>
+          </div>
+          <div class="chat-title">
+            <p>Market Bubble Shared Chat</p>
+            <h1>Twitch + Kick + X + MarketBubble.com</h1>
+          </div>
+          <div class="viewer-counter" aria-label="Combined viewers">
+            <strong id="viewerCount">0</strong>
+            <span>Viewers</span>
+          </div>
+          <div id="sourceBreakdown" class="source-breakdown" aria-label="Viewer sources"></div>
+        </header>
+
+        <div id="chatFeed" class="chat-feed" role="log" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.mjs"></script>
+  </body>
+</html>

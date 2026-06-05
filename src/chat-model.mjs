@@ -1,0 +1,204 @@
+const PLATFORM_ORDER = ["twitch", "kick", "x", "room"];
+const PLATFORM_LABELS = {
+  twitch: "Twitch",
+  kick: "Kick",
+  x: "X",
+  room: "MarketBubble.com",
+};
+
+export function normalizeMessage(input) {
+  const platform = normalizePlatform(input.platform);
+  const author = String(input.author || "Unknown").trim();
+  const body = String(input.body || "").trim();
+  const timestamp = toIsoTimestamp(input.timestamp);
+  const handle = String(input.handle || author).replace(/^@/, "").trim();
+  const sourceName = normalizeSourceName(platform, input.sourceName);
+  const sourceHandle = String(input.sourceHandle || "").replace(/^@/, "").trim();
+  const sourceLabel = String(input.sourceLabel || sourceName).trim() || sourceName;
+  const sourceId = String(input.sourceId || buildSourceId(platform, sourceHandle || sourceLabel)).trim();
+
+  return {
+    id: input.id || buildMessageId(platform, sourceId, handle || author, timestamp, body),
+    platform,
+    author,
+    handle,
+    body,
+    timestamp,
+    sourceUrl: input.sourceUrl || "",
+    sourceId,
+    sourceName,
+    sourceHandle,
+    sourceLabel,
+    avatar: input.avatar || getInitial(author),
+    sentiment: input.sentiment || inferSentiment(body),
+  };
+}
+
+export function mergeMessages(messages) {
+  return messages
+    .map(normalizeMessage)
+    .sort((left, right) => {
+      const timeDifference = Date.parse(right.timestamp) - Date.parse(left.timestamp);
+
+      if (timeDifference !== 0) {
+        return timeDifference;
+      }
+
+      return PLATFORM_ORDER.indexOf(left.platform) - PLATFORM_ORDER.indexOf(right.platform);
+    });
+}
+
+export function buildPlatformStats(messages) {
+  const stats = {
+    twitch: createEmptyStats(),
+    kick: createEmptyStats(),
+    x: createEmptyStats(),
+    room: createEmptyStats(),
+  };
+  const authorsByPlatform = new Map(PLATFORM_ORDER.map((platform) => [platform, new Set()]));
+
+  for (const message of messages.map(normalizeMessage)) {
+    stats[message.platform].messages += 1;
+    authorsByPlatform.get(message.platform).add(message.handle.toLowerCase());
+  }
+
+  for (const platform of PLATFORM_ORDER) {
+    stats[platform].activeChatters = authorsByPlatform.get(platform).size;
+  }
+
+  return stats;
+}
+
+export function buildViewerSummary(sources) {
+  const normalizedSources = sources.map(normalizeViewerSource);
+
+  return {
+    total: normalizedSources.reduce((sum, source) => sum + source.viewerCount, 0),
+    sources: normalizedSources,
+  };
+}
+
+export function buildAuthorProfile(messages, targetMessage) {
+  const target = normalizeMessage(targetMessage);
+  const authorMessages = messages
+    .map(normalizeMessage)
+    .filter(
+      (message) =>
+        message.platform === target.platform &&
+        message.handle.toLowerCase() === target.handle.toLowerCase(),
+    );
+  const lastSeen = authorMessages
+    .map((message) => message.timestamp)
+    .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
+
+  return {
+    platform: target.platform,
+    author: target.author,
+    handle: target.handle,
+    displayHandle: `@${target.handle}`,
+    sourceUrl: target.sourceUrl,
+    sourceId: target.sourceId,
+    sourceName: target.sourceName,
+    sourceHandle: target.sourceHandle,
+    sourceLabel: target.sourceLabel,
+    messageCount: authorMessages.length,
+    lastSeen,
+  };
+}
+
+function createEmptyStats() {
+  return {
+    activeChatters: 0,
+    messages: 0,
+  };
+}
+
+function normalizeViewerSource(source) {
+  const platform = normalizePlatform(source.platform);
+  const sourceName = normalizeSourceName(platform, source.sourceName);
+  const sourceHandle = String(source.sourceHandle || "").replace(/^@/, "").trim();
+  const sourceLabel = String(source.sourceLabel || sourceName).trim() || sourceName;
+  const sourceId = String(source.sourceId || buildSourceId(platform, sourceHandle || sourceLabel)).trim();
+
+  return {
+    sourceId,
+    platform,
+    sourceName,
+    sourceHandle,
+    sourceLabel,
+    viewerCount: normalizeViewerCount(source.viewerCount),
+    sourceUrl: source.sourceUrl || "",
+  };
+}
+
+function normalizePlatform(platform) {
+  const normalized = String(platform || "").toLowerCase();
+
+  if (!PLATFORM_ORDER.includes(normalized)) {
+    throw new Error(`Unsupported platform: ${platform}`);
+  }
+
+  return normalized;
+}
+
+function normalizeSourceName(platform, sourceName) {
+  return String(sourceName || PLATFORM_LABELS[platform]).trim() || PLATFORM_LABELS[platform];
+}
+
+function normalizeViewerCount(viewerCount) {
+  const count = Number(viewerCount);
+
+  if (!Number.isFinite(count)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(count));
+}
+
+function toIsoTimestamp(timestamp) {
+  const date = timestamp ? new Date(timestamp) : new Date();
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid timestamp: ${timestamp}`);
+  }
+
+  return date.toISOString();
+}
+
+function buildSourceId(platform, sourceName) {
+  const slug = [platform, sourceName]
+    .join("-")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return slug || `${platform}-source`;
+}
+
+function buildMessageId(platform, sourceId, handle, timestamp, body) {
+  const slug = [platform, sourceId, handle, timestamp, body]
+    .join("-")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return slug || `${platform}-${timestamp}`;
+}
+
+function getInitial(author) {
+  return author.trim().charAt(0).toUpperCase() || "?";
+}
+
+function inferSentiment(body) {
+  const text = body.toLowerCase();
+
+  if (/(fire|cooking|send|hype|great|love|win|based)/.test(text)) {
+    return "positive";
+  }
+
+  if (/(rug|bad|hate|dead|scam|broken|rekt)/.test(text)) {
+    return "negative";
+  }
+
+  return "neutral";
+}
