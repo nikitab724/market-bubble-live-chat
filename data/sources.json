@@ -1,0 +1,59 @@
+{
+  "sources": [
+    {
+      "enabled": true,
+      "platform": "twitch",
+      "sourceHandle": "marketbubble",
+      "sourceId": "twitch-marketbubble",
+      "sourceLabel": "Market Bubble",
+      "sourceName": "Market Bubble",
+      "sourceUrl": "https://twitch.tv/marketbubble",
+      "viewerCount": 3184,
+      "conversationId": ""
+    },
+    {
+      "enabled": true,
+      "platform": "kick",
+      "sourceHandle": "marketbubble",
+      "sourceId": "kick-marketbubble",
+      "sourceLabel": "Market Bubble",
+      "sourceName": "Market Bubble",
+      "sourceUrl": "https://kick.com/marketbubble",
+      "viewerCount": 1260,
+      "conversationId": ""
+    },
+    {
+      "enabled": true,
+      "platform": "x",
+      "sourceHandle": "banks",
+      "sourceId": "x-banks",
+      "sourceLabel": "Banks",
+      "sourceName": "Banks",
+      "sourceUrl": "https://x.com/banks",
+      "viewerCount": 8062,
+      "conversationId": "2062574325970973093"
+    },
+    {
+      "enabled": true,
+      "platform": "x",
+      "sourceHandle": "z",
+      "sourceId": "x-z",
+      "sourceLabel": "Z",
+      "sourceName": "Z",
+      "sourceUrl": "https://x.com/z",
+      "viewerCount": 4720,
+      "conversationId": ""
+    },
+    {
+      "enabled": true,
+      "platform": "room",
+      "sourceHandle": "marketbubble",
+      "sourceId": "room-marketbubble",
+      "sourceLabel": "MarketBubble.com",
+      "sourceName": "MarketBubble.com",
+      "sourceUrl": "https://marketbubble.com",
+      "viewerCount": 518,
+      "conversationId": ""
+    }
+  ]
+}

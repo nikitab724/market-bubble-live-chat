@@ -11,8 +11,14 @@ const MAX_MESSAGES = 60;
  * @param {function} handlers.onStatus     - Called with "connecting" | "connected" | "disconnected"
  * @returns {{ disconnect: function }}
  */
-export function connectTwitchChat(channel, { onMessage, onStatus } = {}) {
+export function connectTwitchChat(channel, { onMessage, onStatus, source } = {}) {
   const channelName = channel.toLowerCase().replace(/^#/, "");
+  const sourceMeta = source || {
+    sourceHandle: channelName,
+    sourceId: `twitch-${channelName}`,
+    sourceLabel: channelName,
+    sourceName: channelName,
+  };
   const nick = `justinfan${Math.floor(100000 + Math.random() * 900000)}`;
 
   let ws = null;
@@ -75,10 +81,10 @@ export function connectTwitchChat(channel, { onMessage, onStatus } = {}) {
         body: trailing,
         timestamp: new Date(sentTs).toISOString(),
         sourceUrl: `https://twitch.tv/${login}`,
-        sourceId: "twitch-marketbubble",
-        sourceName: "Market Bubble",
-        sourceHandle: channelName,
-        sourceLabel: "Market Bubble",
+        sourceId: sourceMeta.sourceId,
+        sourceName: sourceMeta.sourceName,
+        sourceHandle: sourceMeta.sourceHandle || channelName,
+        sourceLabel: sourceMeta.sourceLabel || sourceMeta.sourceName,
       });
     }
   }

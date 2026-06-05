@@ -1,0 +1,130 @@
+const SUPPORTED_PLATFORMS = ["twitch", "kick", "x", "room"];
+const PLATFORM_LABELS = {
+  twitch: "Twitch",
+  kick: "Kick",
+  x: "X",
+  room: "MarketBubble.com",
+};
+
+export const DEFAULT_SOURCES = normalizeSources([
+  {
+    platform: "twitch",
+    sourceName: "Market Bubble",
+    sourceHandle: "marketbubble",
+    viewerCount: 3184,
+  },
+  {
+    platform: "kick",
+    sourceName: "Market Bubble",
+    sourceHandle: "marketbubble",
+    viewerCount: 1260,
+  },
+  {
+    platform: "x",
+    sourceName: "Banks",
+    sourceHandle: "Banks",
+    conversationId: "2062574325970973093",
+    viewerCount: 8062,
+  },
+  {
+    platform: "x",
+    sourceName: "Z",
+    sourceHandle: "z",
+    conversationId: "",
+    viewerCount: 4720,
+  },
+  {
+    platform: "room",
+    sourceName: "MarketBubble.com",
+    sourceHandle: "marketbubble",
+    viewerCount: 518,
+  },
+]);
+
+export function normalizeSources(inputSources) {
+  if (!Array.isArray(inputSources)) {
+    throw new Error("Sources must be an array");
+  }
+
+  return inputSources.map(normalizeSource);
+}
+
+export function toPublicConfig(sources) {
+  return {
+    sources: normalizeSources(sources)
+      .filter((source) => source.enabled)
+      .map((source) => ({
+        enabled: source.enabled,
+        platform: source.platform,
+        sourceHandle: source.sourceHandle,
+        sourceId: source.sourceId,
+        sourceLabel: source.sourceLabel,
+        sourceName: source.sourceName,
+        sourceUrl: source.sourceUrl,
+        viewerCount: source.viewerCount,
+      })),
+  };
+}
+
+export function normalizeSource(input) {
+  const platform = String(input.platform || "").toLowerCase().trim();
+
+  if (!SUPPORTED_PLATFORMS.includes(platform)) {
+    throw new Error(`Unsupported platform: ${input.platform}`);
+  }
+
+  const rawHandle = String(input.sourceHandle || input.handle || "").replace(/^@/, "").trim();
+  const sourceHandle = rawHandle.toLowerCase();
+  if (!sourceHandle) {
+    throw new Error("Source handle is required");
+  }
+
+  const sourceName = String(input.sourceName || input.label || rawHandle || PLATFORM_LABELS[platform]).trim();
+  const sourceLabel = String(input.sourceLabel || sourceName).trim();
+  const conversationId = String(input.conversationId || "").trim();
+
+  return {
+    enabled: input.enabled !== false,
+    platform,
+    sourceHandle,
+    sourceId: String(input.sourceId || buildSourceId(platform, getSourceIdName(platform, sourceHandle, sourceLabel))).trim(),
+    sourceLabel,
+    sourceName,
+    sourceUrl: input.sourceUrl || buildSourceUrl(platform, sourceHandle),
+    viewerCount: normalizeViewerCount(input.viewerCount),
+    conversationId,
+  };
+}
+
+function buildSourceId(platform, sourceName) {
+  return [platform, sourceName]
+    .join("-")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function getSourceIdName(platform, sourceHandle, sourceLabel) {
+  if (platform === "x") {
+    return sourceLabel || sourceHandle;
+  }
+
+  return sourceHandle;
+}
+
+function buildSourceUrl(platform, handle) {
+  if (platform === "twitch") return `https://twitch.tv/${handle}`;
+  if (platform === "kick") return `https://kick.com/${handle}`;
+  if (platform === "room") return `https://marketbubble.com`;
+  return `https://x.com/${handle}`;
+}
+
+function normalizeViewerCount(viewerCount) {
+  const count = Number(viewerCount || 0);
+
+  if (!Number.isFinite(count)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(count));
+}

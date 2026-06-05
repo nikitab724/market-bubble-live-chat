@@ -592,6 +592,141 @@ h2 {
   text-underline-offset: 3px;
 }
 
+.admin-body {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.admin-shell {
+  display: grid;
+  gap: 16px;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.admin-header,
+.admin-panel {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.admin-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+}
+
+.admin-header p,
+.admin-status,
+.source-field span,
+.admin-login label {
+  color: var(--muted);
+  font-family: var(--label-font);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-header h1 {
+  white-space: normal;
+}
+
+.admin-panel {
+  padding: 16px;
+}
+
+.admin-login {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.admin-login-row,
+.admin-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-login-row input {
+  flex: 1;
+}
+
+.admin-actions {
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.source-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.source-editor-row {
+  display: grid;
+  grid-template-columns: 92px 132px repeat(4, minmax(0, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.024);
+}
+
+.source-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+input,
+select,
+button {
+  border: 1px solid rgba(231, 228, 216, 0.26);
+  border-radius: 0;
+  background: #070707;
+  color: var(--text);
+  font: inherit;
+}
+
+input,
+select {
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+}
+
+input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+
+button {
+  min-height: 38px;
+  padding: 0 13px;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--label-font);
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(0.92);
+}
+
+.source-remove,
+#logoutButton {
+  background: transparent;
+  color: var(--text);
+}
+
+.admin-status:empty {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .broadcast-clock {
     height: 58px;
@@ -642,6 +777,10 @@ h2 {
   h1,
   h2 {
     font-size: 27px;
+  }
+
+  .source-editor-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -712,5 +851,17 @@ h2 {
 
   .source-label {
     max-width: 96px;
+  }
+
+  .admin-body {
+    padding: 10px;
+  }
+
+  .admin-header {
+    grid-template-columns: 1fr;
+  }
+
+  .source-editor-row {
+    grid-template-columns: 1fr;
   }
 }

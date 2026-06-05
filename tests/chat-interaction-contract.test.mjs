@@ -54,4 +54,12 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("x-z"), true);
     assert.equal(app.includes("room-marketbubble"), true);
   });
+
+  it("loads source config from the backend with a static fallback", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("/api/public-config"), true);
+    assert.equal(app.includes("fallbackSources"), true);
+    assert.equal(app.includes("loadPublicConfig"), true);
+  });
 });

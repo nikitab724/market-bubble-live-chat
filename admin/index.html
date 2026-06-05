@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Market Bubble Admin</title>
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body class="admin-body">
+    <main class="admin-shell">
+      <header class="admin-header">
+        <div class="brand-mark" aria-hidden="true">
+          <span>Market</span>
+          <span>Bubble</span>
+        </div>
+        <div>
+          <p>Protected Dashboard</p>
+          <h1>Stream Sources</h1>
+        </div>
+      </header>
+
+      <section id="loginPanel" class="admin-panel">
+        <form id="loginForm" class="admin-login">
+          <label for="adminPassword">Password</label>
+          <div class="admin-login-row">
+            <input id="adminPassword" name="password" type="password" autocomplete="current-password" required />
+            <button type="submit">Unlock</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="editorPanel" class="admin-panel" hidden>
+        <div class="admin-actions">
+          <button id="addSourceButton" type="button">Add Source</button>
+          <button id="saveSourcesButton" type="button">Save</button>
+          <button id="logoutButton" type="button">Logout</button>
+        </div>
+        <div id="sourceRows" class="source-editor"></div>
+      </section>
+
+      <p id="adminStatus" class="admin-status" role="status"></p>
+    </main>
+
+    <script type="module" src="./admin.mjs"></script>
+  </body>
+</html>

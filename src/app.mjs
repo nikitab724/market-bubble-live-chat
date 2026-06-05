@@ -25,7 +25,7 @@ const platformMeta = {
   },
 };
 
-const connectedSources = [
+const fallbackSources = [
   {
     sourceId: "twitch-marketbubble",
     platform: "twitch",
@@ -68,7 +68,8 @@ const connectedSources = [
   },
 ];
 
-const sourceById = new Map(connectedSources.map((source) => [source.sourceId, source]));
+let connectedSources = fallbackSources.map((source) => ({ ...source }));
+let sourceById = buildSourceMap(connectedSources);
 
 const scriptedMessages = [
   ["twitch-marketbubble", "TapeReader", "tape-reader", "Twitch chat finally in one place would be insane", -118],
@@ -97,9 +98,9 @@ const livePool = [
 
 const state = {
   inspectingProfile: false,
-  sources: connectedSources.map((source) => ({ ...source })),
-  messages: seedMessages(),
-  twitchStatus: "connecting",
+  messages: [],
+  sources: [],
+  twitchStatuses: {},
 };
 
 const elements = {
@@ -109,9 +110,7 @@ const elements = {
 };
 
 bindEvents();
-render();
-initTwitchPlayer();
-startTwitchConnector();
+await initializeApp();
 
 window.setInterval(() => {
   if (state.inspectingProfile) {
@@ -122,6 +121,39 @@ window.setInterval(() => {
   nudgeViewerCounts();
   render();
 }, 2800);
+
+async function initializeApp() {
+  connectedSources = await loadPublicConfig();
+  sourceById = buildSourceMap(connectedSources);
+  state.sources = connectedSources.map((source) => ({ ...source }));
+  state.twitchStatuses = Object.fromEntries(
+    connectedSources
+      .filter((source) => source.platform === "twitch")
+      .map((source) => [source.sourceId, "connecting"]),
+  );
+  state.messages = seedMessages();
+  render();
+  initTwitchPlayer();
+  startTwitchConnectors();
+}
+
+async function loadPublicConfig() {
+  try {
+    const response = await fetch("/api/public-config", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("Config request failed");
+    }
+
+    const config = await response.json();
+    if (Array.isArray(config.sources) && config.sources.length > 0) {
+      return config.sources;
+    }
+  } catch {
+    return fallbackSources.map((source) => ({ ...source }));
+  }
+
+  return fallbackSources.map((source) => ({ ...source }));
+}
 
 function initTwitchPlayer() {
   const playerEl = document.querySelector("#twitchPlayer");
@@ -137,25 +169,60 @@ function initTwitchPlayer() {
   iframe.allow = "autoplay; fullscreen";
   iframe.title = `${twitchSource.sourceName} on Twitch`;
 
+  playerEl.replaceChildren();
   playerEl.appendChild(iframe);
 }
 
-function startTwitchConnector() {
-  const twitchSource = connectedSources.find((s) => s.platform === "twitch");
-  if (!twitchSource) return;
+function startTwitchConnectors() {
+  const twitchSources = connectedSources.filter((source) => source.platform === "twitch");
 
-  connectTwitchChat(twitchSource.sourceHandle, {
-    onMessage(rawMessage) {
-      state.messages = mergeMessages([
-        normalizeMessage(rawMessage),
-        ...state.messages,
-      ]).slice(0, 60);
-      render();
-    },
-    onStatus(status) {
-      state.twitchStatus = status;
-      render();
-    },
+  for (const twitchSource of twitchSources) {
+    connectTwitchChat(twitchSource.sourceHandle, {
+      source: twitchSource,
+      onMessage(rawMessage) {
+        state.messages = mergeMessages([
+          normalizeMessage(rawMessage),
+          ...state.messages,
+        ]).slice(0, 60);
+        render();
+      },
+      onStatus(status) {
+        state.twitchStatuses[twitchSource.sourceId] = status;
+        render();
+      },
+    });
+  }
+}
+
+function buildSourceMap(sources) {
+  return new Map(sources.map((source) => [source.sourceId, source]));
+}
+
+function hasSource(sourceId) {
+  return sourceById.has(sourceId);
+}
+
+function getSimulatedLivePool() {
+  return livePool.filter(([sourceId]) => hasSource(sourceId));
+}
+
+function getScriptedMessages() {
+  return scriptedMessages.filter(([sourceId]) => hasSource(sourceId));
+}
+
+function getSource(sourceId) {
+  const source = sourceById.get(sourceId);
+
+  if (!source) {
+    throw new Error(`Unknown source: ${sourceId}`);
+  }
+
+  return source;
+}
+
+function buildConfiguredMessage(sourceId, author, handle, body, timestamp) {
+  return normalizeMessage({
+    ...buildSourceMessage(sourceId, author, handle, body, timestamp),
   });
 }
 
@@ -175,27 +242,28 @@ function seedMessages() {
   const now = Date.now();
 
   return mergeMessages(
-    scriptedMessages.map(([sourceId, author, handle, body, secondsAgo]) =>
+    getScriptedMessages().map(([sourceId, author, handle, body, secondsAgo]) =>
       buildSourceMessage(sourceId, author, handle, body, new Date(now + secondsAgo * 1000).toISOString()),
     ),
   );
 }
 
 function pushLiveMessage() {
-  const [sourceId, author, handle, body] = livePool[Math.floor(Math.random() * livePool.length)];
+  const availableMessages = getSimulatedLivePool();
+  if (availableMessages.length === 0) {
+    return;
+  }
+
+  const [sourceId, author, handle, body] = availableMessages[Math.floor(Math.random() * availableMessages.length)];
 
   state.messages = mergeMessages([
-    normalizeMessage(buildSourceMessage(sourceId, author, handle, body, new Date().toISOString())),
+    buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
     ...state.messages,
   ]).slice(0, 60);
 }
 
 function buildSourceMessage(sourceId, author, handle, body, timestamp) {
-  const source = sourceById.get(sourceId);
-
-  if (!source) {
-    throw new Error(`Unknown source: ${sourceId}`);
-  }
+  const source = getSource(sourceId);
 
   return {
     platform: source.platform,
@@ -207,7 +275,7 @@ function buildSourceMessage(sourceId, author, handle, body, timestamp) {
     sourceId: source.sourceId,
     sourceName: source.sourceName,
     sourceHandle: source.sourceHandle,
-    sourceLabel: source.sourceName,
+    sourceLabel: source.sourceLabel || source.sourceName,
   };
 }
 
@@ -232,7 +300,9 @@ function render() {
 
 function renderSource(source) {
   const meta = platformMeta[source.platform];
-  const statusDot = source.platform === "twitch" ? renderStatusDot(state.twitchStatus) : "";
+  const statusDot = source.platform === "twitch"
+    ? renderStatusDot(state.twitchStatuses[source.sourceId] || "connecting")
+    : "";
 
   return `
     <div class="source-chip ${source.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(source.sourceLabel)}">
