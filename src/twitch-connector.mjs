@@ -73,8 +73,9 @@ export function connectTwitchChat(channel, { onMessage, onStatus, source } = {})
       const login = prefix.split("!")[0];
       const displayName = tags["display-name"] || login;
       const sentTs = tags["tmi-sent-ts"] ? parseInt(tags["tmi-sent-ts"], 10) : Date.now();
+      const emotes = parseTwitchEmoteTag(trailing, tags.emotes);
 
-      onMessage?.({
+      const message = {
         platform: "twitch",
         author: displayName,
         handle: login,
@@ -85,7 +86,12 @@ export function connectTwitchChat(channel, { onMessage, onStatus, source } = {})
         sourceName: sourceMeta.sourceName,
         sourceHandle: sourceMeta.sourceHandle || channelName,
         sourceLabel: sourceMeta.sourceLabel || sourceMeta.sourceName,
-      });
+      };
+      if (emotes.length > 0) {
+        message.emotes = emotes;
+      }
+
+      onMessage?.(message);
     }
   }
 
@@ -98,6 +104,30 @@ export function connectTwitchChat(channel, { onMessage, onStatus, source } = {})
       ws?.close();
     },
   };
+}
+
+export function parseTwitchEmoteTag(body, emoteTag = "") {
+  if (!emoteTag) return [];
+
+  return emoteTag
+    .split("/")
+    .flatMap((entry) => {
+      const [id, ranges = ""] = entry.split(":");
+      return ranges.split(",").map((range) => {
+        const [start, end] = range.split("-").map((value) => Number.parseInt(value, 10));
+        const name = body.slice(start, end + 1);
+
+        return {
+          end,
+          id,
+          name,
+          provider: "twitch",
+          start,
+          url: `https://static-cdn.jtvnw.net/emoticons/v2/${id}/default/dark/2.0`,
+        };
+      });
+    })
+    .filter((emote) => emote.id && Number.isInteger(emote.start) && Number.isInteger(emote.end));
 }
 
 function parseLine(line) {

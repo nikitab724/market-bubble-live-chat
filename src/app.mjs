@@ -4,6 +4,7 @@ import {
   mergeMessages,
   normalizeMessage,
 } from "./chat-model.mjs";
+import { renderMessageBody } from "./emote-renderer.mjs";
 import { connectTwitchChat } from "./twitch-connector.mjs";
 
 const platformMeta = {
@@ -24,6 +25,8 @@ const platformMeta = {
     source: "https://marketbubble.com",
   },
 };
+
+const LIVE_STATE_REFRESH_MS = 30_000;
 
 const fallbackSources = [
   {
@@ -86,13 +89,11 @@ const scriptedMessages = [
   ["room-marketbubble", "Nikita", "nikita", "okay this makes way more sense now", -16],
 ];
 
-// Twitch entries removed — real messages come from the live connector now.
+// Twitch and Kick entries removed — real messages come from backend connectors now.
 const livePool = [
-  ["kick-marketbubble", "LongOnly", "longonly", "Kick is live in the same feed"],
   ["x-banks", "CryptoJack", "cryptojack", "Banks X comment showing beside stream chat"],
   ["x-z", "ZedFlow", "zedflow", "Z X stream reply just hit"],
   ["room-marketbubble", "DeskSeat", "deskseat", "native chat feels better here"],
-  ["kick-marketbubble", "LiquidationLarry", "larry", "this is all it needed to be"],
   ["x-banks", "PMFSeeker", "pmfseeker", "ship the simple demo link"],
 ];
 
@@ -100,6 +101,7 @@ const state = {
   inspectingProfile: false,
   messages: [],
   sources: [],
+  twitchEmotes: {},
   twitchStatuses: {},
 };
 
@@ -112,13 +114,14 @@ const elements = {
 bindEvents();
 await initializeApp();
 
+window.setInterval(refreshLiveState, LIVE_STATE_REFRESH_MS);
+
 window.setInterval(() => {
   if (state.inspectingProfile) {
     return;
   }
 
   pushLiveMessage();
-  nudgeViewerCounts();
   render();
 }, 2800);
 
@@ -134,7 +137,10 @@ async function initializeApp() {
   state.messages = seedMessages();
   render();
   initTwitchPlayer();
+  loadTwitchEmotes();
   startTwitchConnectors();
+  startBackendChatEvents();
+  refreshLiveState();
 }
 
 async function loadPublicConfig() {
@@ -192,6 +198,46 @@ function startTwitchConnectors() {
       },
     });
   }
+}
+
+async function loadTwitchEmotes() {
+  const twitchSources = connectedSources.filter((source) => source.platform === "twitch");
+
+  await Promise.all(
+    twitchSources.map(async (source) => {
+      try {
+        const response = await fetch(`/api/twitch-emotes?channel=${encodeURIComponent(source.sourceHandle)}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        state.twitchEmotes[source.sourceId] = payload.emotes || {};
+        render();
+      } catch {
+        // Text chat still works if a third-party emote provider is unavailable.
+      }
+    }),
+  );
+}
+
+function startBackendChatEvents() {
+  if (!("EventSource" in window)) {
+    return;
+  }
+
+  const events = new EventSource("/api/chat-events");
+  events.addEventListener("chat", (event) => {
+    addBackendMessage(JSON.parse(event.data));
+  });
+}
+
+function addBackendMessage(rawMessage) {
+  state.messages = mergeMessages([
+    normalizeMessage(rawMessage),
+    ...state.messages,
+  ]).slice(0, 60);
+  render();
 }
 
 function buildSourceMap(sources) {
@@ -279,15 +325,40 @@ function buildSourceMessage(sourceId, author, handle, body, timestamp) {
   };
 }
 
-function nudgeViewerCounts() {
-  state.sources = state.sources.map((source) => {
-    const delta = Math.floor(Math.random() * 13) - 4;
+async function refreshLiveState() {
+  try {
+    const response = await fetch("/api/live-state", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("Live state request failed");
+    }
 
-    return {
-      ...source,
-      viewerCount: Math.max(0, source.viewerCount + delta),
-    };
-  });
+    const liveState = await response.json();
+    if (!Array.isArray(liveState.sources) || liveState.sources.length === 0) {
+      return;
+    }
+
+    const liveSourceById = new Map(liveState.sources.map((source) => [source.sourceId, source]));
+    state.sources = state.sources.map((source) => {
+      const liveSource = liveSourceById.get(source.sourceId);
+      if (!liveSource) {
+        return source;
+      }
+
+      return {
+        ...source,
+        gameName: liveSource.gameName || "",
+        isLive: liveSource.isLive === true,
+        startedAt: liveSource.startedAt || "",
+        streamTitle: liveSource.title || "",
+        thumbnailUrl: liveSource.thumbnailUrl || "",
+        viewerCount: Number(liveSource.viewerCount || 0),
+        viewerCountLocked: true,
+      };
+    });
+    render();
+  } catch {
+    // Keep configured or simulated values when live providers are unavailable.
+  }
 }
 
 function render() {
@@ -303,15 +374,28 @@ function renderSource(source) {
   const statusDot = source.platform === "twitch"
     ? renderStatusDot(state.twitchStatuses[source.sourceId] || "connecting")
     : "";
+  const chipTitle = getSourceChipTitle(meta, source);
 
   return `
-    <div class="source-chip ${source.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(source.sourceLabel)}">
+    <div class="source-chip ${source.platform}" title="${escapeHtml(chipTitle)}">
       <span>${escapeHtml(meta.label)}</span>
       <strong>${escapeHtml(source.sourceLabel)}</strong>
       ${statusDot}
       <b>${formatNumber(source.viewerCount)}</b>
     </div>
   `;
+}
+
+function getSourceChipTitle(meta, source) {
+  const parts = [`${meta.label} / ${source.sourceLabel}`];
+
+  if (source.viewerCountLocked) {
+    parts.push(source.isLive ? "Live" : "Offline");
+    if (source.streamTitle) parts.push(source.streamTitle);
+    if (source.gameName) parts.push(source.gameName);
+  }
+
+  return parts.join(" - ");
 }
 
 function renderStatusDot(status) {
@@ -333,7 +417,7 @@ function renderMessage(message) {
           <span class="source-label ${message.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(message.sourceLabel)}">${escapeHtml(message.sourceLabel)}</span>
           <time>${formatTime(message.timestamp)}</time>
         </div>
-        <p>${escapeHtml(message.body)}</p>
+        <p>${renderMessageBody(message, getTwitchEmoteMap(message))}</p>
       </div>
       <div class="profile-card" role="tooltip">
         <div class="profile-card-header">
@@ -368,6 +452,14 @@ function renderMessage(message) {
       </div>
     </article>
   `;
+}
+
+function getTwitchEmoteMap(message) {
+  if (message.platform !== "twitch") {
+    return {};
+  }
+
+  return state.twitchEmotes[message.sourceId] || {};
 }
 
 function updateInspectingState() {

@@ -16,8 +16,7 @@ export function normalizeMessage(input) {
   const sourceHandle = String(input.sourceHandle || "").replace(/^@/, "").trim();
   const sourceLabel = String(input.sourceLabel || sourceName).trim() || sourceName;
   const sourceId = String(input.sourceId || buildSourceId(platform, sourceHandle || sourceLabel)).trim();
-
-  return {
+  const message = {
     id: input.id || buildMessageId(platform, sourceId, handle || author, timestamp, body),
     platform,
     author,
@@ -32,6 +31,12 @@ export function normalizeMessage(input) {
     avatar: input.avatar || getInitial(author),
     sentiment: input.sentiment || inferSentiment(body),
   };
+
+  if (Array.isArray(input.emotes) && input.emotes.length > 0) {
+    message.emotes = input.emotes.map(normalizeEmote).filter(Boolean);
+  }
+
+  return message;
 }
 
 export function mergeMessages(messages) {
@@ -153,6 +158,25 @@ function normalizeViewerCount(viewerCount) {
   }
 
   return Math.max(0, Math.round(count));
+}
+
+function normalizeEmote(emote) {
+  const start = Number(emote.start);
+  const end = Number(emote.end);
+  const name = String(emote.name || "").trim();
+  const url = String(emote.url || "").trim();
+
+  if (!name || !url || !Number.isInteger(start) || !Number.isInteger(end)) {
+    return null;
+  }
+
+  return {
+    end,
+    name,
+    provider: String(emote.provider || "twitch").trim() || "twitch",
+    start,
+    url,
+  };
 }
 
 function toIsoTimestamp(timestamp) {

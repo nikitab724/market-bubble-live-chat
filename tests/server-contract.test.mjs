@@ -9,13 +9,53 @@ import { hashPassword } from "../src/admin-auth.mjs";
 import { createAppServer } from "../server.mjs";
 
 describe("server contract", () => {
+  it("opens admin source editing when no admin password hash is configured", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-open-admin-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [{ platform: "kick", sourceName: "Market Bubble", sourceHandle: "marketbubble" }],
+      }),
+    );
+
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+    });
+    await listen(server);
+
+    try {
+      const adminSources = await request(server, "GET", "/api/admin/sources");
+      assert.equal(adminSources.status, 200);
+      assert.equal(adminSources.json.sources[0].platform, "kick");
+
+      const update = await request(server, "PUT", "/api/admin/sources", {
+        sources: [{ platform: "twitch", sourceName: "Market Bubble", sourceHandle: "marketbubble", viewerCount: 999999 }],
+      });
+      assert.equal(update.status, 200);
+      assert.equal(update.json.sources[0].platform, "twitch");
+      assert.equal(update.json.sources[0].viewerCount, 0);
+
+      const login = await request(server, "POST", "/api/admin/login", { password: "" });
+      assert.equal(login.status, 204);
+    } finally {
+      await close(server);
+    }
+  });
+
   it("protects admin APIs with a server-side session cookie", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-admin-"));
     const configPath = join(tempDir, "sources.json");
     await writeFile(
       configPath,
       JSON.stringify({
-        sources: [{ platform: "twitch", sourceName: "Market Bubble", sourceHandle: "marketbubble" }],
+        sources: [
+          { platform: "twitch", sourceName: "Market Bubble", sourceHandle: "marketbubble" },
+          { platform: "kick", sourceName: "Market Bubble", sourceHandle: "marketbubble" },
+        ],
       }),
     );
 
@@ -27,6 +67,54 @@ describe("server contract", () => {
       configPath,
       rootDir: fileURLToPath(new URL("..", import.meta.url)),
       secureCookies: false,
+      twitchClient: {
+        async getLiveState(sources) {
+          return {
+            providers: { twitch: { status: "connected" } },
+            sources: sources
+              .filter((source) => source.platform === "twitch")
+              .map((source) => ({
+                isLive: true,
+                platform: "twitch",
+                sourceHandle: source.sourceHandle,
+                sourceId: source.sourceId,
+                sourceLabel: source.sourceLabel,
+                title: "Market Bubble Live",
+                viewerCount: 4321,
+            })),
+          };
+        },
+      },
+      twitchEmoteClient: {
+        async getEmotes(channel) {
+          return {
+            channel,
+            emotes: {
+              KEKW: { name: "KEKW", provider: "bttv", url: "https://cdn.betterttv.net/emote/kekw/2x" },
+            },
+            providers: { bttv: { status: "connected" } },
+          };
+        },
+      },
+      kickClient: {
+        async getLiveState(sources) {
+          return {
+            providers: { kick: { status: "connected" } },
+            sources: sources
+              .filter((source) => source.platform === "kick")
+              .map((source) => ({
+                isLive: true,
+                platform: "kick",
+                sourceHandle: source.sourceHandle,
+                sourceId: source.sourceId,
+                sourceLabel: source.sourceLabel,
+                title: "Kick Desk Live",
+                viewerCount: 987,
+              })),
+          };
+        },
+      },
+      kickWebhookVerifier: () => true,
     });
     await listen(server);
 
@@ -34,6 +122,66 @@ describe("server contract", () => {
       const publicConfig = await request(server, "GET", "/api/public-config");
       assert.equal(publicConfig.status, 200);
       assert.equal(publicConfig.json.sources[0].sourceId, "twitch-marketbubble");
+
+      const liveState = await request(server, "GET", "/api/live-state");
+      assert.equal(liveState.status, 200);
+      assert.deepEqual(liveState.json, {
+        providers: { kick: { status: "connected" }, twitch: { status: "connected" } },
+        sources: [
+          {
+            isLive: true,
+            platform: "twitch",
+            sourceHandle: "marketbubble",
+            sourceId: "twitch-marketbubble",
+            sourceLabel: "Market Bubble",
+            title: "Market Bubble Live",
+            viewerCount: 4321,
+          },
+          {
+            isLive: true,
+            platform: "kick",
+            sourceHandle: "marketbubble",
+            sourceId: "kick-marketbubble",
+            sourceLabel: "Market Bubble",
+            title: "Kick Desk Live",
+            viewerCount: 987,
+          },
+        ],
+      });
+
+      const twitchEmotes = await request(server, "GET", "/api/twitch-emotes?channel=MarketBubble");
+      assert.equal(twitchEmotes.status, 200);
+      assert.equal(twitchEmotes.json.channel, "MarketBubble");
+      assert.equal(twitchEmotes.json.emotes.KEKW.provider, "bttv");
+
+      const webhook = await request(
+        server,
+        "POST",
+        "/api/webhooks/kick",
+        {
+          message_id: "kick-message-1",
+          broadcaster: { username: "Market Bubble", channel_slug: "marketbubble" },
+          sender: { username: "RiskOn", channel_slug: "riskon" },
+          content: "real kick chat",
+          created_at: "2026-06-05T18:00:00Z",
+        },
+        "",
+        {
+          "kick-event-type": "chat.message.sent",
+          "kick-event-version": "1",
+        },
+      );
+      assert.equal(webhook.status, 204);
+
+      const devKickChat = await request(server, "POST", "/api/dev/kick-chat", {
+        author: "Local Tester",
+        body: "local kick inject",
+        handle: "localtester",
+        sourceHandle: "marketbubble",
+      });
+      assert.equal(devKickChat.status, 200);
+      assert.equal(devKickChat.json.message.platform, "kick");
+      assert.equal(devKickChat.json.message.body, "local kick inject");
 
       const privateFile = await request(server, "GET", "/server.mjs");
       assert.equal(privateFile.status, 404);
@@ -62,7 +210,13 @@ describe("server contract", () => {
         {
           sources: [
             { platform: "twitch", sourceName: "Market Bubble", sourceHandle: "marketbubble" },
-            { platform: "x", sourceName: "Banks", sourceHandle: "Banks", conversationId: "2062574325970973093" },
+            {
+              platform: "x",
+              sourceName: "Banks",
+              sourceHandle: "Banks",
+              conversationId: "2062574325970973093",
+              viewerCount: 999999,
+            },
           ],
         },
         cookie,
@@ -72,6 +226,7 @@ describe("server contract", () => {
 
       const saved = JSON.parse(await readFile(configPath, "utf8"));
       assert.equal(saved.sources[1].sourceId, "x-banks");
+      assert.equal(saved.sources[1].viewerCount, 0);
     } finally {
       await close(server);
     }
@@ -93,13 +248,14 @@ function close(server) {
   });
 }
 
-async function request(server, method, path, body, cookie = "") {
+async function request(server, method, path, body, cookie = "", headers = {}) {
   const { port } = server.address();
   const response = await fetch(`http://127.0.0.1:${port}${path}`, {
     method,
     headers: {
       ...(body ? { "content-type": "application/json" } : {}),
       ...(cookie ? { cookie } : {}),
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });

@@ -62,4 +62,42 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("fallbackSources"), true);
     assert.equal(app.includes("loadPublicConfig"), true);
   });
+
+  it("refreshes live stream state from the backend", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("/api/live-state"), true);
+    assert.equal(app.includes("refreshLiveState"), true);
+    assert.equal(app.includes("viewerCountLocked"), true);
+    assert.equal(app.includes('source.platform === "twitch" && source.viewerCountLocked'), false);
+  });
+
+  it("listens for backend chat events", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes('new EventSource("/api/chat-events")'), true);
+    assert.equal(app.includes("startBackendChatEvents"), true);
+    assert.equal(app.includes("addBackendMessage"), true);
+  });
+
+  it("loads and renders Twitch emotes", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes("/api/twitch-emotes"), true);
+    assert.equal(app.includes("loadTwitchEmotes"), true);
+    assert.equal(app.includes("renderMessageBody"), true);
+    assert.equal(app.includes("escapeHtml(message.body)"), false);
+    assert.equal(styles.includes(".chat-emote"), true);
+  });
+
+  it("does not expose manual viewer count editing or fake viewer movement", () => {
+    const admin = readFileSync(new URL("../admin/admin.mjs", import.meta.url), "utf8");
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(admin.includes('createNumberField("Viewers"'), false);
+    assert.equal(admin.includes('[name="viewerCount"]'), false);
+    assert.equal(admin.includes("createNumberField"), false);
+    assert.equal(app.includes("nudgeViewerCounts"), false);
+  });
 });

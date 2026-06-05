@@ -43,7 +43,6 @@ elements.addSourceButton.addEventListener("click", () => {
     sourceHandle: "",
     sourceName: "",
     conversationId: "",
-    viewerCount: 0,
   });
   renderSources();
 });
@@ -109,7 +108,6 @@ function renderSourceRow(source, index) {
     createTextField("Label", "sourceName", source.sourceName),
     createTextField("Handle", "sourceHandle", source.sourceHandle),
     createTextField("X conversation", "conversationId", source.conversationId),
-    createNumberField("Viewers", "viewerCount", source.viewerCount),
     createRemoveButton(index),
   );
 
@@ -123,7 +121,6 @@ function collectSources() {
     sourceName: row.querySelector('[name="sourceName"]').value,
     sourceHandle: row.querySelector('[name="sourceHandle"]').value,
     conversationId: row.querySelector('[name="conversationId"]').value,
-    viewerCount: row.querySelector('[name="viewerCount"]').value,
   }));
 }
 
@@ -160,18 +157,6 @@ function createTextField(label, name, value) {
   input.name = name;
   input.type = "text";
   input.value = value || "";
-  field.append(input);
-  return field;
-}
-
-function createNumberField(label, name, value) {
-  const field = createField(label);
-  const input = document.createElement("input");
-  input.name = name;
-  input.type = "number";
-  input.min = "0";
-  input.step = "1";
-  input.value = String(value || 0);
   field.append(input);
   return field;
 }

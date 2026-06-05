@@ -12,7 +12,16 @@ import {
   parseCookies,
   verifyPassword,
 } from "./src/admin-auth.mjs";
+import { createChatEventHub } from "./src/chat-events.mjs";
+import { createKickApiClient } from "./src/kick-api.mjs";
+import {
+  isKickChatEvent,
+  normalizeKickChatWebhook,
+  verifyKickWebhookSignature,
+} from "./src/kick-webhook.mjs";
 import { DEFAULT_SOURCES, normalizeSources, toPublicConfig } from "./src/source-config.mjs";
+import { createTwitchApiClient } from "./src/twitch-api.mjs";
+import { createTwitchEmoteClient } from "./src/twitch-emotes.mjs";
 
 const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG_PATH = join(ROOT_DIR, "data", "sources.json");
@@ -41,6 +50,7 @@ const PUBLIC_ASSETS = new Map([
   ["/styles.css", "styles.css"],
   ["/src/app.mjs", "src/app.mjs"],
   ["/src/chat-model.mjs", "src/chat-model.mjs"],
+  ["/src/emote-renderer.mjs", "src/emote-renderer.mjs"],
   ["/src/twitch-connector.mjs", "src/twitch-connector.mjs"],
 ]);
 
@@ -48,7 +58,13 @@ export function createAppServer(options = {}) {
   const rootDir = options.rootDir || ROOT_DIR;
   const configPath = options.configPath || DEFAULT_CONFIG_PATH;
   const adminPasswordHash = options.adminPasswordHash || process.env.ADMIN_PASSWORD_HASH || "";
+  const chatHub = options.chatHub || createChatEventHub();
+  const enableDevRoutes = options.enableDevRoutes ?? process.env.NODE_ENV !== "production";
+  const kickWebhookVerifier = options.kickWebhookVerifier || verifyKickWebhookSignature;
   const secureCookies = options.secureCookies ?? process.env.NODE_ENV === "production";
+  const kickClient = options.kickClient || createKickApiClient();
+  const twitchClient = options.twitchClient || createTwitchApiClient();
+  const twitchEmoteClient = options.twitchEmoteClient || createTwitchEmoteClient({ twitchClient });
   const sessions = new Map();
 
   return createServer(async (request, response) => {
@@ -59,9 +75,66 @@ export function createAppServer(options = {}) {
         return sendJson(response, 200, toPublicConfig(await readSources(configPath)));
       }
 
+      if (url.pathname === "/api/live-state" && request.method === "GET") {
+        return sendJson(response, 200, await getLiveState(await readSources(configPath), [twitchClient, kickClient]));
+      }
+
+      if (url.pathname === "/api/twitch-emotes" && request.method === "GET") {
+        const channel = url.searchParams.get("channel") || "";
+        if (!channel) {
+          return sendJson(response, 400, { error: "channel is required" });
+        }
+
+        return sendJson(response, 200, await twitchEmoteClient.getEmotes(channel));
+      }
+
+      if (url.pathname === "/api/chat-events" && request.method === "GET") {
+        return chatHub.connect(response);
+      }
+
+      if (url.pathname === "/api/webhooks/kick" && request.method === "POST") {
+        const rawBody = await readRawBody(request);
+
+        if (!isKickChatEvent(request.headers)) {
+          response.writeHead(204);
+          return response.end();
+        }
+
+        const validSignature = kickWebhookVerifier({ headers: request.headers, rawBody });
+        if (!validSignature) {
+          return sendJson(response, 401, { error: "Invalid Kick webhook signature" });
+        }
+
+        const message = normalizeKickChatWebhook({
+          payload: JSON.parse(rawBody),
+          sources: await readSources(configPath),
+        });
+        chatHub.broadcast("chat", message);
+
+        response.writeHead(204);
+        return response.end();
+      }
+
+      if (url.pathname === "/api/dev/kick-chat" && request.method === "POST") {
+        if (!enableDevRoutes) {
+          return sendJson(response, 404, { error: "Not found" });
+        }
+
+        const sources = await readSources(configPath);
+        const body = await readJsonBody(request);
+        const message = normalizeKickChatWebhook({
+          payload: buildDevKickChatPayload(body, sources),
+          sources,
+        });
+        chatHub.broadcast("chat", message);
+
+        return sendJson(response, 200, { message });
+      }
+
       if (url.pathname === "/api/admin/login" && request.method === "POST") {
         if (!adminPasswordHash) {
-          return sendJson(response, 503, { error: "ADMIN_PASSWORD_HASH is required" });
+          response.writeHead(204);
+          return response.end();
         }
 
         const body = await readJsonBody(request);
@@ -92,7 +165,7 @@ export function createAppServer(options = {}) {
       }
 
       if (url.pathname === "/api/admin/sources") {
-        if (!isAuthenticated(request, sessions, secureCookies)) {
+        if (adminPasswordHash && !isAuthenticated(request, sessions, secureCookies)) {
           return sendJson(response, 401, { error: "Unauthorized" });
         }
 
@@ -102,7 +175,7 @@ export function createAppServer(options = {}) {
 
         if (request.method === "PUT") {
           const body = await readJsonBody(request);
-          const sources = normalizeSources(body.sources || []);
+          const sources = normalizeSources(stripEditableViewerCounts(body.sources || []));
           await writeSources(configPath, sources);
           return sendJson(response, 200, { sources });
         }
@@ -117,6 +190,52 @@ export function createAppServer(options = {}) {
       return sendJson(response, 500, { error: error.message || "Server error" });
     }
   });
+}
+
+async function getLiveState(sources, clients) {
+  const states = await Promise.all(clients.map((client) => client.getLiveState(sources)));
+
+  return {
+    providers: Object.assign({}, ...states.map((state) => state.providers || {})),
+    sources: states.flatMap((state) => state.sources || []),
+  };
+}
+
+function buildDevKickChatPayload(body, sources) {
+  const source = getDevKickSource(body, sources);
+  const handle = String(body.handle || body.author || "localtester").replace(/^@/, "").trim();
+  const author = String(body.author || handle || "Local Tester").trim();
+
+  return {
+    message_id: `dev-${Date.now()}`,
+    broadcaster: {
+      username: source.sourceName,
+      channel_slug: source.sourceHandle,
+    },
+    sender: {
+      username: author,
+      channel_slug: handle || author,
+    },
+    content: body.body || "",
+    created_at: new Date().toISOString(),
+  };
+}
+
+function getDevKickSource(body, sources) {
+  const requestedHandle = String(body.sourceHandle || "").replace(/^@/, "").toLowerCase().trim();
+  const kickSources = sources.filter((source) => source.platform === "kick");
+  const source = kickSources.find((item) => item.sourceHandle === requestedHandle) || kickSources[0];
+
+  return source || {
+    sourceHandle: requestedHandle || "marketbubble",
+    sourceId: `kick-${requestedHandle || "marketbubble"}`,
+    sourceLabel: "Market Bubble",
+    sourceName: "Market Bubble",
+  };
+}
+
+function stripEditableViewerCounts(sources) {
+  return (Array.isArray(sources) ? sources : []).map(({ viewerCount, ...source }) => source);
 }
 
 export async function readSources(configPath = DEFAULT_CONFIG_PATH) {
@@ -158,17 +277,23 @@ function getSessionToken(request, secureCookies) {
 }
 
 async function readJsonBody(request) {
-  let raw = "";
-
-  for await (const chunk of request) {
-    raw += chunk;
-  }
+  const raw = await readRawBody(request);
 
   if (!raw) {
     return {};
   }
 
   return JSON.parse(raw);
+}
+
+async function readRawBody(request) {
+  let raw = "";
+
+  for await (const chunk of request) {
+    raw += chunk;
+  }
+
+  return raw;
 }
 
 function sendJson(response, statusCode, body) {

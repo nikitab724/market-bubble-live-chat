@@ -50,6 +50,34 @@ describe("chat model", () => {
     assert.deepEqual(messages.map((message) => message.platform), ["kick", "twitch", "x"]);
   });
 
+  it("preserves renderable emote metadata on messages", () => {
+    const message = normalizeMessage({
+      platform: "twitch",
+      author: "ChartLad",
+      body: "Kappa",
+      timestamp: "2026-06-05T03:00:00.000Z",
+      emotes: [
+        {
+          end: 4,
+          name: "Kappa",
+          provider: "twitch",
+          start: 0,
+          url: "https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0",
+        },
+      ],
+    });
+
+    assert.deepEqual(message.emotes, [
+      {
+        end: 4,
+        name: "Kappa",
+        provider: "twitch",
+        start: 0,
+        url: "https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0",
+      },
+    ]);
+  });
+
   it("counts active chatters and messages by platform", () => {
     const messages = mergeMessages([
       { platform: "twitch", author: "A", body: "one", timestamp: "2026-06-05T03:00:00.000Z" },

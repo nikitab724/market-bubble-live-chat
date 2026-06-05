@@ -3,12 +3,12 @@
     {
       "enabled": true,
       "platform": "twitch",
-      "sourceHandle": "marketbubble",
-      "sourceId": "twitch-marketbubble",
-      "sourceLabel": "Market Bubble",
-      "sourceName": "Market Bubble",
-      "sourceUrl": "https://twitch.tv/marketbubble",
-      "viewerCount": 3184,
+      "sourceHandle": "stableronaldo",
+      "sourceId": "twitch-stableronaldo",
+      "sourceLabel": "Ronny",
+      "sourceName": "Ronny",
+      "sourceUrl": "https://twitch.tv/stableronaldo",
+      "viewerCount": 0,
       "conversationId": ""
     },
     {
@@ -19,7 +19,7 @@
       "sourceLabel": "Market Bubble",
       "sourceName": "Market Bubble",
       "sourceUrl": "https://kick.com/marketbubble",
-      "viewerCount": 1260,
+      "viewerCount": 0,
       "conversationId": ""
     },
     {
@@ -30,7 +30,7 @@
       "sourceLabel": "Banks",
       "sourceName": "Banks",
       "sourceUrl": "https://x.com/banks",
-      "viewerCount": 8062,
+      "viewerCount": 0,
       "conversationId": "2062574325970973093"
     },
     {
@@ -41,7 +41,7 @@
       "sourceLabel": "Z",
       "sourceName": "Z",
       "sourceUrl": "https://x.com/z",
-      "viewerCount": 4720,
+      "viewerCount": 0,
       "conversationId": ""
     },
     {
@@ -52,7 +52,7 @@
       "sourceLabel": "MarketBubble.com",
       "sourceName": "MarketBubble.com",
       "sourceUrl": "https://marketbubble.com",
-      "viewerCount": 518,
+      "viewerCount": 0,
       "conversationId": ""
     }
   ]

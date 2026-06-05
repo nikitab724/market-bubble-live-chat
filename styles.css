@@ -500,6 +500,15 @@ h2 {
   line-height: 1.32;
 }
 
+.chat-emote {
+  display: inline-block;
+  max-width: 112px;
+  height: 28px;
+  margin: -4px 1px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
 .profile-card {
   position: absolute;
   right: 14px;
