@@ -4,6 +4,7 @@ import {
   mergeMessages,
   normalizeMessage,
 } from "./chat-model.mjs";
+import { connectTwitchChat } from "./twitch-connector.mjs";
 
 const platformMeta = {
   twitch: {
@@ -84,13 +85,12 @@ const scriptedMessages = [
   ["room-marketbubble", "Nikita", "nikita", "okay this makes way more sense now", -16],
 ];
 
+// Twitch entries removed — real messages come from the live connector now.
 const livePool = [
-  ["twitch-marketbubble", "FuturesFlow", "futuresflow", "Twitch message landing in shared chat"],
   ["kick-marketbubble", "LongOnly", "longonly", "Kick is live in the same feed"],
   ["x-banks", "CryptoJack", "cryptojack", "Banks X comment showing beside stream chat"],
   ["x-z", "ZedFlow", "zedflow", "Z X stream reply just hit"],
   ["room-marketbubble", "DeskSeat", "deskseat", "native chat feels better here"],
-  ["twitch-marketbubble", "OrderbookOli", "oli", "source badges are enough"],
   ["kick-marketbubble", "LiquidationLarry", "larry", "this is all it needed to be"],
   ["x-banks", "PMFSeeker", "pmfseeker", "ship the simple demo link"],
 ];
@@ -99,6 +99,7 @@ const state = {
   inspectingProfile: false,
   sources: connectedSources.map((source) => ({ ...source })),
   messages: seedMessages(),
+  twitchStatus: "connecting",
 };
 
 const elements = {
@@ -109,6 +110,8 @@ const elements = {
 
 bindEvents();
 render();
+initTwitchPlayer();
+startTwitchConnector();
 
 window.setInterval(() => {
   if (state.inspectingProfile) {
@@ -119,6 +122,42 @@ window.setInterval(() => {
   nudgeViewerCounts();
   render();
 }, 2800);
+
+function initTwitchPlayer() {
+  const playerEl = document.querySelector("#twitchPlayer");
+  if (!playerEl) return;
+
+  const twitchSource = connectedSources.find((s) => s.platform === "twitch");
+  if (!twitchSource) return;
+
+  const parent = window.location.hostname || "localhost";
+  const iframe = document.createElement("iframe");
+  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(twitchSource.sourceHandle)}&parent=${encodeURIComponent(parent)}&autoplay=true`;
+  iframe.allowFullscreen = true;
+  iframe.allow = "autoplay; fullscreen";
+  iframe.title = `${twitchSource.sourceName} on Twitch`;
+
+  playerEl.appendChild(iframe);
+}
+
+function startTwitchConnector() {
+  const twitchSource = connectedSources.find((s) => s.platform === "twitch");
+  if (!twitchSource) return;
+
+  connectTwitchChat(twitchSource.sourceHandle, {
+    onMessage(rawMessage) {
+      state.messages = mergeMessages([
+        normalizeMessage(rawMessage),
+        ...state.messages,
+      ]).slice(0, 60);
+      render();
+    },
+    onStatus(status) {
+      state.twitchStatus = status;
+      render();
+    },
+  });
+}
 
 function bindEvents() {
   elements.chatFeed.addEventListener("pointerover", (event) => {
@@ -193,14 +232,21 @@ function render() {
 
 function renderSource(source) {
   const meta = platformMeta[source.platform];
+  const statusDot = source.platform === "twitch" ? renderStatusDot(state.twitchStatus) : "";
 
   return `
     <div class="source-chip ${source.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(source.sourceLabel)}">
       <span>${escapeHtml(meta.label)}</span>
       <strong>${escapeHtml(source.sourceLabel)}</strong>
+      ${statusDot}
       <b>${formatNumber(source.viewerCount)}</b>
     </div>
   `;
+}
+
+function renderStatusDot(status) {
+  const labels = { connected: "Live", connecting: "Connecting…", disconnected: "Disconnected" };
+  return `<em class="live-dot ${status}" title="${labels[status] ?? status}"></em>`;
 }
 
 function renderMessage(message) {

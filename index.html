@@ -22,31 +22,7 @@
         </header>
 
         <div class="video-frame">
-          <div class="ticker-row" aria-hidden="true">
-            <span>BTC $104,820</span>
-            <span class="up">+2.4%</span>
-            <span>ETH $5,812</span>
-            <span class="down">-0.7%</span>
-            <span>SOL $218</span>
-          </div>
-
-          <svg viewBox="0 0 760 280" role="img" aria-label="Live market chart">
-            <defs>
-              <linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stop-color="#3be88b" stop-opacity="0.38" />
-                <stop offset="100%" stop-color="#3be88b" stop-opacity="0" />
-              </linearGradient>
-            </defs>
-            <path class="grid-line" d="M0 66H760M0 132H760M0 198H760" />
-            <path class="chart-fill" d="M0 218 C70 205 98 161 152 172 C212 186 246 101 312 120 C365 136 403 74 456 90 C520 109 548 43 604 58 C666 75 694 38 760 46 L760 280 L0 280 Z" />
-            <path class="chart-line" d="M0 218 C70 205 98 161 152 172 C212 186 246 101 312 120 C365 136 403 74 456 90 C520 109 548 43 604 58 C666 75 694 38 760 46" />
-          </svg>
-
-          <div class="video-copy">
-            <span>LIVE</span>
-            <h2>Market Bubble C-Suite</h2>
-            <p>Twitch / Kick / X / MarketBubble.com</p>
-          </div>
+          <div id="twitchPlayer" class="twitch-player"></div>
         </div>
       </section>
 
