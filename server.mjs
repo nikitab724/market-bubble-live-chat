@@ -109,6 +109,7 @@ export function createAppServer(options = {}) {
           const sources = await readSources(configPath);
           const message = normalizeXChatMessage(body, sources);
           chatHub.broadcast("chat", message);
+          console.log(`[x-chat] ${message.sourceLabel} | ${message.author}: ${message.body}`);
           response.writeHead(204);
           return response.end();
         }
