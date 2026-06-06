@@ -63,3 +63,20 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## 5. Documentation Memory
+
+**Use the docs as an LLM wiki. Keep them current.**
+
+Before non-trivial changes:
+- Read `docs/README.md` and the nearest directory-level `AGENTS.md` files for the files you will touch.
+- Treat `llms.txt` as the curated map of the repo, not as a replacement for reading the relevant source.
+- If behavior, routes, data shape, deployment, connector setup, tests, or operator steps change, update the matching docs in the same run.
+- Keep docs short, factual, and linked. Prefer Markdown files with stable headings over long prose dumps.
+- Do not document secrets, private keys, tokens, local-only passwords, or hidden production credentials.
+- If docs disagree with code, trust the code, fix the docs, and mention the mismatch.
+
+Directory rules:
+- Each top-level working directory should have its own `AGENTS.md` explaining what belongs there, what to avoid, and what docs/tests to update.
+- When creating a new directory with source, tests, scripts, or operational files, add a small `AGENTS.md` for that directory.
+- Do not use directory-level instructions to contradict this root file; add narrower, practical guidance only.

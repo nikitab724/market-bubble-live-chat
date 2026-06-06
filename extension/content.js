@@ -2,7 +2,7 @@
  * Market Bubble X Bridge — content script
  *
  * Watches an X livestream page for new chat messages and POSTs them
- * to the local Market Bubble backend at http://localhost:4178/api/x-chat.
+ * to the configured Market Bubble backend at /api/x-chat.
  *
  * IF X CHANGES THEIR DOM: open DevTools on an X live page, inspect the chat
  * sidebar, find the repeating container element, and update CHAT_SELECTORS

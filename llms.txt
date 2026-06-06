@@ -1,0 +1,27 @@
+# Market Bubble Live
+
+> Server-backed prototype for Market Bubble's hosted livestream page, combined chat overlay, admin source editor, and provider connectors.
+
+This file is a repo-local LLM index. It follows the `llms.txt` idea: concise Markdown, curated links, and short notes so agents can find the important docs before changing code.
+
+## Docs
+
+- [Docs index](docs/README.md): Start here for the app map, doc update rules, and task-specific links.
+- [Architecture](docs/architecture.md): Runtime surfaces, server routes, shared state, and data flow.
+- [Connectors](docs/connectors.md): Twitch, Kick, X, and native MarketBubble.com connector responsibilities.
+- [X Live setup](docs/x-live-setup.md): Current X stream/chat setup, Chrome extension workflow, and future official API path.
+- [Deployment](docs/deployment.md): Firecrawl server, GitHub Actions, Docker, persistent data, and tunnel notes.
+- [Testing](docs/testing.md): Local verification commands and smoke checks.
+- [LLM maintenance](docs/llm-maintenance.md): How to keep these docs useful for future agents.
+
+## Source Map
+
+- [Server entry](server.mjs): HTTP server, API routes, admin auth, Kick webhook, X chat ingest, and static serving.
+- [Browser app](src/app.mjs): Hosted viewer/chat runtime, stream embed selection, live state refresh, SSE chat ingest, and chat rendering.
+- [Admin UI](admin/admin.mjs): Source/profile editor and stream source selector.
+- [Chat overlay](chat/index.html): Chat-only browser source surface.
+- [X extension](extension/content.js): Chrome content script that watches X live chat DOM and posts messages to the backend.
+
+## Optional
+
+- [Superpowers specs](docs/superpowers/): Historical design and implementation planning notes.
