@@ -50,6 +50,16 @@ describe("chat model", () => {
     assert.deepEqual(messages.map((message) => message.platform), ["kick", "twitch", "x"]);
   });
 
+  it("dedupes backend messages by id", () => {
+    const messages = mergeMessages([
+      { id: "kick-message-1", platform: "kick", author: "A", body: "same", timestamp: "2026-06-05T03:00:00.000Z" },
+      { id: "kick-message-1", platform: "kick", author: "A", body: "same", timestamp: "2026-06-05T03:00:00.000Z" },
+    ]);
+
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].id, "kick-message-1");
+  });
+
   it("preserves renderable emote metadata on messages", () => {
     const message = normalizeMessage({
       platform: "twitch",

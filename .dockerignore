@@ -1,0 +1,7 @@
+.git
+.env
+.env.*
+!.env.example
+.playwright-cli
+output
+tests

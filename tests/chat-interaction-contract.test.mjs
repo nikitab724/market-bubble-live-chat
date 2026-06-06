@@ -27,6 +27,14 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes('id="sourceBreakdown"'), true);
   });
 
+  it("cache-busts the app module on both chat surfaces", () => {
+    const viewer = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+    const chat = readFileSync(new URL("../chat/index.html", import.meta.url), "utf8");
+
+    assert.match(viewer, /src="\.\/src\/app\.mjs\?v=[^"]+"/);
+    assert.match(chat, /src="\.\.\/src\/app\.mjs\?v=[^"]+"/);
+  });
+
   it("does not keep profile cards open through row focus", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
@@ -84,8 +92,17 @@ describe("chat interaction contract", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
 
     assert.equal(app.includes('new EventSource("/api/chat-events")'), true);
+    assert.equal(app.includes("/api/chat-events/recent"), false);
+    assert.equal(app.includes("pollBackendChatEvents"), false);
     assert.equal(app.includes("startBackendChatEvents"), true);
     assert.equal(app.includes("addBackendMessage"), true);
+  });
+
+  it("keeps enough chat history for busy multi-platform rooms", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("MAX_CHAT_MESSAGES = 200"), true);
+    assert.equal(app.includes(".slice(0, 60)"), false);
   });
 
   it("loads and renders Twitch emotes", () => {

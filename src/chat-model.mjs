@@ -40,8 +40,15 @@ export function normalizeMessage(input) {
 }
 
 export function mergeMessages(messages) {
+  const seenIds = new Set();
+
   return messages
     .map(normalizeMessage)
+    .filter((message) => {
+      if (seenIds.has(message.id)) return false;
+      seenIds.add(message.id);
+      return true;
+    })
     .sort((left, right) => {
       const timeDifference = Date.parse(right.timestamp) - Date.parse(left.timestamp);
 
