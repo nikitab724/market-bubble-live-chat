@@ -380,12 +380,19 @@ h2 {
 }
 
 .chat-feed {
+  min-height: 0;
+  overflow: hidden;
+  overflow-anchor: none;
+  overscroll-behavior: none;
+  padding: 0;
+}
+
+.chat-stack {
   display: flex;
   flex-direction: column;
   gap: 0;
-  min-height: 0;
-  overflow: auto;
-  padding: 0;
+  justify-content: flex-end;
+  min-height: 100%;
 }
 
 .chat-message {
@@ -480,6 +487,7 @@ h2 {
 }
 
 .profile-card {
+  display: none;
   position: absolute;
   right: 14px;
   top: 58px;
@@ -500,6 +508,7 @@ h2 {
 
 .chat-message:hover .profile-card,
 .profile-card:hover {
+  display: block;
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -721,6 +730,10 @@ h2 {
   display: grid;
   gap: 14px;
   padding: 0 14px 14px;
+}
+
+.profile-editor-body[hidden] {
+  display: none;
 }
 
 .profile-name-field {

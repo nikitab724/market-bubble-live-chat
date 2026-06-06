@@ -40,14 +40,14 @@ describe("chat model", () => {
     });
   });
 
-  it("merges messages newest first across platforms", () => {
+  it("merges messages oldest first so new chat renders at the bottom", () => {
     const messages = mergeMessages([
       { platform: "x", author: "MacroMax", body: "x reply", timestamp: "2026-06-05T03:00:00.000Z" },
       { platform: "kick", author: "RiskOn", body: "kick msg", timestamp: "2026-06-05T03:02:00.000Z" },
       { platform: "twitch", author: "TapeReader", body: "twitch msg", timestamp: "2026-06-05T03:01:00.000Z" },
     ]);
 
-    assert.deepEqual(messages.map((message) => message.platform), ["kick", "twitch", "x"]);
+    assert.deepEqual(messages.map((message) => message.platform), ["x", "twitch", "kick"]);
   });
 
   it("dedupes backend messages by id", () => {

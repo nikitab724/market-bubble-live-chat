@@ -43,6 +43,8 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes('addEventListener("focusin"'), false);
     assert.equal(app.includes('addEventListener("focusout"'), false);
     assert.equal(styles.includes(".chat-message:focus"), false);
+    assert.match(styles, /\.profile-card\s*\{[^}]*display: none/s);
+    assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
   it("does not render user profile picture placeholders in chat rows", () => {
@@ -103,6 +105,31 @@ describe("chat interaction contract", () => {
 
     assert.equal(app.includes("MAX_CHAT_MESSAGES = 200"), true);
     assert.equal(app.includes(".slice(0, 60)"), false);
+    assert.equal(app.includes("keepRecentMessages"), true);
+    assert.equal(app.includes(".slice(-MAX_CHAT_MESSAGES)"), true);
+  });
+
+  it("keeps the chat viewport pinned to the newest bottom messages", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes("scrollChatToBottom"), true);
+    assert.equal(app.includes('class="chat-stack"'), true);
+    assert.equal(app.includes("elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight"), true);
+    assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);
+  });
+
+  it("coalesces bursty chat updates while keeping native scrolling locked down", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes("CHAT_RENDER_INTERVAL_MS = 80"), true);
+    assert.equal(app.includes("function queueRender"), true);
+    assert.equal(app.includes("function flushQueuedRender"), true);
+    assert.equal(app.includes("queuedRenderFrame"), true);
+    assert.equal(app.includes("queuedScrollFrame"), true);
+    assert.equal(app.includes("window.cancelAnimationFrame(queuedScrollFrame)"), true);
+    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow: hidden[^}]*overflow-anchor: none/s);
   });
 
   it("loads and renders Twitch emotes", () => {
@@ -139,6 +166,7 @@ describe("chat interaction contract", () => {
     assert.equal(admin.includes("profile-toggle-icon"), true);
     assert.equal(styles.includes(".profile-editor-card"), true);
     assert.equal(styles.includes(".profile-social-grid"), true);
+    assert.equal(styles.includes(".profile-editor-body[hidden]"), true);
     assert.equal(styles.includes(".profile-toggle-icon"), true);
   });
 });

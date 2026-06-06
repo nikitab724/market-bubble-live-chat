@@ -28,6 +28,7 @@ const platformMeta = {
 
 const LIVE_STATE_REFRESH_MS = 30_000;
 const MAX_CHAT_MESSAGES = 200;
+const CHAT_RENDER_INTERVAL_MS = 80;
 
 const fallbackSources = [
   {
@@ -74,6 +75,10 @@ const fallbackSources = [
 
 let connectedSources = fallbackSources.map((source) => ({ ...source }));
 let sourceById = buildSourceMap(connectedSources);
+let lastRenderAt = 0;
+let queuedRenderFrame = 0;
+let queuedRenderTimer = 0;
+let queuedScrollFrame = 0;
 
 const scriptedMessages = [
   ["twitch-marketbubble", "TapeReader", "tape-reader", "Twitch chat finally in one place would be insane", -118],
@@ -123,7 +128,7 @@ window.setInterval(() => {
   }
 
   pushLiveMessage();
-  render();
+  queueRender();
 }, 2800);
 
 async function initializeApp() {
@@ -187,15 +192,15 @@ function startTwitchConnectors() {
     connectTwitchChat(twitchSource.sourceHandle, {
       source: twitchSource,
       onMessage(rawMessage) {
-        state.messages = mergeMessages([
-          normalizeMessage(rawMessage),
+        state.messages = keepRecentMessages(mergeMessages([
           ...state.messages,
-        ]).slice(0, MAX_CHAT_MESSAGES);
-        render();
+          normalizeMessage(rawMessage),
+        ]));
+        queueRender();
       },
       onStatus(status) {
         state.twitchStatuses[twitchSource.sourceId] = status;
-        render();
+        queueRender();
       },
     });
   }
@@ -214,7 +219,7 @@ async function loadTwitchEmotes() {
 
         const payload = await response.json();
         state.twitchEmotes[source.sourceId] = payload.emotes || {};
-        render();
+        queueRender();
       } catch {
         // Text chat still works if a third-party emote provider is unavailable.
       }
@@ -232,11 +237,11 @@ function startBackendChatEvents() {
 }
 
 function addBackendMessage(rawMessage) {
-  state.messages = mergeMessages([
-    normalizeMessage(rawMessage),
+  state.messages = keepRecentMessages(mergeMessages([
     ...state.messages,
-  ]).slice(0, MAX_CHAT_MESSAGES);
-  render();
+    normalizeMessage(rawMessage),
+  ]));
+  queueRender();
 }
 
 function buildSourceMap(sources) {
@@ -301,10 +306,10 @@ function pushLiveMessage() {
 
   const [sourceId, author, handle, body] = availableMessages[Math.floor(Math.random() * availableMessages.length)];
 
-  state.messages = mergeMessages([
-    buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
+  state.messages = keepRecentMessages(mergeMessages([
     ...state.messages,
-  ]).slice(0, MAX_CHAT_MESSAGES);
+    buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
+  ]));
 }
 
 function buildSourceMessage(sourceId, author, handle, body, timestamp) {
@@ -354,18 +359,54 @@ async function refreshLiveState() {
         viewerCountLocked: true,
       };
     });
-    render();
+    queueRender();
   } catch {
     // Keep configured or simulated values when live providers are unavailable.
   }
 }
 
+function queueRender() {
+  if (queuedRenderFrame || queuedRenderTimer) {
+    return;
+  }
+
+  const elapsed = window.performance.now() - lastRenderAt;
+  const delay = Math.max(0, CHAT_RENDER_INTERVAL_MS - elapsed);
+
+  queuedRenderTimer = window.setTimeout(() => {
+    queuedRenderTimer = 0;
+    queuedRenderFrame = window.requestAnimationFrame(flushQueuedRender);
+  }, delay);
+}
+
+function flushQueuedRender() {
+  queuedRenderFrame = 0;
+  render();
+}
+
 function render() {
+  lastRenderAt = window.performance.now();
   const viewerSummary = buildViewerSummary(state.sources);
 
   elements.viewerCount.textContent = formatNumber(viewerSummary.total);
   elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
-  elements.chatFeed.innerHTML = state.messages.map(renderMessage).join("");
+  elements.chatFeed.innerHTML = `<div class="chat-stack">${state.messages.map(renderMessage).join("")}</div>`;
+  scrollChatToBottom();
+}
+
+function keepRecentMessages(messages) {
+  return messages.slice(-MAX_CHAT_MESSAGES);
+}
+
+function scrollChatToBottom() {
+  if (queuedScrollFrame) {
+    window.cancelAnimationFrame(queuedScrollFrame);
+  }
+
+  queuedScrollFrame = window.requestAnimationFrame(() => {
+    queuedScrollFrame = 0;
+    elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight;
+  });
 }
 
 function renderSource(source) {

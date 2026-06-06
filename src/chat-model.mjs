@@ -50,7 +50,7 @@ export function mergeMessages(messages) {
       return true;
     })
     .sort((left, right) => {
-      const timeDifference = Date.parse(right.timestamp) - Date.parse(left.timestamp);
+      const timeDifference = Date.parse(left.timestamp) - Date.parse(right.timestamp);
 
       if (timeDifference !== 0) {
         return timeDifference;

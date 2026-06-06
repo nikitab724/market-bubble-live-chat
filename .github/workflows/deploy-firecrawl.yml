@@ -1,0 +1,54 @@
+name: Deploy Firecrawl
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: firecrawl-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FIRECRAWL_HOST: ${{ secrets.FIRECRAWL_HOST }}
+      FIRECRAWL_SSH_PORT: ${{ secrets.FIRECRAWL_SSH_PORT }}
+      FIRECRAWL_USER: ${{ secrets.FIRECRAWL_USER }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FIRECRAWL_HOST"
+          test -n "$FIRECRAWL_SSH_PORT"
+          test -n "$FIRECRAWL_USER"
+          test -n "${{ secrets.FIRECRAWL_SSH_PRIVATE_KEY }}"
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.FIRECRAWL_SSH_PRIVATE_KEY }}" > ~/.ssh/firecrawl_deploy_key
+          chmod 600 ~/.ssh/firecrawl_deploy_key
+          ssh-keyscan -p "$FIRECRAWL_SSH_PORT" "$FIRECRAWL_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy on firecrawl
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/firecrawl_deploy_key \
+            -p "$FIRECRAWL_SSH_PORT" \
+            "$FIRECRAWL_USER@$FIRECRAWL_HOST" \
+            'bash -se' <<'REMOTE'
+          set -euo pipefail
+
+          APP_DIR=/opt/market-bubble-live/app
+          if [ ! -d "$APP_DIR/.git" ]; then
+            echo "Missing git checkout at $APP_DIR" >&2
+            exit 1
+          fi
+
+          cd "$APP_DIR"
+          git fetch origin main
+          git reset --hard origin/main
+          bash scripts/deploy-firecrawl.sh
+          REMOTE
