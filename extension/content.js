@@ -204,36 +204,19 @@ function handleAddedNodes(nodes) {
   }
 }
 
-function findChatContainer() {
-  for (const selector of CHAT_SELECTORS) {
-    const el = document.querySelector(selector);
-    // Never return a button — that's the chat *toggle*, not the chat feed
-    if (el && el.tagName !== "BUTTON") return el;
-  }
-
-  // Fallback: find the chat drawer button and watch its parent for the content panel
-  const drawerBtn = document.querySelector('[data-testid="chat-drawer-main"]');
-  if (drawerBtn) {
-    const panel = drawerBtn.closest('[role="complementary"]') ||
-                  drawerBtn.parentElement?.parentElement;
-    if (panel && panel.tagName !== "BUTTON") return panel;
-  }
-
-  return null;
-}
-
-function startObserving(container) {
+function startObserving() {
   if (mutationObserver) mutationObserver.disconnect();
 
-  chatContainer = container;
   mutationObserver = new MutationObserver((mutations) => {
     const added = mutations.flatMap((m) => Array.from(m.addedNodes));
     if (added.length) handleAddedNodes(added);
   });
 
-  mutationObserver.observe(container, { childList: true, subtree: true });
+  // Watch the full document — no need to find the chat container since we
+  // identify messages by their UserAvatar-Container-* data-testid fingerprint.
+  mutationObserver.observe(document.body, { childList: true, subtree: true });
   setStatus("watching");
-  console.log("[MB X Bridge] Watching chat container:", container);
+  console.log("[MB X Bridge] Watching document.body for X Live chat messages");
 }
 
 function tryAttach() {
@@ -242,32 +225,22 @@ function tryAttach() {
     return;
   }
 
-  const container = findChatContainer();
-  if (container && container !== chatContainer) {
-    startObserving(container);
-    return;
-  }
-
-  if (!container) {
-    setStatus("no-container");
-    // Retry — X loads chat asynchronously after the video
-    setTimeout(tryAttach, 2000);
-  }
+  startObserving();
 }
 
 // ─── SPA navigation ──────────────────────────────────────────────────────────
+// Detect URL changes (X is a SPA) via a separate interval — avoids needing
+// a second MutationObserver on body competing with the chat observer.
 
 let lastUrl = location.href;
 
-new MutationObserver(() => {
+setInterval(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
-    chatContainer = null;
-    if (mutationObserver) mutationObserver.disconnect();
     currentSourceHandle = detectHandleFromUrl();
-    setTimeout(tryAttach, 1000); // wait for new page content
+    setTimeout(tryAttach, 1000); // wait for new page content to render
   }
-}).observe(document.body, { childList: true, subtree: true });
+}, 1000);
 
 // ─── Message from popup ───────────────────────────────────────────────────────
 
