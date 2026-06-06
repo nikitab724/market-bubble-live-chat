@@ -11,6 +11,7 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes("Market Bubble stream"), true);
     assert.equal(html.includes('class="chat-view"'), true);
     assert.equal(html.includes('id="chatFeed"'), true);
+    assert.equal(html.includes('id="jumpToLive"'), true);
     assert.equal(html.includes('id="viewerCount"'), true);
     assert.equal(html.includes('id="sourceBreakdown"'), true);
   });
@@ -23,6 +24,7 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes("Market Bubble stream"), false);
     assert.equal(html.includes('class="chat-view"'), true);
     assert.equal(html.includes('id="chatFeed"'), true);
+    assert.equal(html.includes('id="jumpToLive"'), true);
     assert.equal(html.includes('id="viewerCount"'), true);
     assert.equal(html.includes('id="sourceBreakdown"'), true);
   });
@@ -109,14 +111,23 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes(".slice(-MAX_CHAT_MESSAGES)"), true);
   });
 
-  it("keeps the chat viewport pinned to the newest bottom messages", () => {
+  it("keeps the chat viewport pinned to the newest bottom messages until the viewer scrolls up", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("scrollChatToBottom"), true);
+    assert.equal(app.includes("isChatAtBottom"), true);
+    assert.equal(app.includes("handleChatScroll"), true);
+    assert.equal(app.includes("jumpToLive"), true);
+    assert.equal(app.includes("followingChat: true"), true);
+    assert.equal(app.includes("state.followingChat = false"), true);
+    assert.equal(app.includes("state.followingChat = true"), true);
     assert.equal(app.includes('class="chat-stack"'), true);
     assert.equal(app.includes("elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight"), true);
     assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);
+    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: auto[^}]*overflow-anchor: none/s);
+    assert.match(styles, /\.jump-to-live\s*\{[^}]*position: absolute/s);
+    assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);
   });
 
   it("coalesces bursty chat updates while keeping native scrolling locked down", () => {
@@ -129,7 +140,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("queuedRenderFrame"), true);
     assert.equal(app.includes("queuedScrollFrame"), true);
     assert.equal(app.includes("window.cancelAnimationFrame(queuedScrollFrame)"), true);
-    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow: hidden[^}]*overflow-anchor: none/s);
+    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: auto[^}]*overflow-anchor: none/s);
   });
 
   it("loads and renders Twitch emotes", () => {
