@@ -621,11 +621,13 @@ h2 {
 
 .profile-card {
   display: none;
-  position: absolute;
-  right: 14px;
-  top: 58px;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
   z-index: 10;
-  width: min(330px, calc(100% - 28px));
+  width: min(330px, calc(100vw - 32px));
+  max-height: min(320px, calc(100vh - 48px));
+  overflow: hidden;
   padding: 13px;
   border: 1px solid rgba(231, 228, 216, 0.46);
   border-radius: 0;

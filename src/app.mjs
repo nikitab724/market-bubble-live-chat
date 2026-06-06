@@ -134,7 +134,6 @@ function bindEvents() {
     window.setTimeout(renderer.updateInspectingState, 0);
   });
 
-  elements.chatFeed.addEventListener("scroll", renderer.handleChatScroll, { passive: true });
   elements.chatView.addEventListener("wheel", renderer.handleChatWheel, { capture: true, passive: false });
   elements.chatView.addEventListener("touchstart", renderer.handleChatTouchStart, { capture: true, passive: true });
   elements.chatView.addEventListener("touchmove", renderer.handleChatTouchMove, { capture: true, passive: false });

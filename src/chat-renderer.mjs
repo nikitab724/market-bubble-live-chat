@@ -136,7 +136,8 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
 
     queuedScrollFrame = window.requestAnimationFrame(() => {
       queuedScrollFrame = 0;
-      elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight;
+      state.followingChat = true;
+      elements.chatFeed.scrollTop = getMaxScrollTop();
       updateJumpToLive();
     });
   }
@@ -194,6 +195,13 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     const nextScrollTop = clampChatScrollTop(elements.chatFeed.scrollTop + deltaY);
 
     if (nextScrollTop === elements.chatFeed.scrollTop) {
+      if (deltaY > 0 && isChatNearBottom()) {
+        state.followingChat = true;
+        if (state.pendingChatRender) {
+          state.queueRender();
+        }
+        updateJumpToLive();
+      }
       return;
     }
 

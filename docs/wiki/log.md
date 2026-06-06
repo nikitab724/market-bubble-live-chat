@@ -61,3 +61,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Kept hover/profile render freezing only for the scrolled-up reading state.
 - Updated the app module cache-bust query for the hover follow-up.
 - Verification: Chrome deployed-page repro showed live chat could fall `181px` behind bottom while hammering the newest rows before this patch; `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed) now pins bottom hover as a live-following state.
+
+## [2026-06-06] ui | Fix bottom hover scroll overflow
+
+- Moved chat profile hover cards to fixed overlay positioning so hovering the newest rows cannot add scrollable overflow below the last message.
+- Removed the native chat feed scroll listener from the controlled-scroll path and clamped live autoscroll to the feed's current max scroll position.
+- Updated the app module cache-bust query for the fixed hover-card runtime.
+- Verification: focused `node --test tests/chat-interaction-contract.test.mjs` passed; Chrome local repro with 180 injected chat messages plus repeated wheel-down gestures over the bottom rows stayed at `distanceFromBottom: 0`, with jump-to-live hidden and `window.scrollY: 0`; scroll-up still paused at `distanceFromBottom: 900`, and jump-to-live returned to `0`.

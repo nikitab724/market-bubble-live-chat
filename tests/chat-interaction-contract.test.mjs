@@ -174,9 +174,10 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("getDistanceFromBottom"), true);
     assert.equal(app.includes("const shouldFollowChat = state.followingChat || isChatNearBottom()"), true);
     assert.equal(app.includes('class="chat-stack"'), true);
-    assert.equal(app.includes("elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight"), true);
+    assert.equal(app.includes("elements.chatFeed.scrollTop = getMaxScrollTop()"), true);
     assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*overflow-anchor: none/s);
+    assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*bottom:/s);
     assert.match(styles, /\.jump-to-live\s*\{[^}]*position: absolute/s);
     assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);
   });
@@ -215,6 +216,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("handleChatWheel"), true);
     assert.equal(app.includes("handleChatTouchStart"), true);
     assert.equal(app.includes("handleChatTouchMove"), true);
+    assert.equal(app.includes('addEventListener("scroll", renderer.handleChatScroll'), false);
     assert.equal(app.includes("cancelScrollEvent(event);"), true);
     assert.equal(app.includes("scrollChatFeedBy"), true);
     assert.equal(app.includes("clampChatScrollTop"), true);
