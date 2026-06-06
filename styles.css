@@ -381,7 +381,9 @@ h2 {
 
 .chat-feed {
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
+  overflow-anchor: none;
+  overscroll-behavior: none;
   padding: 0;
 }
 

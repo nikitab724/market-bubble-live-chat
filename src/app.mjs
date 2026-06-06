@@ -28,6 +28,7 @@ const platformMeta = {
 
 const LIVE_STATE_REFRESH_MS = 30_000;
 const MAX_CHAT_MESSAGES = 200;
+const CHAT_RENDER_INTERVAL_MS = 80;
 
 const fallbackSources = [
   {
@@ -74,6 +75,10 @@ const fallbackSources = [
 
 let connectedSources = fallbackSources.map((source) => ({ ...source }));
 let sourceById = buildSourceMap(connectedSources);
+let lastRenderAt = 0;
+let queuedRenderFrame = 0;
+let queuedRenderTimer = 0;
+let queuedScrollFrame = 0;
 
 const scriptedMessages = [
   ["twitch-marketbubble", "TapeReader", "tape-reader", "Twitch chat finally in one place would be insane", -118],
@@ -123,7 +128,7 @@ window.setInterval(() => {
   }
 
   pushLiveMessage();
-  render();
+  queueRender();
 }, 2800);
 
 async function initializeApp() {
@@ -191,11 +196,11 @@ function startTwitchConnectors() {
           ...state.messages,
           normalizeMessage(rawMessage),
         ]));
-        render();
+        queueRender();
       },
       onStatus(status) {
         state.twitchStatuses[twitchSource.sourceId] = status;
-        render();
+        queueRender();
       },
     });
   }
@@ -214,7 +219,7 @@ async function loadTwitchEmotes() {
 
         const payload = await response.json();
         state.twitchEmotes[source.sourceId] = payload.emotes || {};
-        render();
+        queueRender();
       } catch {
         // Text chat still works if a third-party emote provider is unavailable.
       }
@@ -236,7 +241,7 @@ function addBackendMessage(rawMessage) {
     ...state.messages,
     normalizeMessage(rawMessage),
   ]));
-  render();
+  queueRender();
 }
 
 function buildSourceMap(sources) {
@@ -354,13 +359,33 @@ async function refreshLiveState() {
         viewerCountLocked: true,
       };
     });
-    render();
+    queueRender();
   } catch {
     // Keep configured or simulated values when live providers are unavailable.
   }
 }
 
+function queueRender() {
+  if (queuedRenderFrame || queuedRenderTimer) {
+    return;
+  }
+
+  const elapsed = window.performance.now() - lastRenderAt;
+  const delay = Math.max(0, CHAT_RENDER_INTERVAL_MS - elapsed);
+
+  queuedRenderTimer = window.setTimeout(() => {
+    queuedRenderTimer = 0;
+    queuedRenderFrame = window.requestAnimationFrame(flushQueuedRender);
+  }, delay);
+}
+
+function flushQueuedRender() {
+  queuedRenderFrame = 0;
+  render();
+}
+
 function render() {
+  lastRenderAt = window.performance.now();
   const viewerSummary = buildViewerSummary(state.sources);
 
   elements.viewerCount.textContent = formatNumber(viewerSummary.total);
@@ -374,7 +399,12 @@ function keepRecentMessages(messages) {
 }
 
 function scrollChatToBottom() {
-  window.requestAnimationFrame(() => {
+  if (queuedScrollFrame) {
+    window.cancelAnimationFrame(queuedScrollFrame);
+  }
+
+  queuedScrollFrame = window.requestAnimationFrame(() => {
+    queuedScrollFrame = 0;
     elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight;
   });
 }

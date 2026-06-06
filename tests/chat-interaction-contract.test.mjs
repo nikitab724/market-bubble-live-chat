@@ -119,6 +119,19 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);
   });
 
+  it("coalesces bursty chat updates while keeping native scrolling locked down", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes("CHAT_RENDER_INTERVAL_MS = 80"), true);
+    assert.equal(app.includes("function queueRender"), true);
+    assert.equal(app.includes("function flushQueuedRender"), true);
+    assert.equal(app.includes("queuedRenderFrame"), true);
+    assert.equal(app.includes("queuedScrollFrame"), true);
+    assert.equal(app.includes("window.cancelAnimationFrame(queuedScrollFrame)"), true);
+    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow: hidden[^}]*overflow-anchor: none/s);
+  });
+
   it("loads and renders Twitch emotes", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
