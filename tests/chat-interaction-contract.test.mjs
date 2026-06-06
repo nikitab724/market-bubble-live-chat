@@ -176,7 +176,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes('class="chat-stack"'), true);
     assert.equal(app.includes("elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight"), true);
     assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);
-    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: auto[^}]*overflow-anchor: none/s);
+    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*overflow-anchor: none/s);
     assert.match(styles, /\.jump-to-live\s*\{[^}]*position: absolute/s);
     assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);
   });
@@ -202,28 +202,30 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("queuedRenderFrame"), true);
     assert.equal(app.includes("queuedScrollFrame"), true);
     assert.equal(app.includes("window.cancelAnimationFrame(queuedScrollFrame)"), true);
-    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: auto[^}]*overflow-anchor: none/s);
+    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*overflow-anchor: none/s);
   });
 
   it("prevents rubber-band scrolling past chat boundaries", () => {
     const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
-    assert.equal(app.includes("SCROLL_BOUNDARY_EPSILON_PX = 1"), true);
     assert.equal(app.includes("chatView: document.querySelector(\".chat-view\")"), true);
     assert.equal(app.includes("handleChatWheel"), true);
     assert.equal(app.includes("handleChatTouchStart"), true);
     assert.equal(app.includes("handleChatTouchMove"), true);
-    assert.equal(app.includes("preventBoundaryBounce"), true);
-    assert.equal(app.includes("routePanelScrollToFeed"), true);
+    assert.equal(app.includes("cancelScrollEvent(event);"), true);
     assert.equal(app.includes("scrollChatFeedBy"), true);
-    assert.equal(app.includes("isChatAtBottomBoundary"), true);
-    assert.equal(app.includes("isChatAtTopBoundary"), true);
+    assert.equal(app.includes("clampChatScrollTop"), true);
+    assert.equal(app.includes("const nextScrollTop = clampChatScrollTop(elements.chatFeed.scrollTop + deltaY)"), true);
+    assert.equal(app.includes("preventBoundaryBounce"), false);
+    assert.equal(app.includes("routePanelScrollToFeed"), false);
     assert.match(app, /elements\.chatView\.addEventListener\("wheel", renderer\.handleChatWheel, \{ capture: true, passive: false \}\)/);
     assert.match(app, /elements\.chatView\.addEventListener\("touchmove", renderer\.handleChatTouchMove, \{ capture: true, passive: false \}\)/);
     assert.match(app, /if \(event\.cancelable\) \{[\s\S]*event\.preventDefault\(\);[\s\S]*\}/);
     assert.match(styles, /html\s*\{[^}]*height: 100%[^}]*overflow: hidden[^}]*overscroll-behavior: none/s);
     assert.match(styles, /body\s*\{[^}]*position: fixed[^}]*inset: 0[^}]*overflow: hidden[^}]*overscroll-behavior: none/s);
+    assert.match(styles, /\.chat-view\s*\{[^}]*overscroll-behavior: none/s);
+    assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*touch-action: none/s);
   });
 
   it("appends new chat rows without rebuilding the full chat history", () => {

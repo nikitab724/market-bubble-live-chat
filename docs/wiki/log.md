@@ -47,3 +47,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Preserved the bottom threshold, paused-reading state, and jump-to-live behavior.
 - Updated the app module cache-bust query for the new runtime.
 - Verification: `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed); in-app browser smoke for `/chat/?demoChat=1` confirmed `body`/`html` overflow hidden, `body` fixed, document height equal to viewport, scroll-down at bottom stayed at distance `0`, header scroll gestures moved the feed instead of the page, normal feed scroll still worked, and console errors were empty.
+
+## [2026-06-06] ui | Use controlled chat scrolling
+
+- Removed native vertical scrolling from `.chat-feed` with `overflow-y: hidden` and `touch-action: none`.
+- Changed wheel/touch handling to always cancel native scroll and manually clamp `scrollTop` between `0` and the last message.
+- Updated the app module cache-bust query for the controlled scroller.
+- Verification: `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed); in-app browser smoke for `/chat/?demoChat=1` confirmed `overflow-y: hidden`, `touch-action: none`, repeated wheel-down directly over the last row stayed at distance `0`, normal wheel-up paused live mode, wheel-down clamped to bottom, `window.scrollY` stayed `0`, and console errors were empty.

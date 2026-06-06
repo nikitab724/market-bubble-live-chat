@@ -3,14 +3,12 @@ import { renderMessageBody } from "./emote-renderer.mjs";
 import { escapeHtml, platformMeta } from "./platforms.mjs";
 
 const AUTO_SCROLL_THRESHOLD_PX = 120;
-const SCROLL_BOUNDARY_EPSILON_PX = 1;
 const CHAT_RENDER_WINDOW_SIZE = 500;
 
 export function createChatRenderer({ window, elements, state, getAuthorProfile, getTwitchEmoteMap }) {
   let renderedMessageIds = [];
   let queuedScrollFrame = 0;
   let lastTouchClientY = null;
-  let lastTouchStartedInFeed = false;
 
   return {
     handleChatScroll,
@@ -162,18 +160,17 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       return;
     }
 
-    routePanelScrollToFeed(event, event.deltaY, isEventInsideChatFeed(event));
+    cancelScrollEvent(event);
+    scrollChatFeedBy(event.deltaY);
   }
 
   function handleChatTouchStart(event) {
     lastTouchClientY = event.touches[0]?.clientY ?? null;
-    lastTouchStartedInFeed = isEventInsideChatFeed(event);
   }
 
   function handleChatTouchMove(event) {
     if (event.touches.length !== 1) {
       lastTouchClientY = null;
-      lastTouchStartedInFeed = false;
       return;
     }
 
@@ -184,29 +181,17 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     }
 
     const deltaY = lastTouchClientY - currentTouchY;
-    routePanelScrollToFeed(event, deltaY, lastTouchStartedInFeed);
+    cancelScrollEvent(event);
+    scrollChatFeedBy(deltaY);
     lastTouchClientY = currentTouchY;
   }
 
-  function routePanelScrollToFeed(event, deltaY, startedInFeed) {
-    if (deltaY === 0) {
-      return;
-    }
-
-    if (!startedInFeed) {
-      cancelScrollEvent(event);
-      scrollChatFeedBy(deltaY);
-      return;
-    }
-
-    preventBoundaryBounce(event, deltaY);
-  }
-
   function scrollChatFeedBy(deltaY) {
-    const nextScrollTop = Math.min(
-      getMaxScrollTop(),
-      Math.max(0, elements.chatFeed.scrollTop + deltaY),
-    );
+    if (!Number.isFinite(deltaY) || deltaY === 0) {
+      return;
+    }
+
+    const nextScrollTop = clampChatScrollTop(elements.chatFeed.scrollTop + deltaY);
 
     if (nextScrollTop === elements.chatFeed.scrollTop) {
       return;
@@ -216,37 +201,18 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     handleChatScroll();
   }
 
-  function preventBoundaryBounce(event, deltaY) {
-    const isMovingPastBottom = deltaY > 0 && isChatAtBottomBoundary();
-    const isMovingPastTop = deltaY < 0 && isChatAtTopBoundary();
-
-    if (!isMovingPastBottom && !isMovingPastTop) {
-      return;
-    }
-
-    cancelScrollEvent(event);
-  }
-
   function cancelScrollEvent(event) {
     if (event.cancelable) {
       event.preventDefault();
     }
   }
 
-  function isEventInsideChatFeed(event) {
-    return event.target instanceof window.Node && elements.chatFeed.contains(event.target);
-  }
-
   function isChatNearBottom() {
     return getDistanceFromBottom() <= AUTO_SCROLL_THRESHOLD_PX;
   }
 
-  function isChatAtBottomBoundary() {
-    return getDistanceFromBottom() <= SCROLL_BOUNDARY_EPSILON_PX;
-  }
-
-  function isChatAtTopBoundary() {
-    return elements.chatFeed.scrollTop <= SCROLL_BOUNDARY_EPSILON_PX;
+  function clampChatScrollTop(scrollTop) {
+    return Math.min(getMaxScrollTop(), Math.max(0, scrollTop));
   }
 
   function getMaxScrollTop() {
