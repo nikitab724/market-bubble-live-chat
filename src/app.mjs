@@ -365,7 +365,7 @@ function render() {
 
   elements.viewerCount.textContent = formatNumber(viewerSummary.total);
   elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
-  elements.chatFeed.innerHTML = state.messages.map(renderMessage).join("");
+  elements.chatFeed.innerHTML = `<div class="chat-stack">${state.messages.map(renderMessage).join("")}</div>`;
   scrollChatToBottom();
 }
 
