@@ -236,10 +236,16 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       const messageRect = messageRow.getBoundingClientRect();
       const cardRect = profileCard.getBoundingClientRect();
       const cardWidth = cardRect.width || Math.min(330, window.innerWidth - gutter * 2);
+      const cardHeight = Math.min(
+        profileCard.scrollHeight || cardRect.height || 320,
+        320,
+        window.innerHeight - gutter * 2,
+      );
       const preferredLeft = messageRect.right - cardWidth - gutter;
       const minimumLeft = Math.min(anchorRect.left, messageRect.right - cardWidth);
       const left = clampToViewport(preferredLeft, minimumLeft, window.innerWidth - cardWidth - gutter);
-      const top = messageRect.bottom - 1;
+      const preferredTop = messageRect.bottom - 1;
+      const top = clampToViewport(preferredTop, gutter, window.innerHeight - cardHeight - gutter);
       const maxHeight = Math.max(96, window.innerHeight - top - gutter);
 
       profileCard.style.setProperty("--profile-card-left", `${Math.round(left)}px`);

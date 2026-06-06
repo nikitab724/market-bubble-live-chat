@@ -66,7 +66,8 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("renderer.positionProfileCard(message);"), true);
     assert.equal(app.includes('elements.chatFeed.addEventListener("pointermove"'), true);
     assert.equal(app.includes("const preferredLeft = messageRect.right - cardWidth - gutter"), true);
-    assert.equal(app.includes("const top = messageRect.bottom - 1"), true);
+    assert.equal(app.includes("const preferredTop = messageRect.bottom - 1"), true);
+    assert.equal(app.includes("const top = clampToViewport(preferredTop"), true);
     assert.equal(app.includes("--profile-card-max-height"), true);
     assert.equal(app.includes('elements.chatFeed.querySelector(".profile-card:hover")'), true);
     assert.match(styles, /\.profile-card\s*\{[^}]*display: none/s);

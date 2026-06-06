@@ -101,3 +101,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Preserved the 1px message-border overlap so pointer travel from message to card stays continuous.
 - Updated the app module cache-bust query for the right-side hover-card runtime.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; Chrome local hover check measured a `12px` right gutter from message row to card, `1px` message-border overlap, and chat still at `distanceFromBottom: 0`.
+
+## [2026-06-06] ui | Fit profile cards inside viewport
+
+- Clamped profile-card top position upward when the border-attached placement would fall below the viewport.
+- Kept right-side alignment and the preferred 1px message-border attachment when there is room.
+- Updated the app module cache-bust query for the viewport-fitting hover-card runtime.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; Chrome local bottom-row hover check measured the card moving upward to fit with a `12px` viewport bottom gap, a `12px` right gutter, and chat still at `distanceFromBottom: 0`.
