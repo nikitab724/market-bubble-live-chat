@@ -110,7 +110,13 @@ function renderProfileHeader(profile, index) {
   button.className = "profile-editor-toggle";
   button.type = "button";
   button.setAttribute("aria-expanded", String(profile.expanded === true));
+  button.setAttribute("aria-label", `${profile.expanded ? "Close" : "Open"} ${profile.name || "profile"}`);
   button.addEventListener("click", () => toggleProfile(index));
+
+  const toggleIcon = document.createElement("span");
+  toggleIcon.className = "profile-toggle-icon";
+  toggleIcon.setAttribute("aria-hidden", "true");
+  toggleIcon.textContent = profile.expanded ? "-" : "+";
 
   const title = document.createElement("span");
   title.className = "profile-editor-title";
@@ -124,7 +130,7 @@ function renderProfileHeader(profile, index) {
   badges.className = "profile-platform-badges";
   badges.append(...profilePlatforms.map((platform) => renderPlatformBadge(profile, platform.id, platform.label)));
 
-  button.append(title, meta, badges);
+  button.append(toggleIcon, title, meta, badges);
   return button;
 }
 

@@ -136,7 +136,9 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes('id="profileCards"'), true);
     assert.equal(admin.includes("buildProfilesFromSources"), true);
     assert.equal(admin.includes("toggleProfile"), true);
+    assert.equal(admin.includes("profile-toggle-icon"), true);
     assert.equal(styles.includes(".profile-editor-card"), true);
     assert.equal(styles.includes(".profile-social-grid"), true);
+    assert.equal(styles.includes(".profile-toggle-icon"), true);
   });
 });
