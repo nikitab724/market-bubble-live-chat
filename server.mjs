@@ -47,6 +47,7 @@ const PUBLIC_ASSETS = new Map([
   ["/admin/", "admin/index.html"],
   ["/admin/index.html", "admin/index.html"],
   ["/admin/admin.mjs", "admin/admin.mjs"],
+  ["/admin/profile-model.mjs", "admin/profile-model.mjs"],
   ["/styles.css", "styles.css"],
   ["/src/app.mjs", "src/app.mjs"],
   ["/src/chat-model.mjs", "src/chat-model.mjs"],

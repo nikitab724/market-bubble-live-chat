@@ -118,6 +118,23 @@ describe("source config", () => {
     });
   });
 
+  it("keeps admin profile metadata private to source editing", () => {
+    const [source] = normalizeSources([
+      {
+        platform: "kick",
+        profileId: "market-bubble",
+        profileName: "Market Bubble",
+        sourceName: "Kick Desk",
+        sourceHandle: "marketbubble",
+      },
+    ]);
+
+    assert.equal(source.profileId, "market-bubble");
+    assert.equal(source.profileName, "Market Bubble");
+    assert.equal(toPublicConfig([source]).sources[0].profileId, undefined);
+    assert.equal(toPublicConfig([source]).sources[0].profileName, undefined);
+  });
+
   it("keeps the default config focused on the requested platforms", () => {
     assert.deepEqual(
       DEFAULT_SOURCES.map((source) => source.platform),

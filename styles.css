@@ -596,7 +596,9 @@ h2 {
 
 .admin-header p,
 .admin-status,
-.source-field span,
+.profile-field span,
+.profile-editor-meta,
+.profile-platform,
 .admin-login label {
   color: var(--muted);
   font-family: var(--label-font);
@@ -634,19 +636,136 @@ h2 {
   margin-bottom: 14px;
 }
 
-.source-editor {
+.profile-editor {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
-.source-editor-row {
-  display: grid;
-  grid-template-columns: 92px 132px repeat(4, minmax(0, 1fr)) auto;
-  gap: 10px;
-  align-items: end;
-  padding: 12px;
+.profile-editor-card {
   border: 1px solid var(--line-soft);
-  background: rgba(255, 255, 255, 0.024);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.profile-editor-card.is-expanded {
+  border-color: rgba(231, 228, 216, 0.34);
+  background: rgba(255, 255, 255, 0.028);
+}
+
+.profile-editor-toggle {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.8fr) auto minmax(260px, 1fr);
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  min-height: 62px;
+  padding: 14px;
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  text-transform: none;
+}
+
+.profile-editor-toggle:hover {
+  filter: none;
+  background: rgba(231, 228, 216, 0.045);
+}
+
+.profile-editor-title {
+  overflow: hidden;
+  font-family: var(--display-font);
+  font-size: 25px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-platform-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.profile-platform-badge {
+  min-width: 76px;
+  padding: 6px 8px;
+  border: 1px solid currentColor;
+  color: var(--native);
+  font-family: var(--label-font);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.profile-platform-badge[data-empty="true"] {
+  color: rgba(231, 228, 216, 0.34);
+}
+
+.profile-editor-body {
+  display: grid;
+  gap: 14px;
+  padding: 0 14px 14px;
+}
+
+.profile-name-field {
+  max-width: 420px;
+}
+
+.profile-social-grid {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.profile-social-row {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.profile-social-row.platform-x {
+  grid-template-columns: 170px minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
+}
+
+.profile-platform {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 38px;
+  color: var(--text);
+}
+
+.profile-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.profile-enabled-field {
+  display: flex;
+  align-items: center;
+}
+
+.platform-twitch {
+  color: var(--twitch);
+}
+
+.platform-kick {
+  color: var(--kick);
+}
+
+.platform-x {
+  color: var(--x);
+}
+
+.platform-room {
+  color: var(--native);
 }
 
 .source-field {
@@ -693,6 +812,7 @@ button:hover {
   filter: brightness(0.92);
 }
 
+.profile-remove,
 .source-remove,
 #logoutButton {
   background: transparent;
@@ -755,7 +875,16 @@ button:hover {
     font-size: 27px;
   }
 
-  .source-editor-row {
+  .profile-editor-toggle {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-platform-badges {
+    justify-content: flex-start;
+  }
+
+  .profile-social-row,
+  .profile-social-row.platform-x {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -830,7 +959,8 @@ button:hover {
     grid-template-columns: 1fr;
   }
 
-  .source-editor-row {
+  .profile-social-row,
+  .profile-social-row.platform-x {
     grid-template-columns: 1fr;
   }
 }

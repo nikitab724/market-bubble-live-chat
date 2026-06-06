@@ -125,4 +125,18 @@ describe("chat interaction contract", () => {
     assert.equal(admin.includes("createNumberField"), false);
     assert.equal(app.includes("nudgeViewerCounts"), false);
   });
+
+  it("renders admin source editing as expandable profiles", () => {
+    const html = readFileSync(new URL("../admin/index.html", import.meta.url), "utf8");
+    const admin = readFileSync(new URL("../admin/admin.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(html.includes("Profile Manager"), true);
+    assert.equal(html.includes('id="addProfileButton"'), true);
+    assert.equal(html.includes('id="profileCards"'), true);
+    assert.equal(admin.includes("buildProfilesFromSources"), true);
+    assert.equal(admin.includes("toggleProfile"), true);
+    assert.equal(styles.includes(".profile-editor-card"), true);
+    assert.equal(styles.includes(".profile-social-grid"), true);
+  });
 });
