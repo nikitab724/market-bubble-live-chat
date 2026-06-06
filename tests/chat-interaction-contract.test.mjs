@@ -114,6 +114,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes(".slice(0, 60)"), false);
     assert.equal(app.includes("keepRecentMessages"), false);
     assert.equal(app.includes(".slice(-MAX_CHAT_MESSAGES)"), false);
+    assert.equal(app.includes("state.messages = state.messages.slice"), false);
   });
 
   it("keeps the chat viewport pinned to the newest bottom messages until the viewer scrolls up", () => {
@@ -158,6 +159,16 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes('elements.chatFeed.innerHTML = `<div class="chat-stack">${state.messages.map(renderMessage).join("")}</div>`'), false);
   });
 
+  it("mounts only a rolling live chat window while keeping full message state", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("CHAT_RENDER_WINDOW_SIZE = 500"), true);
+    assert.equal(app.includes("function getVisibleMessages"), true);
+    assert.equal(app.includes("state.messages.slice(-CHAT_RENDER_WINDOW_SIZE)"), true);
+    assert.equal(app.includes("function getWindowOverlapLength"), true);
+    assert.equal(app.includes("function removeStaleRows"), true);
+  });
+
   it("ingests chronological chat messages without remerging the full history", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
 
@@ -165,6 +176,15 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("function addMessage"), true);
     assert.equal(app.includes("state.messages.push(message)"), true);
     assert.doesNotMatch(app, /state\.messages = mergeMessages\(\[\s*\.\.\.state\.messages,\s*normalizeMessage\(rawMessage\),\s*\]\);/);
+  });
+
+  it("uses cached author profiles instead of scanning all messages per rendered row", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("authorProfilesByKey"), true);
+    assert.equal(app.includes("function recordAuthorProfile"), true);
+    assert.equal(app.includes("function getAuthorProfile"), true);
+    assert.equal(app.includes("buildAuthorProfile(state.messages, message)"), false);
   });
 
   it("loads and renders Twitch emotes", () => {

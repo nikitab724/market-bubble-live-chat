@@ -1,5 +1,4 @@
 import {
-  buildAuthorProfile,
   buildViewerSummary,
   mergeMessages,
   normalizeMessage,
@@ -30,6 +29,7 @@ const PLATFORM_ORDER = Object.keys(platformMeta);
 const LIVE_STATE_REFRESH_MS = 30_000;
 const CHAT_RENDER_INTERVAL_MS = 80;
 const CHAT_BOTTOM_THRESHOLD_PX = 8;
+const CHAT_RENDER_WINDOW_SIZE = 500;
 
 const fallbackSources = [
   {
@@ -82,6 +82,7 @@ let queuedRenderTimer = 0;
 let queuedScrollFrame = 0;
 let renderedMessageIds = [];
 let knownMessageIds = new Set();
+let authorProfilesByKey = new Map();
 
 const scriptedMessages = [
   ["twitch-marketbubble", "TapeReader", "tape-reader", "Twitch chat finally in one place would be insane", -118],
@@ -318,6 +319,8 @@ function pushLiveMessage() {
 function setMessages(messages) {
   state.messages = mergeMessages(messages);
   knownMessageIds = new Set(state.messages.map((message) => message.id));
+  authorProfilesByKey = new Map();
+  state.messages.forEach(recordAuthorProfile);
 }
 
 function addMessage(rawMessage) {
@@ -334,8 +337,49 @@ function addMessage(rawMessage) {
     state.messages = mergeMessages([...state.messages, message]);
   }
 
+  recordAuthorProfile(message);
   queueRender();
   return true;
+}
+
+function recordAuthorProfile(message) {
+  const key = getAuthorProfileKey(message);
+  const existingProfile = authorProfilesByKey.get(key);
+  const nextMessageCount = (existingProfile?.messageCount || 0) + 1;
+  const nextLastSeen = !existingProfile || Date.parse(message.timestamp) > Date.parse(existingProfile.lastSeen)
+    ? message.timestamp
+    : existingProfile.lastSeen;
+
+  authorProfilesByKey.set(key, {
+    author: message.author,
+    displayHandle: `@${message.handle}`,
+    handle: message.handle,
+    lastSeen: nextLastSeen,
+    messageCount: nextMessageCount,
+    platform: message.platform,
+  });
+}
+
+function getAuthorProfile(message) {
+  const profile = authorProfilesByKey.get(getAuthorProfileKey(message));
+
+  return {
+    platform: message.platform,
+    author: profile?.author || message.author,
+    handle: profile?.handle || message.handle,
+    displayHandle: profile?.displayHandle || `@${message.handle}`,
+    sourceUrl: message.sourceUrl,
+    sourceId: message.sourceId,
+    sourceName: message.sourceName,
+    sourceHandle: message.sourceHandle,
+    sourceLabel: message.sourceLabel,
+    messageCount: profile?.messageCount || 1,
+    lastSeen: profile?.lastSeen || message.timestamp,
+  };
+}
+
+function getAuthorProfileKey(message) {
+  return `${message.platform}:${message.handle.toLowerCase()}`;
 }
 
 function compareMessageOrder(left, right) {
@@ -440,16 +484,24 @@ function render() {
 }
 
 function renderChatFeed(shouldFollowChat, previousScrollTop) {
-  const messageIds = state.messages.map((message) => message.id);
+  const visibleMessages = getVisibleMessages();
+  const messageIds = visibleMessages.map((message) => message.id);
   const chatStack = getChatStack();
 
   if (canAppendMessages(messageIds)) {
-    const newMessages = state.messages.slice(renderedMessageIds.length);
+    const newMessages = visibleMessages.slice(renderedMessageIds.length);
+    if (newMessages.length > 0) {
+      chatStack.insertAdjacentHTML("beforeend", newMessages.map(renderMessage).join(""));
+    }
+  } else if (canSlideMessageWindow(messageIds)) {
+    const overlapLength = getWindowOverlapLength(renderedMessageIds, messageIds);
+    removeStaleRows(chatStack, renderedMessageIds.length - overlapLength);
+    const newMessages = visibleMessages.slice(overlapLength);
     if (newMessages.length > 0) {
       chatStack.insertAdjacentHTML("beforeend", newMessages.map(renderMessage).join(""));
     }
   } else {
-    chatStack.innerHTML = state.messages.map(renderMessage).join("");
+    chatStack.innerHTML = visibleMessages.map(renderMessage).join("");
   }
 
   renderedMessageIds = messageIds;
@@ -460,6 +512,10 @@ function renderChatFeed(shouldFollowChat, previousScrollTop) {
     elements.chatFeed.scrollTop = previousScrollTop;
     updateJumpToLive();
   }
+}
+
+function getVisibleMessages() {
+  return state.messages.slice(-CHAT_RENDER_WINDOW_SIZE);
 }
 
 function getChatStack() {
@@ -475,6 +531,30 @@ function getChatStack() {
 function canAppendMessages(messageIds) {
   return renderedMessageIds.length <= messageIds.length
     && renderedMessageIds.every((id, index) => id === messageIds[index]);
+}
+
+function canSlideMessageWindow(messageIds) {
+  return getWindowOverlapLength(renderedMessageIds, messageIds) > 0;
+}
+
+function getWindowOverlapLength(previousIds, nextIds) {
+  const maxOverlap = Math.min(previousIds.length, nextIds.length);
+  for (let overlapLength = maxOverlap; overlapLength > 0; overlapLength -= 1) {
+    const previousStart = previousIds.length - overlapLength;
+    const previousTail = previousIds.slice(previousStart);
+    const nextHead = nextIds.slice(0, overlapLength);
+    if (previousTail.every((id, index) => id === nextHead[index])) {
+      return overlapLength;
+    }
+  }
+
+  return 0;
+}
+
+function removeStaleRows(chatStack, count) {
+  for (let index = 0; index < count; index += 1) {
+    chatStack.firstElementChild?.remove();
+  }
 }
 
 function scrollChatToBottom() {
@@ -543,7 +623,7 @@ function renderStatusDot(status) {
 
 function renderMessage(message) {
   const meta = platformMeta[message.platform];
-  const profile = buildAuthorProfile(state.messages, message);
+  const profile = getAuthorProfile(message);
 
   return `
     <article class="chat-message ${message.platform}">
