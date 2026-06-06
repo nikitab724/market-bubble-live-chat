@@ -134,6 +134,9 @@ function bindEvents() {
   });
 
   elements.chatFeed.addEventListener("scroll", renderer.handleChatScroll, { passive: true });
+  elements.chatFeed.addEventListener("wheel", renderer.handleChatWheel, { passive: false });
+  elements.chatFeed.addEventListener("touchstart", renderer.handleChatTouchStart, { passive: true });
+  elements.chatFeed.addEventListener("touchmove", renderer.handleChatTouchMove, { passive: false });
 
   elements.jumpToLive.addEventListener("click", () => {
     state.followingChat = true;

@@ -3,14 +3,19 @@ import { renderMessageBody } from "./emote-renderer.mjs";
 import { escapeHtml, platformMeta } from "./platforms.mjs";
 
 const AUTO_SCROLL_THRESHOLD_PX = 120;
+const SCROLL_BOUNDARY_EPSILON_PX = 1;
 const CHAT_RENDER_WINDOW_SIZE = 500;
 
 export function createChatRenderer({ window, elements, state, getAuthorProfile, getTwitchEmoteMap }) {
   let renderedMessageIds = [];
   let queuedScrollFrame = 0;
+  let lastTouchClientY = null;
 
   return {
     handleChatScroll,
+    handleChatTouchMove,
+    handleChatTouchStart,
+    handleChatWheel,
     render,
     renderPendingChat,
     scrollChatToBottom,
@@ -151,8 +156,58 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     updateJumpToLive();
   }
 
+  function handleChatWheel(event) {
+    if (event.ctrlKey) {
+      return;
+    }
+
+    preventBoundaryBounce(event, event.deltaY);
+  }
+
+  function handleChatTouchStart(event) {
+    lastTouchClientY = event.touches[0]?.clientY ?? null;
+  }
+
+  function handleChatTouchMove(event) {
+    if (event.touches.length !== 1) {
+      lastTouchClientY = null;
+      return;
+    }
+
+    const currentTouchY = event.touches[0]?.clientY ?? null;
+    if (currentTouchY === null || lastTouchClientY === null) {
+      lastTouchClientY = currentTouchY;
+      return;
+    }
+
+    const deltaY = lastTouchClientY - currentTouchY;
+    preventBoundaryBounce(event, deltaY);
+    lastTouchClientY = currentTouchY;
+  }
+
+  function preventBoundaryBounce(event, deltaY) {
+    const isMovingPastBottom = deltaY > 0 && isChatAtBottomBoundary();
+    const isMovingPastTop = deltaY < 0 && isChatAtTopBoundary();
+
+    if (!isMovingPastBottom && !isMovingPastTop) {
+      return;
+    }
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+  }
+
   function isChatNearBottom() {
     return getDistanceFromBottom() <= AUTO_SCROLL_THRESHOLD_PX;
+  }
+
+  function isChatAtBottomBoundary() {
+    return getDistanceFromBottom() <= SCROLL_BOUNDARY_EPSILON_PX;
+  }
+
+  function isChatAtTopBoundary() {
+    return elements.chatFeed.scrollTop <= SCROLL_BOUNDARY_EPSILON_PX;
   }
 
   function getDistanceFromBottom() {

@@ -31,3 +31,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Paused chat DOM updates while a viewer is reading older messages, keeping incoming messages in memory until jump-to-live renders the pending window.
 - Updated the chat architecture note and interaction contract to pin the scroll behavior.
 - Verification: `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (64 passed); in-app browser smoke for `/chat/?demoChat=1` where scrolled-up chat stayed frozen through injected Kick messages, jump-to-live rendered the backlog, distance from bottom returned to `0`, and console errors were empty.
+
+## [2026-06-06] ui | Prevent chat boundary bounce
+
+- Added non-passive wheel and touch guards on the chat feed so bottom/top boundary gestures cannot trigger rubber-band bounce.
+- Kept normal scroll-up history reading, scroll-down return-to-live, and existing jump-to-live behavior intact.
+- Added an interaction contract for the boundary guard.
+- Verification: `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed); in-app browser smoke for `/chat/?demoChat=1` where forced bottom scroll stayed pinned at distance `0`, normal scroll-up paused live mode, normal scroll-down returned to live, and console errors were empty.

@@ -205,6 +205,21 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: auto[^}]*overflow-anchor: none/s);
   });
 
+  it("prevents rubber-band scrolling past chat boundaries", () => {
+    const app = readAppRuntime();
+
+    assert.equal(app.includes("SCROLL_BOUNDARY_EPSILON_PX = 1"), true);
+    assert.equal(app.includes("handleChatWheel"), true);
+    assert.equal(app.includes("handleChatTouchStart"), true);
+    assert.equal(app.includes("handleChatTouchMove"), true);
+    assert.equal(app.includes("preventBoundaryBounce"), true);
+    assert.equal(app.includes("isChatAtBottomBoundary"), true);
+    assert.equal(app.includes("isChatAtTopBoundary"), true);
+    assert.match(app, /addEventListener\("wheel", renderer\.handleChatWheel, \{ passive: false \}\)/);
+    assert.match(app, /addEventListener\("touchmove", renderer\.handleChatTouchMove, \{ passive: false \}\)/);
+    assert.match(app, /if \(event\.cancelable\) \{[\s\S]*event\.preventDefault\(\);[\s\S]*\}/);
+  });
+
   it("appends new chat rows without rebuilding the full chat history", () => {
     const app = readAppRuntime();
 
