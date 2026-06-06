@@ -1,6 +1,5 @@
 const IRC_URL = "wss://irc-ws.chat.twitch.tv:443";
 const RECONNECT_DELAY_MS = 5000;
-const MAX_MESSAGES = 60;
 
 /**
  * Connects to Twitch chat anonymously (no OAuth required for read-only).
@@ -76,6 +75,7 @@ export function connectTwitchChat(channel, { onMessage, onStatus, source } = {})
       const emotes = parseTwitchEmoteTag(trailing, tags.emotes);
 
       const message = {
+        id: tags.id ? `twitch-${tags.id}` : undefined,
         platform: "twitch",
         author: displayName,
         handle: login,

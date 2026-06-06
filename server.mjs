@@ -26,6 +26,7 @@ import { createTwitchEmoteClient } from "./src/twitch-emotes.mjs";
 const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG_PATH = join(ROOT_DIR, "data", "sources.json");
 const DEFAULT_PORT = 4178;
+let devChatMessageSequence = 0;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 const CONTENT_TYPES = {
@@ -228,7 +229,7 @@ function buildDevKickChatPayload(body, sources) {
   const author = String(body.author || handle || "Local Tester").trim();
 
   return {
-    message_id: `dev-${Date.now()}`,
+    message_id: `dev-${Date.now()}-${devChatMessageSequence++}`,
     broadcaster: {
       username: source.sourceName,
       channel_slug: source.sourceHandle,

@@ -27,8 +27,8 @@ const platformMeta = {
 };
 
 const LIVE_STATE_REFRESH_MS = 30_000;
-const MAX_CHAT_MESSAGES = 200;
 const CHAT_RENDER_INTERVAL_MS = 80;
+const CHAT_BOTTOM_THRESHOLD_PX = 8;
 
 const fallbackSources = [
   {
@@ -104,6 +104,7 @@ const livePool = [
 ];
 
 const state = {
+  followingChat: true,
   inspectingProfile: false,
   messages: [],
   sources: [],
@@ -113,6 +114,7 @@ const state = {
 
 const elements = {
   chatFeed: document.querySelector("#chatFeed"),
+  jumpToLive: document.querySelector("#jumpToLive"),
   sourceBreakdown: document.querySelector("#sourceBreakdown"),
   viewerCount: document.querySelector("#viewerCount"),
 };
@@ -192,10 +194,10 @@ function startTwitchConnectors() {
     connectTwitchChat(twitchSource.sourceHandle, {
       source: twitchSource,
       onMessage(rawMessage) {
-        state.messages = keepRecentMessages(mergeMessages([
+        state.messages = mergeMessages([
           ...state.messages,
           normalizeMessage(rawMessage),
-        ]));
+        ]);
         queueRender();
       },
       onStatus(status) {
@@ -237,10 +239,10 @@ function startBackendChatEvents() {
 }
 
 function addBackendMessage(rawMessage) {
-  state.messages = keepRecentMessages(mergeMessages([
+  state.messages = mergeMessages([
     ...state.messages,
     normalizeMessage(rawMessage),
-  ]));
+  ]);
   queueRender();
 }
 
@@ -286,6 +288,14 @@ function bindEvents() {
   elements.chatFeed.addEventListener("pointerout", () => {
     window.setTimeout(updateInspectingState, 0);
   });
+
+  elements.chatFeed.addEventListener("scroll", handleChatScroll, { passive: true });
+
+  elements.jumpToLive.addEventListener("click", () => {
+    state.followingChat = true;
+    updateJumpToLive();
+    scrollChatToBottom();
+  });
 }
 
 function seedMessages() {
@@ -306,10 +316,10 @@ function pushLiveMessage() {
 
   const [sourceId, author, handle, body] = availableMessages[Math.floor(Math.random() * availableMessages.length)];
 
-  state.messages = keepRecentMessages(mergeMessages([
+  state.messages = mergeMessages([
     ...state.messages,
     buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
-  ]));
+  ]);
 }
 
 function buildSourceMessage(sourceId, author, handle, body, timestamp) {
@@ -386,16 +396,19 @@ function flushQueuedRender() {
 
 function render() {
   lastRenderAt = window.performance.now();
+  const shouldFollowChat = state.followingChat;
+  const previousScrollTop = elements.chatFeed.scrollTop;
   const viewerSummary = buildViewerSummary(state.sources);
 
   elements.viewerCount.textContent = formatNumber(viewerSummary.total);
   elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
   elements.chatFeed.innerHTML = `<div class="chat-stack">${state.messages.map(renderMessage).join("")}</div>`;
-  scrollChatToBottom();
-}
-
-function keepRecentMessages(messages) {
-  return messages.slice(-MAX_CHAT_MESSAGES);
+  if (shouldFollowChat) {
+    scrollChatToBottom();
+  } else {
+    elements.chatFeed.scrollTop = previousScrollTop;
+    updateJumpToLive();
+  }
 }
 
 function scrollChatToBottom() {
@@ -406,7 +419,26 @@ function scrollChatToBottom() {
   queuedScrollFrame = window.requestAnimationFrame(() => {
     queuedScrollFrame = 0;
     elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight;
+    updateJumpToLive();
   });
+}
+
+function handleChatScroll() {
+  if (isChatAtBottom()) {
+    state.followingChat = true;
+  } else {
+    state.followingChat = false;
+  }
+
+  updateJumpToLive();
+}
+
+function isChatAtBottom() {
+  return elements.chatFeed.scrollHeight - elements.chatFeed.clientHeight - elements.chatFeed.scrollTop <= CHAT_BOTTOM_THRESHOLD_PX;
+}
+
+function updateJumpToLive() {
+  elements.jumpToLive.hidden = state.followingChat;
 }
 
 function renderSource(source) {

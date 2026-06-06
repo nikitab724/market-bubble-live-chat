@@ -127,6 +127,7 @@ body {
 }
 
 .chat-view {
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
   width: 100%;
@@ -381,10 +382,12 @@ h2 {
 
 .chat-feed {
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   overflow-anchor: none;
   overscroll-behavior: none;
   padding: 0;
+  scrollbar-width: thin;
 }
 
 .chat-stack {
@@ -393,6 +396,28 @@ h2 {
   gap: 0;
   justify-content: flex-end;
   min-height: 100%;
+}
+
+.jump-to-live {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 20;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid rgba(231, 228, 216, 0.5);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--label-font);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.jump-to-live[hidden] {
+  display: none;
 }
 
 .chat-message {
