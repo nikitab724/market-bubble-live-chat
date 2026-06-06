@@ -1,0 +1,246 @@
+import { buildViewerSummary } from "./chat-model.mjs";
+import { renderMessageBody } from "./emote-renderer.mjs";
+import { escapeHtml, platformMeta } from "./platforms.mjs";
+
+const CHAT_BOTTOM_THRESHOLD_PX = 8;
+const CHAT_RENDER_WINDOW_SIZE = 500;
+
+export function createChatRenderer({ window, elements, state, getAuthorProfile, getTwitchEmoteMap }) {
+  let renderedMessageIds = [];
+  let queuedScrollFrame = 0;
+
+  return {
+    handleChatScroll,
+    render,
+    scrollChatToBottom,
+    updateInspectingState,
+    updateJumpToLive,
+  };
+
+  function render() {
+    const shouldFollowChat = state.followingChat || isChatAtBottom();
+    state.followingChat = shouldFollowChat;
+    const previousScrollTop = elements.chatFeed.scrollTop;
+    const viewerSummary = buildViewerSummary(state.sources);
+
+    elements.viewerCount.textContent = formatNumber(viewerSummary.total);
+    elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
+
+    if (state.inspectingProfile) {
+      state.pendingChatRender = true;
+      updateJumpToLive();
+      return;
+    }
+
+    state.pendingChatRender = false;
+    renderChatFeed(shouldFollowChat, previousScrollTop);
+  }
+
+  function renderChatFeed(shouldFollowChat, previousScrollTop) {
+    const visibleMessages = getVisibleMessages();
+    const messageIds = visibleMessages.map((message) => message.id);
+    const chatStack = getChatStack();
+
+    if (canAppendMessages(messageIds)) {
+      const newMessages = visibleMessages.slice(renderedMessageIds.length);
+      if (newMessages.length > 0) {
+        chatStack.insertAdjacentHTML("beforeend", newMessages.map(renderMessage).join(""));
+      }
+    } else if (canSlideMessageWindow(messageIds)) {
+      const overlapLength = getWindowOverlapLength(renderedMessageIds, messageIds);
+      removeStaleRows(chatStack, renderedMessageIds.length - overlapLength);
+      const newMessages = visibleMessages.slice(overlapLength);
+      if (newMessages.length > 0) {
+        chatStack.insertAdjacentHTML("beforeend", newMessages.map(renderMessage).join(""));
+      }
+    } else {
+      chatStack.innerHTML = visibleMessages.map(renderMessage).join("");
+    }
+
+    renderedMessageIds = messageIds;
+
+    if (shouldFollowChat) {
+      scrollChatToBottom();
+    } else {
+      elements.chatFeed.scrollTop = previousScrollTop;
+      updateJumpToLive();
+    }
+  }
+
+  function getVisibleMessages() {
+    return state.messages.slice(-CHAT_RENDER_WINDOW_SIZE);
+  }
+
+  function getChatStack() {
+    const existingStack = elements.chatFeed.querySelector(".chat-stack");
+    if (existingStack) {
+      return existingStack;
+    }
+
+    elements.chatFeed.innerHTML = `<div class="chat-stack"></div>`;
+    return elements.chatFeed.querySelector(".chat-stack");
+  }
+
+  function canAppendMessages(messageIds) {
+    return renderedMessageIds.length <= messageIds.length
+      && renderedMessageIds.every((id, index) => id === messageIds[index]);
+  }
+
+  function canSlideMessageWindow(messageIds) {
+    return getWindowOverlapLength(renderedMessageIds, messageIds) > 0;
+  }
+
+  function getWindowOverlapLength(previousIds, nextIds) {
+    const maxOverlap = Math.min(previousIds.length, nextIds.length);
+    for (let overlapLength = maxOverlap; overlapLength > 0; overlapLength -= 1) {
+      const previousStart = previousIds.length - overlapLength;
+      const previousTail = previousIds.slice(previousStart);
+      const nextHead = nextIds.slice(0, overlapLength);
+      if (previousTail.every((id, index) => id === nextHead[index])) {
+        return overlapLength;
+      }
+    }
+
+    return 0;
+  }
+
+  function removeStaleRows(chatStack, count) {
+    for (let index = 0; index < count; index += 1) {
+      chatStack.firstElementChild?.remove();
+    }
+  }
+
+  function scrollChatToBottom() {
+    if (queuedScrollFrame) {
+      window.cancelAnimationFrame(queuedScrollFrame);
+    }
+
+    queuedScrollFrame = window.requestAnimationFrame(() => {
+      queuedScrollFrame = 0;
+      elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight;
+      updateJumpToLive();
+    });
+  }
+
+  function handleChatScroll() {
+    if (isChatAtBottom()) {
+      state.followingChat = true;
+    } else {
+      state.followingChat = false;
+    }
+
+    updateJumpToLive();
+  }
+
+  function isChatAtBottom() {
+    return elements.chatFeed.scrollHeight - elements.chatFeed.clientHeight - elements.chatFeed.scrollTop <= CHAT_BOTTOM_THRESHOLD_PX;
+  }
+
+  function updateJumpToLive() {
+    elements.jumpToLive.hidden = state.followingChat;
+  }
+
+  function renderSource(source) {
+    const meta = platformMeta[source.platform];
+    const statusDot = source.platform === "twitch"
+      ? renderStatusDot(state.twitchStatuses[source.sourceId] || "connecting")
+      : "";
+    const chipTitle = getSourceChipTitle(meta, source);
+
+    return `
+      <div class="source-chip ${source.platform}" title="${escapeHtml(chipTitle)}">
+        <span>${escapeHtml(meta.label)}</span>
+        <strong>${escapeHtml(source.sourceLabel)}</strong>
+        ${statusDot}
+        <b>${formatNumber(source.viewerCount)}</b>
+      </div>
+    `;
+  }
+
+  function getSourceChipTitle(meta, source) {
+    const parts = [`${meta.label} / ${source.sourceLabel}`];
+
+    if (source.viewerCountLocked) {
+      parts.push(source.isLive ? "Live" : "Offline");
+      if (source.streamTitle) parts.push(source.streamTitle);
+      if (source.gameName) parts.push(source.gameName);
+    }
+
+    return parts.join(" - ");
+  }
+
+  function renderStatusDot(status) {
+    const labels = { connected: "Live", connecting: "Connecting...", disconnected: "Disconnected" };
+    return `<em class="live-dot ${status}" title="${labels[status] ?? status}"></em>`;
+  }
+
+  function renderMessage(message) {
+    const meta = platformMeta[message.platform];
+    const profile = getAuthorProfile(message);
+
+    return `
+      <article class="chat-message ${message.platform}">
+        <div class="message-body">
+          <div class="message-meta">
+            <strong title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong>
+            <span class="platform-badge ${message.platform}">${meta.label}</span>
+            <span class="source-label ${message.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(message.sourceLabel)}">${escapeHtml(message.sourceLabel)}</span>
+            <time>${formatTime(message.timestamp)}</time>
+          </div>
+          <p>${renderMessageBody(message, getTwitchEmoteMap(message))}</p>
+        </div>
+        <div class="profile-card" role="tooltip">
+          <div class="profile-card-header">
+            <div>
+              <strong>${escapeHtml(profile.author)}</strong>
+              <span>${escapeHtml(profile.displayHandle)}</span>
+            </div>
+          </div>
+          <dl>
+            <div>
+              <dt>Platform</dt>
+              <dd>${meta.label}</dd>
+            </div>
+            <div>
+              <dt>Stream</dt>
+              <dd>${escapeHtml(profile.sourceLabel)}</dd>
+            </div>
+            <div>
+              <dt>Messages</dt>
+              <dd>${profile.messageCount}</dd>
+            </div>
+            <div>
+              <dt>Last seen</dt>
+              <dd>${formatTime(profile.lastSeen)}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd><a href="${escapeHtml(profile.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(profile.sourceUrl)}</a></dd>
+            </div>
+          </dl>
+        </div>
+      </article>
+    `;
+  }
+
+  function updateInspectingState() {
+    const wasInspectingProfile = state.inspectingProfile;
+    state.inspectingProfile = elements.chatFeed.matches(":hover");
+
+    if (wasInspectingProfile && !state.inspectingProfile && state.pendingChatRender) {
+      state.queueRender();
+    }
+  }
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("en-US").format(value);
+}
+
+function formatTime(timestamp) {
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(timestamp));
+}

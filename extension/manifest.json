@@ -3,10 +3,12 @@
   "name": "Market Bubble X Bridge",
   "version": "1.0",
   "description": "Captures X livestream chat and sends it to the Market Bubble dashboard",
+  "permissions": ["storage"],
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
     "http://localhost/*",
+    "https://marketbubble.com/*",
     "https://marketbubble.192-210-192-116.sslip.io/*"
   ],
   "content_scripts": [

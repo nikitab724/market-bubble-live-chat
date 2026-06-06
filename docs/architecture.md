@@ -2,8 +2,8 @@
 
 ## Runtime Surfaces
 
-- `/` serves `index.html` and `src/app.mjs`. It is the hosted viewer page with one selected stream embed, combined viewer count, platform/source breakdown, and combined chat.
-- `/chat/` serves `chat/index.html` with the same app runtime in chat-only mode for OBS/browser-source embedding.
+- `/` serves `index.html` and the browser runtime rooted at `src/app.mjs`. It is the hosted viewer page with one selected stream embed, combined viewer count, platform/source breakdown, and combined chat.
+- `/chat/` serves `chat/index.html` with the same browser runtime in chat-only mode for OBS/browser-source embedding.
 - `/admin/` serves the source editor. It manages profile rows and platform accounts, and chooses exactly one source for the stream view.
 - `extension/` is a Chrome extension for X Live chat capture. It is loaded manually as an unpacked extension.
 
@@ -49,6 +49,19 @@ Every chat message is normalized into the shared chat shape before rendering:
 - profile URL/source URL
 
 The browser keeps all received messages in memory for correctness, but only renders the latest message window to the DOM for performance. When the viewer scrolls up, new rendering pauses until they jump back to live.
+
+## Browser Runtime Modules
+
+`src/app.mjs` is the browser orchestrator. Focused modules own the heavy pieces:
+
+- `src/client-sources.mjs`: static fallback source config for offline/dev loading.
+- `src/viewer-stream.mjs`: Twitch, Kick, X, and placeholder stream rendering.
+- `src/chat-runtime.mjs`: public config loading, Twitch chat startup, backend SSE, Twitch emote fetches, and live-state refresh.
+- `src/chat-renderer.mjs`: viewer counts, source chips, chat DOM windowing, autoscroll, and profile hover cards.
+- `src/demo-chat.mjs`: optional seeded/demo messages.
+- `src/platforms.mjs`: platform labels, ordering, profile URLs, and shared escaping.
+
+Demo chat is opt-in with `?demoChat=1` or `?demoChat=true`; production/default loads no fake chat messages.
 
 ## Stream Selection
 

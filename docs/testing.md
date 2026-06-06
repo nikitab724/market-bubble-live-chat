@@ -42,5 +42,6 @@ X chat local testing currently requires the Chrome extension to point at the bac
 - Kick webhook handling: `tests/kick-webhook.test.mjs`
 - Twitch chat/API/emotes: `tests/twitch-*.test.mjs`
 - Chat model/render contract: `tests/chat-*.test.mjs`
+- Browser/runtime architecture boundaries: `tests/architecture-contract.test.mjs`
 
 If behavior changes without a matching test, add or update the narrowest test that proves the new contract.

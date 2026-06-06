@@ -2,6 +2,18 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+function readAppRuntime() {
+  return [
+    "../src/app.mjs",
+    "../src/chat-renderer.mjs",
+    "../src/chat-runtime.mjs",
+    "../src/client-sources.mjs",
+    "../src/demo-chat.mjs",
+    "../src/platforms.mjs",
+    "../src/viewer-stream.mjs",
+  ].map((path) => readFileSync(new URL(path, import.meta.url), "utf8")).join("\n");
+}
+
 describe("chat interaction contract", () => {
   it("renders the hosted viewer page with stream and chat", () => {
     const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
@@ -39,7 +51,7 @@ describe("chat interaction contract", () => {
   });
 
   it("does not keep profile cards open through row focus", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes('class="chat-message" tabindex="0"'), false);
@@ -56,7 +68,7 @@ describe("chat interaction contract", () => {
   });
 
   it("does not render user profile picture placeholders in chat rows", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes('class="avatar'), false);
@@ -66,7 +78,7 @@ describe("chat interaction contract", () => {
   it("uses the Market Bubble broadcast treatment with platform color accents", () => {
     const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(html.includes("broadcast-clock"), true);
     assert.equal(html.includes("MarketBubble.com"), true);
@@ -82,7 +94,7 @@ describe("chat interaction contract", () => {
   });
 
   it("loads source config from the backend with a static fallback", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(app.includes("/api/public-config"), true);
     assert.equal(app.includes("fallbackSources"), true);
@@ -90,7 +102,7 @@ describe("chat interaction contract", () => {
   });
 
   it("refreshes live stream state from the backend", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(app.includes("/api/live-state"), true);
     assert.equal(app.includes("refreshLiveState"), true);
@@ -99,7 +111,7 @@ describe("chat interaction contract", () => {
   });
 
   it("renders the admin-selected livestream source for supported platforms", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(app.includes("initStreamPlayer"), true);
     assert.equal(app.includes("getSelectedStreamSource"), true);
@@ -112,9 +124,9 @@ describe("chat interaction contract", () => {
   });
 
   it("listens for backend chat events", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
-    assert.equal(app.includes('new EventSource("/api/chat-events")'), true);
+    assert.match(app, /new (window\.)?EventSource\("\/api\/chat-events"\)/);
     assert.equal(app.includes("/api/chat-events/recent"), false);
     assert.equal(app.includes("pollBackendChatEvents"), false);
     assert.equal(app.includes("startBackendChatEvents"), true);
@@ -122,7 +134,7 @@ describe("chat interaction contract", () => {
   });
 
   it("keeps every chat message received during the viewer session", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(app.includes("MAX_CHAT_MESSAGES"), false);
     assert.equal(app.includes(".slice(0, 60)"), false);
@@ -132,7 +144,7 @@ describe("chat interaction contract", () => {
   });
 
   it("keeps the chat viewport pinned to the newest bottom messages until the viewer scrolls up", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("scrollChatToBottom"), true);
@@ -152,7 +164,7 @@ describe("chat interaction contract", () => {
   });
 
   it("coalesces bursty chat updates while keeping native scrolling locked down", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("CHAT_RENDER_INTERVAL_MS = 80"), true);
@@ -165,7 +177,7 @@ describe("chat interaction contract", () => {
   });
 
   it("appends new chat rows without rebuilding the full chat history", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(app.includes("renderedMessageIds"), true);
     assert.equal(app.includes("function canAppendMessages"), true);
@@ -174,7 +186,7 @@ describe("chat interaction contract", () => {
   });
 
   it("mounts only a rolling live chat window while keeping full message state", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(app.includes("CHAT_RENDER_WINDOW_SIZE = 500"), true);
     assert.equal(app.includes("function getVisibleMessages"), true);
@@ -184,7 +196,7 @@ describe("chat interaction contract", () => {
   });
 
   it("ingests chronological chat messages without remerging the full history", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(app.includes("knownMessageIds"), true);
     assert.equal(app.includes("function addMessage"), true);
@@ -193,7 +205,7 @@ describe("chat interaction contract", () => {
   });
 
   it("uses cached author profiles instead of scanning all messages per rendered row", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(app.includes("authorProfilesByKey"), true);
     assert.equal(app.includes("function recordAuthorProfile"), true);
@@ -202,7 +214,7 @@ describe("chat interaction contract", () => {
   });
 
   it("loads and renders Twitch emotes", () => {
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("/api/twitch-emotes"), true);
@@ -214,7 +226,7 @@ describe("chat interaction contract", () => {
 
   it("does not expose manual viewer count editing or fake viewer movement", () => {
     const admin = readFileSync(new URL("../admin/admin.mjs", import.meta.url), "utf8");
-    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+    const app = readAppRuntime();
 
     assert.equal(admin.includes('createNumberField("Viewers"'), false);
     assert.equal(admin.includes('[name="viewerCount"]'), false);

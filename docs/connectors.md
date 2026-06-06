@@ -36,6 +36,7 @@ The current working path is a Chrome extension bridge, not an official X API con
 
 - `extension/content.js` watches X live page DOM mutations.
 - `extension/popup.js` lets the operator choose which configured X source the current tab belongs to.
+- The extension popup stores the backend base URL used for public config and X chat ingest.
 - The extension posts normalized messages to `POST /api/x-chat`.
 - The backend broadcasts those messages through `/api/chat-events`.
 

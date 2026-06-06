@@ -9,3 +9,11 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Added `docs/sources/` as the raw/source-like layer.
 - Corrected the earlier docs from an `llms.txt`-only interpretation to the user-provided persistent LLM Wiki pattern.
 - Verification: `git diff --check`; `node --test tests/*.test.mjs` (59 passed).
+
+## [2026-06-06] refactor | Split browser runtime and configure X extension backend URL
+
+- Split the browser runtime out of `src/app.mjs` into focused stream, chat runtime, chat renderer, demo chat, platform, and fallback source modules.
+- Moved seeded/demo chat behind explicit `?demoChat=1` or `?demoChat=true` opt-in.
+- Added Chrome extension backend URL storage so the popup controls the backend base URL used for source config and X chat ingest.
+- Added `tests/architecture-contract.test.mjs` to pin the new architecture boundaries.
+- Verification: `git diff --check`; `node --test tests/*.test.mjs` (62 passed); `node --check` on browser/extension modules; in-app browser smoke for `/`, `/?demoChat=1`, and `/chat/?demoChat=1` with no console errors.

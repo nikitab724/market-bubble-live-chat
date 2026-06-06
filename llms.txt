@@ -19,7 +19,10 @@ This file is a repo-local entry map. The persistent LLM-maintained wiki lives un
 ## Source Map
 
 - [Server entry](server.mjs): HTTP server, API routes, admin auth, Kick webhook, X chat ingest, and static serving.
-- [Browser app](src/app.mjs): Hosted viewer/chat runtime, stream embed selection, live state refresh, SSE chat ingest, and chat rendering.
+- [Browser app](src/app.mjs): Thin hosted viewer/chat orchestrator.
+- [Stream renderer](src/viewer-stream.mjs): Twitch, Kick, X, and placeholder stream embeds.
+- [Chat runtime](src/chat-runtime.mjs): Public config loading, Twitch chat, SSE ingest, emotes, and live-state refresh.
+- [Chat renderer](src/chat-renderer.mjs): Viewer counts, source chips, chat DOM windowing, autoscroll, and profile cards.
 - [Admin UI](admin/admin.mjs): Source/profile editor and stream source selector.
 - [Chat overlay](chat/index.html): Chat-only browser source surface.
 - [X extension](extension/content.js): Chrome content script that watches X live chat DOM and posts messages to the backend.

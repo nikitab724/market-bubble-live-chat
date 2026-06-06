@@ -17,10 +17,10 @@ Flow:
 Current backend target in the extension:
 
 ```text
-https://marketbubble.192-210-192-116.sslip.io/api/x-chat
+https://marketbubble.192-210-192-116.sslip.io
 ```
 
-If the deployed backend URL changes, update `BACKEND_URL` in `extension/content.js` and the public-config fetch URL in `extension/popup.js`, then reload the unpacked extension.
+The extension popup includes a Backend URL field. Change it there when the deployed backend URL changes, then click Apply. The value is stored in Chrome extension storage and used for both `/api/public-config` and `/api/x-chat`.
 
 ## How Chat Is Captured
 
@@ -51,6 +51,7 @@ If X widgets cannot embed the live surface, or if `conversationId` is empty, the
 ## Debug Checklist
 
 - Confirm the X source exists and is enabled in `/admin/`.
+- Confirm the extension popup Backend URL points at the backend that serves `/api/public-config`.
 - Confirm the extension popup source matches the X live page being watched.
 - Check the X tab console for `[MB X Bridge] Watching document.body...`.
 - Check server stdout for `[x-chat] Source | Author: body`.

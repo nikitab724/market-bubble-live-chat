@@ -52,8 +52,14 @@ const PUBLIC_ASSETS = new Map([
   ["/styles.css", "styles.css"],
   ["/src/app.mjs", "src/app.mjs"],
   ["/src/chat-model.mjs", "src/chat-model.mjs"],
+  ["/src/chat-renderer.mjs", "src/chat-renderer.mjs"],
+  ["/src/chat-runtime.mjs", "src/chat-runtime.mjs"],
+  ["/src/client-sources.mjs", "src/client-sources.mjs"],
+  ["/src/demo-chat.mjs", "src/demo-chat.mjs"],
   ["/src/emote-renderer.mjs", "src/emote-renderer.mjs"],
+  ["/src/platforms.mjs", "src/platforms.mjs"],
   ["/src/twitch-connector.mjs", "src/twitch-connector.mjs"],
+  ["/src/viewer-stream.mjs", "src/viewer-stream.mjs"],
 ]);
 
 export function createAppServer(options = {}) {

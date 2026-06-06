@@ -9,7 +9,8 @@
  * and extractMessage() below.
  */
 
-const BACKEND_URL = "https://marketbubble.192-210-192-116.sslip.io/api/x-chat";
+const DEFAULT_BACKEND_BASE_URL = "https://marketbubble.192-210-192-116.sslip.io";
+const BACKEND_BASE_URL_STORAGE_KEY = "marketBubbleBackendBaseUrl";
 
 // Selectors tried in order to find the scrollable chat container.
 // X uses data-testid attributes that are relatively stable across releases.
@@ -155,7 +156,8 @@ async function sendMessage(author, handle, body) {
   };
 
   try {
-    await fetch(BACKEND_URL, {
+    const backendBaseUrl = await getBackendBaseUrl();
+    await fetch(buildBackendUrl("/api/x-chat", backendBaseUrl), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -163,6 +165,23 @@ async function sendMessage(author, handle, body) {
   } catch {
     // Backend not running — silently ignore, user will see disconnected state in dashboard.
   }
+}
+
+async function getBackendBaseUrl() {
+  const stored = await chrome.storage.local.get({
+    [BACKEND_BASE_URL_STORAGE_KEY]: DEFAULT_BACKEND_BASE_URL,
+  });
+
+  return normalizeBackendBaseUrl(stored[BACKEND_BASE_URL_STORAGE_KEY]);
+}
+
+function buildBackendUrl(path, backendBaseUrl) {
+  return `${normalizeBackendBaseUrl(backendBaseUrl)}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function normalizeBackendBaseUrl(value) {
+  const url = String(value || DEFAULT_BACKEND_BASE_URL).trim().replace(/\/+$/, "");
+  return url || DEFAULT_BACKEND_BASE_URL;
 }
 
 // ─── DOM observation ──────────────────────────────────────────────────────────

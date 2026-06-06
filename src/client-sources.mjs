@@ -1,0 +1,43 @@
+export const fallbackSources = [
+  {
+    sourceId: "twitch-marketbubble",
+    platform: "twitch",
+    sourceName: "Market Bubble",
+    sourceHandle: "marketbubble",
+    sourceUrl: "https://twitch.tv/marketbubble",
+    showStream: true,
+    viewerCount: 3184,
+  },
+  {
+    sourceId: "kick-marketbubble",
+    platform: "kick",
+    sourceName: "Market Bubble",
+    sourceHandle: "marketbubble",
+    sourceUrl: "https://kick.com/marketbubble",
+    viewerCount: 1260,
+  },
+  {
+    sourceId: "x-banks",
+    platform: "x",
+    sourceName: "Banks",
+    sourceHandle: "Banks",
+    sourceUrl: "https://x.com/Banks",
+    viewerCount: 8062,
+  },
+  {
+    sourceId: "x-z",
+    platform: "x",
+    sourceName: "Z",
+    sourceHandle: "z",
+    sourceUrl: "https://x.com/z",
+    viewerCount: 4720,
+  },
+  {
+    sourceId: "room-marketbubble",
+    platform: "room",
+    sourceName: "MarketBubble.com",
+    sourceHandle: "marketbubble",
+    sourceUrl: "https://marketbubble.com",
+    viewerCount: 518,
+  },
+];
