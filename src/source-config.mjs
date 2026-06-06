@@ -82,10 +82,14 @@ export function normalizeSource(input) {
   const sourceName = String(input.sourceName || input.label || rawHandle || PLATFORM_LABELS[platform]).trim();
   const sourceLabel = String(input.sourceLabel || sourceName).trim();
   const conversationId = String(input.conversationId || "").trim();
+  const profileId = String(input.profileId || "").trim();
+  const profileName = String(input.profileName || "").trim();
 
   return {
     enabled: input.enabled !== false,
     platform,
+    ...(profileId ? { profileId } : {}),
+    ...(profileName ? { profileName } : {}),
     sourceHandle,
     sourceId: String(input.sourceId || buildSourceId(platform, getSourceIdName(platform, sourceHandle, sourceLabel))).trim(),
     sourceLabel,

@@ -27,6 +27,14 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes('id="sourceBreakdown"'), true);
   });
 
+  it("cache-busts the app module on both chat surfaces", () => {
+    const viewer = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+    const chat = readFileSync(new URL("../chat/index.html", import.meta.url), "utf8");
+
+    assert.match(viewer, /src="\.\/src\/app\.mjs\?v=[^"]+"/);
+    assert.match(chat, /src="\.\.\/src\/app\.mjs\?v=[^"]+"/);
+  });
+
   it("does not keep profile cards open through row focus", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
@@ -84,8 +92,17 @@ describe("chat interaction contract", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
 
     assert.equal(app.includes('new EventSource("/api/chat-events")'), true);
+    assert.equal(app.includes("/api/chat-events/recent"), false);
+    assert.equal(app.includes("pollBackendChatEvents"), false);
     assert.equal(app.includes("startBackendChatEvents"), true);
     assert.equal(app.includes("addBackendMessage"), true);
+  });
+
+  it("keeps enough chat history for busy multi-platform rooms", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("MAX_CHAT_MESSAGES = 200"), true);
+    assert.equal(app.includes(".slice(0, 60)"), false);
   });
 
   it("loads and renders Twitch emotes", () => {
@@ -107,5 +124,21 @@ describe("chat interaction contract", () => {
     assert.equal(admin.includes('[name="viewerCount"]'), false);
     assert.equal(admin.includes("createNumberField"), false);
     assert.equal(app.includes("nudgeViewerCounts"), false);
+  });
+
+  it("renders admin source editing as expandable profiles", () => {
+    const html = readFileSync(new URL("../admin/index.html", import.meta.url), "utf8");
+    const admin = readFileSync(new URL("../admin/admin.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(html.includes("Profile Manager"), true);
+    assert.equal(html.includes('id="addProfileButton"'), true);
+    assert.equal(html.includes('id="profileCards"'), true);
+    assert.equal(admin.includes("buildProfilesFromSources"), true);
+    assert.equal(admin.includes("toggleProfile"), true);
+    assert.equal(admin.includes("profile-toggle-icon"), true);
+    assert.equal(styles.includes(".profile-editor-card"), true);
+    assert.equal(styles.includes(".profile-social-grid"), true);
+    assert.equal(styles.includes(".profile-toggle-icon"), true);
   });
 });

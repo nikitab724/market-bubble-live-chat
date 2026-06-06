@@ -27,6 +27,7 @@ const platformMeta = {
 };
 
 const LIVE_STATE_REFRESH_MS = 30_000;
+const MAX_CHAT_MESSAGES = 200;
 
 const fallbackSources = [
   {
@@ -189,7 +190,7 @@ function startTwitchConnectors() {
         state.messages = mergeMessages([
           normalizeMessage(rawMessage),
           ...state.messages,
-        ]).slice(0, 60);
+        ]).slice(0, MAX_CHAT_MESSAGES);
         render();
       },
       onStatus(status) {
@@ -222,9 +223,7 @@ async function loadTwitchEmotes() {
 }
 
 function startBackendChatEvents() {
-  if (!("EventSource" in window)) {
-    return;
-  }
+  if (!("EventSource" in window)) return;
 
   const events = new EventSource("/api/chat-events");
   events.addEventListener("chat", (event) => {
@@ -236,7 +235,7 @@ function addBackendMessage(rawMessage) {
   state.messages = mergeMessages([
     normalizeMessage(rawMessage),
     ...state.messages,
-  ]).slice(0, 60);
+  ]).slice(0, MAX_CHAT_MESSAGES);
   render();
 }
 
@@ -305,7 +304,7 @@ function pushLiveMessage() {
   state.messages = mergeMessages([
     buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
     ...state.messages,
-  ]).slice(0, 60);
+  ]).slice(0, MAX_CHAT_MESSAGES);
 }
 
 function buildSourceMessage(sourceId, author, handle, body, timestamp) {

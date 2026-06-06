@@ -123,6 +123,10 @@ describe("server contract", () => {
       assert.equal(publicConfig.status, 200);
       assert.equal(publicConfig.json.sources[0].sourceId, "twitch-marketbubble");
 
+      const adminProfileModule = await request(server, "GET", "/admin/profile-model.mjs");
+      assert.equal(adminProfileModule.status, 200);
+      assert.match(adminProfileModule.text, /buildProfilesFromSources/);
+
       const liveState = await request(server, "GET", "/api/live-state");
       assert.equal(liveState.status, 200);
       assert.deepEqual(liveState.json, {
