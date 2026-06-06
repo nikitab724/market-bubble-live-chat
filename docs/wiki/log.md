@@ -37,4 +37,5 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Added non-passive wheel and touch guards on the chat feed so bottom/top boundary gestures cannot trigger rubber-band bounce.
 - Kept normal scroll-up history reading, scroll-down return-to-live, and existing jump-to-live behavior intact.
 - Added an interaction contract for the boundary guard.
+- Updated the viewer and chat module cache-bust query so browsers fetch the new runtime on reload.
 - Verification: `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed); in-app browser smoke for `/chat/?demoChat=1` where forced bottom scroll stayed pinned at distance `0`, normal scroll-up paused live mode, normal scroll-down returned to live, and console errors were empty.
