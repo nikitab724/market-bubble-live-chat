@@ -127,6 +127,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("followingChat: true"), true);
     assert.equal(app.includes("state.followingChat = false"), true);
     assert.equal(app.includes("state.followingChat = true"), true);
+    assert.equal(app.includes("const shouldFollowChat = state.followingChat || isChatAtBottom()"), true);
     assert.equal(app.includes('class="chat-stack"'), true);
     assert.equal(app.includes("elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight"), true);
     assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);
