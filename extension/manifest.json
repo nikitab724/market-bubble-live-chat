@@ -6,7 +6,8 @@
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
-    "http://localhost/*"
+    "http://localhost/*",
+    "https://marketbubble.192-210-192-116.sslip.io/*"
   ],
   "content_scripts": [
     {

@@ -4,14 +4,21 @@ const STATUS_LABELS = {
   "no-container": "Live page detected — chat not found yet",
 };
 
+const FALLBACK_X_SOURCES = [
+  { sourceHandle: "banks", sourceLabel: "Banks" },
+  { sourceHandle: "z", sourceLabel: "Z" },
+];
+
 async function getXSources() {
   try {
     const r = await fetch("https://marketbubble.192-210-192-116.sslip.io/api/public-config");
     const data = await r.json();
-    return (data.sources || []).filter((s) => s.platform === "x");
+    const sources = (data.sources || []).filter((s) => s.platform === "x");
+    if (sources.length > 0) return sources;
   } catch {
-    return [];
+    // fall through to hardcoded list
   }
+  return FALLBACK_X_SOURCES;
 }
 
 async function sendToContent(tab, message) {
