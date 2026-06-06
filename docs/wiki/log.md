@@ -39,3 +39,11 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Added an interaction contract for the boundary guard.
 - Updated the viewer and chat module cache-bust query so browsers fetch the new runtime on reload.
 - Verification: `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed); in-app browser smoke for `/chat/?demoChat=1` where forced bottom scroll stayed pinned at distance `0`, normal scroll-up paused live mode, normal scroll-down returned to live, and console errors were empty.
+
+## [2026-06-06] ui | Add chat scroll firewall
+
+- Locked `html` and `body` so the browser page cannot rubber-band behind the chat surface.
+- Moved wheel/touch capture to the whole chat panel and routed panel gestures into the chat feed, matching embedded live-chat surfaces where only the transcript scrolls.
+- Preserved the bottom threshold, paused-reading state, and jump-to-live behavior.
+- Updated the app module cache-bust query for the new runtime.
+- Verification: `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed); in-app browser smoke for `/chat/?demoChat=1` confirmed `body`/`html` overflow hidden, `body` fixed, document height equal to viewport, scroll-down at bottom stayed at distance `0`, header scroll gestures moved the feed instead of the page, normal feed scroll still worked, and console errors were empty.

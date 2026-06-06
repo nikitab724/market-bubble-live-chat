@@ -10,6 +10,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
   let renderedMessageIds = [];
   let queuedScrollFrame = 0;
   let lastTouchClientY = null;
+  let lastTouchStartedInFeed = false;
 
   return {
     handleChatScroll,
@@ -161,16 +162,18 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       return;
     }
 
-    preventBoundaryBounce(event, event.deltaY);
+    routePanelScrollToFeed(event, event.deltaY, isEventInsideChatFeed(event));
   }
 
   function handleChatTouchStart(event) {
     lastTouchClientY = event.touches[0]?.clientY ?? null;
+    lastTouchStartedInFeed = isEventInsideChatFeed(event);
   }
 
   function handleChatTouchMove(event) {
     if (event.touches.length !== 1) {
       lastTouchClientY = null;
+      lastTouchStartedInFeed = false;
       return;
     }
 
@@ -181,8 +184,36 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     }
 
     const deltaY = lastTouchClientY - currentTouchY;
-    preventBoundaryBounce(event, deltaY);
+    routePanelScrollToFeed(event, deltaY, lastTouchStartedInFeed);
     lastTouchClientY = currentTouchY;
+  }
+
+  function routePanelScrollToFeed(event, deltaY, startedInFeed) {
+    if (deltaY === 0) {
+      return;
+    }
+
+    if (!startedInFeed) {
+      cancelScrollEvent(event);
+      scrollChatFeedBy(deltaY);
+      return;
+    }
+
+    preventBoundaryBounce(event, deltaY);
+  }
+
+  function scrollChatFeedBy(deltaY) {
+    const nextScrollTop = Math.min(
+      getMaxScrollTop(),
+      Math.max(0, elements.chatFeed.scrollTop + deltaY),
+    );
+
+    if (nextScrollTop === elements.chatFeed.scrollTop) {
+      return;
+    }
+
+    elements.chatFeed.scrollTop = nextScrollTop;
+    handleChatScroll();
   }
 
   function preventBoundaryBounce(event, deltaY) {
@@ -193,9 +224,17 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       return;
     }
 
+    cancelScrollEvent(event);
+  }
+
+  function cancelScrollEvent(event) {
     if (event.cancelable) {
       event.preventDefault();
     }
+  }
+
+  function isEventInsideChatFeed(event) {
+    return event.target instanceof window.Node && elements.chatFeed.contains(event.target);
   }
 
   function isChatNearBottom() {
@@ -210,8 +249,12 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     return elements.chatFeed.scrollTop <= SCROLL_BOUNDARY_EPSILON_PX;
   }
 
+  function getMaxScrollTop() {
+    return Math.max(0, elements.chatFeed.scrollHeight - elements.chatFeed.clientHeight);
+  }
+
   function getDistanceFromBottom() {
-    return Math.max(0, elements.chatFeed.scrollHeight - elements.chatFeed.clientHeight - elements.chatFeed.scrollTop);
+    return Math.max(0, getMaxScrollTop() - elements.chatFeed.scrollTop);
   }
 
   function updateJumpToLive() {

@@ -39,6 +39,7 @@ const state = {
 
 const elements = {
   chatFeed: document.querySelector("#chatFeed"),
+  chatView: document.querySelector(".chat-view"),
   jumpToLive: document.querySelector("#jumpToLive"),
   sourceBreakdown: document.querySelector("#sourceBreakdown"),
   viewerCount: document.querySelector("#viewerCount"),
@@ -134,9 +135,9 @@ function bindEvents() {
   });
 
   elements.chatFeed.addEventListener("scroll", renderer.handleChatScroll, { passive: true });
-  elements.chatFeed.addEventListener("wheel", renderer.handleChatWheel, { passive: false });
-  elements.chatFeed.addEventListener("touchstart", renderer.handleChatTouchStart, { passive: true });
-  elements.chatFeed.addEventListener("touchmove", renderer.handleChatTouchMove, { passive: false });
+  elements.chatView.addEventListener("wheel", renderer.handleChatWheel, { capture: true, passive: false });
+  elements.chatView.addEventListener("touchstart", renderer.handleChatTouchStart, { capture: true, passive: true });
+  elements.chatView.addEventListener("touchmove", renderer.handleChatTouchMove, { capture: true, passive: false });
 
   elements.jumpToLive.addEventListener("click", () => {
     state.followingChat = true;
