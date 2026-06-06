@@ -2,11 +2,13 @@
 
 > Server-backed prototype for Market Bubble's hosted livestream page, combined chat overlay, admin source editor, and provider connectors.
 
-This file is a repo-local LLM index. It follows the `llms.txt` idea: concise Markdown, curated links, and short notes so agents can find the important docs before changing code.
+This file is a repo-local entry map. The persistent LLM-maintained wiki lives under `docs/`, with `docs/wiki/index.md` as the catalog and `docs/wiki/log.md` as the chronological maintenance record.
 
 ## Docs
 
 - [Docs index](docs/README.md): Start here for the app map, doc update rules, and task-specific links.
+- [Wiki index](docs/wiki/index.md): Content catalog for the agent-maintained wiki.
+- [Wiki log](docs/wiki/log.md): Append-only timeline of ingests, queries, lint passes, and repo-changing runs.
 - [Architecture](docs/architecture.md): Runtime surfaces, server routes, shared state, and data flow.
 - [Connectors](docs/connectors.md): Twitch, Kick, X, and native MarketBubble.com connector responsibilities.
 - [X Live setup](docs/x-live-setup.md): Current X stream/chat setup, Chrome extension workflow, and future official API path.

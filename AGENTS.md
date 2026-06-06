@@ -66,12 +66,14 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## 5. Documentation Memory
 
-**Use the docs as an LLM wiki. Keep them current.**
+**Use the docs as an LLM-maintained wiki. Keep them current.**
 
 Before non-trivial changes:
-- Read `docs/README.md` and the nearest directory-level `AGENTS.md` files for the files you will touch.
-- Treat `llms.txt` as the curated map of the repo, not as a replacement for reading the relevant source.
-- If behavior, routes, data shape, deployment, connector setup, tests, or operator steps change, update the matching docs in the same run.
+- Read `docs/README.md`, `docs/wiki/index.md`, and the nearest directory-level `AGENTS.md` files for the files you will touch.
+- Treat `llms.txt` as the curated entry map. Treat `docs/wiki/index.md` and `docs/wiki/log.md` as the persistent wiki navigation/history layer.
+- If behavior, routes, data shape, deployment, connector setup, tests, or operator steps change, update the matching wiki/docs pages in the same run.
+- For repo-changing runs, append a short entry to `docs/wiki/log.md` with the date, change type, touched areas, and verification.
+- When adding or renaming durable docs, update `docs/wiki/index.md`.
 - Keep docs short, factual, and linked. Prefer Markdown files with stable headings over long prose dumps.
 - Do not document secrets, private keys, tokens, local-only passwords, or hidden production credentials.
 - If docs disagree with code, trust the code, fix the docs, and mention the mismatch.
