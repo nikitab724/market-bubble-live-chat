@@ -102,13 +102,13 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("addBackendMessage"), true);
   });
 
-  it("keeps enough chat history for busy multi-platform rooms", () => {
+  it("keeps every chat message received during the viewer session", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
 
-    assert.equal(app.includes("MAX_CHAT_MESSAGES = 200"), true);
+    assert.equal(app.includes("MAX_CHAT_MESSAGES"), false);
     assert.equal(app.includes(".slice(0, 60)"), false);
-    assert.equal(app.includes("keepRecentMessages"), true);
-    assert.equal(app.includes(".slice(-MAX_CHAT_MESSAGES)"), true);
+    assert.equal(app.includes("keepRecentMessages"), false);
+    assert.equal(app.includes(".slice(-MAX_CHAT_MESSAGES)"), false);
   });
 
   it("keeps the chat viewport pinned to the newest bottom messages until the viewer scrolls up", () => {

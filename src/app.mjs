@@ -27,7 +27,6 @@ const platformMeta = {
 };
 
 const LIVE_STATE_REFRESH_MS = 30_000;
-const MAX_CHAT_MESSAGES = 200;
 const CHAT_RENDER_INTERVAL_MS = 80;
 const CHAT_BOTTOM_THRESHOLD_PX = 8;
 
@@ -195,10 +194,10 @@ function startTwitchConnectors() {
     connectTwitchChat(twitchSource.sourceHandle, {
       source: twitchSource,
       onMessage(rawMessage) {
-        state.messages = keepRecentMessages(mergeMessages([
+        state.messages = mergeMessages([
           ...state.messages,
           normalizeMessage(rawMessage),
-        ]));
+        ]);
         queueRender();
       },
       onStatus(status) {
@@ -240,10 +239,10 @@ function startBackendChatEvents() {
 }
 
 function addBackendMessage(rawMessage) {
-  state.messages = keepRecentMessages(mergeMessages([
+  state.messages = mergeMessages([
     ...state.messages,
     normalizeMessage(rawMessage),
-  ]));
+  ]);
   queueRender();
 }
 
@@ -317,10 +316,10 @@ function pushLiveMessage() {
 
   const [sourceId, author, handle, body] = availableMessages[Math.floor(Math.random() * availableMessages.length)];
 
-  state.messages = keepRecentMessages(mergeMessages([
+  state.messages = mergeMessages([
     ...state.messages,
     buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
-  ]));
+  ]);
 }
 
 function buildSourceMessage(sourceId, author, handle, body, timestamp) {
@@ -410,10 +409,6 @@ function render() {
     elements.chatFeed.scrollTop = previousScrollTop;
     updateJumpToLive();
   }
-}
-
-function keepRecentMessages(messages) {
-  return messages.slice(-MAX_CHAT_MESSAGES);
 }
 
 function scrollChatToBottom() {

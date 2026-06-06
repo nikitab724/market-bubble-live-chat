@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { parseTwitchEmoteTag } from "../src/twitch-connector.mjs";
@@ -26,5 +27,11 @@ describe("twitch connector", () => {
         },
       ],
     );
+  });
+
+  it("preserves Twitch IRC message ids so repeated chat lines do not collapse", () => {
+    const connector = readFileSync(new URL("../src/twitch-connector.mjs", import.meta.url), "utf8");
+
+    assert.equal(connector.includes("tags.id ? `twitch-${tags.id}` : undefined"), true);
   });
 });
