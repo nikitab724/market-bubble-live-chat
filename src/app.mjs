@@ -397,7 +397,8 @@ function flushQueuedRender() {
 
 function render() {
   lastRenderAt = window.performance.now();
-  const shouldFollowChat = state.followingChat;
+  const shouldFollowChat = state.followingChat || isChatAtBottom();
+  state.followingChat = shouldFollowChat;
   const previousScrollTop = elements.chatFeed.scrollTop;
   const viewerSummary = buildViewerSummary(state.sources);
 
