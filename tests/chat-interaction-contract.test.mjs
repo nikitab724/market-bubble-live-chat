@@ -45,6 +45,11 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes('addEventListener("focusin"'), false);
     assert.equal(app.includes('addEventListener("focusout"'), false);
     assert.equal(styles.includes(".chat-message:focus"), false);
+    assert.equal(app.includes("pendingChatRender"), true);
+    assert.equal(app.includes("if (state.inspectingProfile)"), true);
+    assert.equal(app.includes("state.pendingChatRender = true"), true);
+    assert.equal(app.includes("state.pendingChatRender = false"), true);
+    assert.equal(app.includes("renderChatFeed"), true);
     assert.match(styles, /\.profile-card\s*\{[^}]*display: none/s);
     assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
   });
