@@ -237,7 +237,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       const cardRect = profileCard.getBoundingClientRect();
       const cardWidth = cardRect.width || Math.min(330, window.innerWidth - gutter * 2);
       const left = clampToViewport(anchorRect.left, gutter, window.innerWidth - cardWidth - gutter);
-      const top = messageRect.bottom + 10;
+      const top = messageRect.bottom - 1;
       const maxHeight = Math.max(96, window.innerHeight - top - gutter);
 
       profileCard.style.setProperty("--profile-card-left", `${Math.round(left)}px`);
@@ -356,7 +356,8 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
 
   function updateInspectingState() {
     const wasInspectingProfile = state.inspectingProfile;
-    state.inspectingProfile = elements.chatFeed.matches(":hover");
+    state.inspectingProfile = elements.chatFeed.matches(":hover")
+      || Boolean(elements.chatFeed.querySelector(".profile-card:hover"));
 
     if (wasInspectingProfile && !state.inspectingProfile && state.pendingChatRender) {
       state.queueRender();
