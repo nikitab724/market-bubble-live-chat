@@ -107,6 +107,7 @@ const state = {
   followingChat: true,
   inspectingProfile: false,
   messages: [],
+  pendingChatRender: false,
   sources: [],
   twitchEmotes: {},
   twitchStatuses: {},
@@ -402,6 +403,18 @@ function render() {
 
   elements.viewerCount.textContent = formatNumber(viewerSummary.total);
   elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
+
+  if (state.inspectingProfile) {
+    state.pendingChatRender = true;
+    updateJumpToLive();
+    return;
+  }
+
+  state.pendingChatRender = false;
+  renderChatFeed(shouldFollowChat, previousScrollTop);
+}
+
+function renderChatFeed(shouldFollowChat, previousScrollTop) {
   elements.chatFeed.innerHTML = `<div class="chat-stack">${state.messages.map(renderMessage).join("")}</div>`;
   if (shouldFollowChat) {
     scrollChatToBottom();
@@ -533,7 +546,12 @@ function getTwitchEmoteMap(message) {
 }
 
 function updateInspectingState() {
+  const wasInspectingProfile = state.inspectingProfile;
   state.inspectingProfile = elements.chatFeed.matches(":hover");
+
+  if (wasInspectingProfile && !state.inspectingProfile && state.pendingChatRender) {
+    queueRender();
+  }
 }
 
 function getProfileUrl(platform, handle) {
