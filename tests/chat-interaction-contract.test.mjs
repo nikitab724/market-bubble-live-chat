@@ -9,6 +9,7 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes("stream-view"), true);
     assert.equal(html.includes("video-frame"), true);
     assert.equal(html.includes("Market Bubble stream"), true);
+    assert.equal(html.includes('id="streamPlayer"'), true);
     assert.equal(html.includes('class="chat-view"'), true);
     assert.equal(html.includes('id="chatFeed"'), true);
     assert.equal(html.includes('id="jumpToLive"'), true);
@@ -95,6 +96,19 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("refreshLiveState"), true);
     assert.equal(app.includes("viewerCountLocked"), true);
     assert.equal(app.includes('source.platform === "twitch" && source.viewerCountLocked'), false);
+  });
+
+  it("renders the admin-selected livestream source for supported platforms", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("initStreamPlayer"), true);
+    assert.equal(app.includes("getSelectedStreamSource"), true);
+    assert.equal(app.includes("source.showStream"), true);
+    assert.equal(app.includes("createTwitchStreamFrame"), true);
+    assert.equal(app.includes("createKickStreamFrame"), true);
+    assert.equal(app.includes("renderXStreamEmbed"), true);
+    assert.equal(app.includes("https://player.kick.com/"), true);
+    assert.equal(app.includes("https://platform.x.com/widgets.js"), true);
   });
 
   it("listens for backend chat events", () => {
@@ -219,8 +233,12 @@ describe("chat interaction contract", () => {
     assert.equal(admin.includes("buildProfilesFromSources"), true);
     assert.equal(admin.includes("toggleProfile"), true);
     assert.equal(admin.includes("profile-toggle-icon"), true);
+    assert.equal(admin.includes("createStreamField"), true);
+    assert.equal(admin.includes("enforceOneStreamSelection"), true);
+    assert.equal(admin.includes('input.name = "showStream"'), true);
     assert.equal(styles.includes(".profile-editor-card"), true);
     assert.equal(styles.includes(".profile-social-grid"), true);
+    assert.equal(styles.includes(".profile-stream-field"), true);
     assert.equal(styles.includes(".profile-editor-body[hidden]"), true);
     assert.equal(styles.includes(".profile-toggle-icon"), true);
   });

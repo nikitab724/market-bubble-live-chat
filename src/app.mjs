@@ -38,6 +38,7 @@ const fallbackSources = [
     sourceName: "Market Bubble",
     sourceHandle: "marketbubble",
     sourceUrl: "https://twitch.tv/marketbubble",
+    showStream: true,
     viewerCount: 3184,
   },
   {
@@ -149,7 +150,7 @@ async function initializeApp() {
   );
   setMessages(seedMessages());
   render();
-  initTwitchPlayer();
+  initStreamPlayer();
   loadTwitchEmotes();
   startTwitchConnectors();
   startBackendChatEvents();
@@ -174,22 +175,103 @@ async function loadPublicConfig() {
   return fallbackSources.map((source) => ({ ...source }));
 }
 
-function initTwitchPlayer() {
-  const playerEl = document.querySelector("#twitchPlayer");
+function initStreamPlayer() {
+  const playerEl = document.querySelector("#streamPlayer");
   if (!playerEl) return;
 
-  const twitchSource = connectedSources.find((s) => s.platform === "twitch");
-  if (!twitchSource) return;
+  const streamSource = getSelectedStreamSource();
+  playerEl.replaceChildren();
+  if (!streamSource) {
+    renderStreamPlaceholder(playerEl);
+    return;
+  }
 
+  if (streamSource.platform === "twitch") {
+    playerEl.append(createTwitchStreamFrame(streamSource));
+    return;
+  }
+
+  if (streamSource.platform === "kick") {
+    playerEl.append(createKickStreamFrame(streamSource));
+    return;
+  }
+
+  if (streamSource.platform === "x" && streamSource.conversationId) {
+    renderXStreamEmbed(playerEl, streamSource);
+    return;
+  }
+
+  renderStreamPlaceholder(playerEl, streamSource);
+}
+
+function getSelectedStreamSource() {
+  return connectedSources.find((source) => source.showStream === true)
+    || connectedSources.find((source) => source.platform === "twitch")
+    || connectedSources.find((source) => source.platform === "kick")
+    || connectedSources[0];
+}
+
+function createTwitchStreamFrame(source) {
   const parent = window.location.hostname || "localhost";
   const iframe = document.createElement("iframe");
-  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(twitchSource.sourceHandle)}&parent=${encodeURIComponent(parent)}&autoplay=true`;
+  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(source.sourceHandle)}&parent=${encodeURIComponent(parent)}&autoplay=true`;
   iframe.allowFullscreen = true;
-  iframe.allow = "autoplay; fullscreen";
-  iframe.title = `${twitchSource.sourceName} on Twitch`;
+  iframe.allow = "autoplay; fullscreen; picture-in-picture";
+  iframe.title = `${source.sourceName} on Twitch`;
+  return iframe;
+}
 
-  playerEl.replaceChildren();
-  playerEl.appendChild(iframe);
+function createKickStreamFrame(source) {
+  const iframe = document.createElement("iframe");
+  iframe.src = `https://player.kick.com/${encodeURIComponent(source.sourceHandle)}?autoplay=true`;
+  iframe.allowFullscreen = true;
+  iframe.allow = "autoplay; fullscreen; picture-in-picture";
+  iframe.title = `${source.sourceName} on Kick`;
+  return iframe;
+}
+
+function renderXStreamEmbed(playerEl, source) {
+  const post = document.createElement("blockquote");
+  post.className = "twitter-tweet";
+  post.dataset.theme = "dark";
+
+  const link = document.createElement("a");
+  link.href = `https://x.com/${encodeURIComponent(source.sourceHandle)}/status/${encodeURIComponent(source.conversationId)}`;
+  link.textContent = `${source.sourceName} on X`;
+  post.append(link);
+  playerEl.append(post);
+  loadXWidgets(playerEl);
+}
+
+function loadXWidgets(container) {
+  if (window.twttr?.widgets?.load) {
+    window.twttr.widgets.load(container);
+    return;
+  }
+
+  const existingScript = document.querySelector("[data-x-widgets]");
+  if (existingScript) return;
+
+  const script = document.createElement("script");
+  script.async = true;
+  script.charset = "utf-8";
+  script.dataset.xWidgets = "true";
+  script.src = "https://platform.x.com/widgets.js";
+  script.addEventListener("load", () => window.twttr?.widgets?.load(container));
+  document.head.append(script);
+}
+
+function renderStreamPlaceholder(playerEl, source = null) {
+  const platform = source?.platform || "room";
+  const meta = platformMeta[platform] || platformMeta.room;
+  playerEl.innerHTML = `
+    <div class="stream-placeholder ${escapeHtml(platform)}">
+      <span>${escapeHtml(meta.label)} stream selected</span>
+      <strong>${escapeHtml(source?.sourceLabel || source?.sourceName || "No stream selected")}</strong>
+      <p>${source ? "Open the selected livestream source in a new tab." : "Choose a livestream source in the admin panel."}</p>
+      ${source?.sourceUrl ? `<a href="${escapeHtml(source.sourceUrl)}" target="_blank" rel="noreferrer">Open Stream</a>` : ""}
+    </div>
+  `;
 }
 
 function startTwitchConnectors() {

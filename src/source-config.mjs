@@ -11,6 +11,7 @@ export const DEFAULT_SOURCES = normalizeSources([
     platform: "twitch",
     sourceName: "Market Bubble",
     sourceHandle: "marketbubble",
+    showStream: true,
     viewerCount: 3184,
   },
   {
@@ -46,7 +47,7 @@ export function normalizeSources(inputSources) {
     throw new Error("Sources must be an array");
   }
 
-  return inputSources.map(normalizeSource);
+  return keepOneStreamSelection(inputSources.map(normalizeSource));
 }
 
 export function toPublicConfig(sources) {
@@ -61,6 +62,8 @@ export function toPublicConfig(sources) {
         sourceLabel: source.sourceLabel,
         sourceName: source.sourceName,
         sourceUrl: source.sourceUrl,
+        conversationId: source.conversationId,
+        showStream: source.showStream,
         viewerCount: source.viewerCount,
       })),
   };
@@ -90,6 +93,7 @@ export function normalizeSource(input) {
     platform,
     ...(profileId ? { profileId } : {}),
     ...(profileName ? { profileName } : {}),
+    showStream: input.showStream === true,
     sourceHandle,
     sourceId: String(input.sourceId || buildSourceId(platform, getSourceIdName(platform, sourceHandle, sourceLabel))).trim(),
     sourceLabel,
@@ -98,6 +102,16 @@ export function normalizeSource(input) {
     viewerCount: normalizeViewerCount(input.viewerCount),
     conversationId,
   };
+}
+
+function keepOneStreamSelection(sources) {
+  let selected = false;
+
+  return sources.map((source) => {
+    const showStream = selected === false && source.enabled && source.showStream === true;
+    if (showStream) selected = true;
+    return { ...source, showStream };
+  });
 }
 
 function buildSourceId(platform, sourceName) {

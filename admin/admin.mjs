@@ -178,6 +178,7 @@ function createSocialRow(source, platform) {
     heading,
     createTextField(platform.handleLabel, "handle", source?.handle),
     createTextField("Display label", "label", source?.label),
+    createStreamField(source?.showStream),
   );
 
   if (platform.id === "x") {
@@ -196,6 +197,32 @@ function createEnabledField(checked) {
   input.checked = checked === true;
   label.append(input);
   return label;
+}
+
+function createStreamField(checked) {
+  const label = document.createElement("label");
+  label.className = "profile-stream-field";
+  const input = document.createElement("input");
+  input.name = "showStream";
+  input.type = "checkbox";
+  input.checked = checked === true;
+  input.addEventListener("change", enforceOneStreamSelection);
+  const span = document.createElement("span");
+  span.textContent = "Show stream";
+  label.append(input, span);
+  return label;
+}
+
+function enforceOneStreamSelection(event) {
+  if (!event.target.checked) return;
+
+  document.querySelectorAll('[name="showStream"]').forEach((input) => {
+    if (input !== event.target) input.checked = false;
+  });
+
+  const row = event.target.closest(".profile-social-row");
+  const enabledInput = row?.querySelector('[name="enabled"]');
+  if (enabledInput) enabledInput.checked = true;
 }
 
 function createPlatformName(labelText) {
@@ -284,6 +311,7 @@ function collectSocialSource(card, platform) {
     enabled: row.querySelector('[name="enabled"]').checked,
     handle: row.querySelector('[name="handle"]').value,
     label: row.querySelector('[name="label"]').value,
+    showStream: row.querySelector('[name="showStream"]').checked,
   };
 }
 

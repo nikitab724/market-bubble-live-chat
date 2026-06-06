@@ -226,16 +226,84 @@ h2 {
   background: #0a0a0a;
 }
 
-.twitch-player {
+.stream-player {
   width: 100%;
   height: 100%;
 }
 
-.twitch-player iframe {
+.stream-player iframe {
   display: block;
   width: 100%;
   height: 100%;
   border: none;
+}
+
+.stream-placeholder {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  height: 100%;
+  padding: 28px;
+  border: 1px solid rgba(231, 228, 216, 0.16);
+  background: #050505;
+}
+
+.stream-placeholder span,
+.stream-placeholder p {
+  color: var(--muted);
+  font-family: var(--label-font);
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.stream-placeholder span {
+  color: var(--source-color, var(--muted));
+  font-size: 15px;
+}
+
+.stream-placeholder strong {
+  margin-top: 8px;
+  color: var(--text);
+  font-family: var(--display-font);
+  font-size: clamp(36px, 6vw, 72px);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.stream-placeholder p {
+  max-width: 520px;
+  margin: 14px 0 20px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.stream-placeholder a {
+  min-height: 38px;
+  padding: 9px 13px;
+  border: 1px solid rgba(231, 228, 216, 0.58);
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--label-font);
+  font-weight: 900;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.stream-placeholder.twitch {
+  --source-color: var(--twitch);
+}
+
+.stream-placeholder.kick {
+  --source-color: var(--kick);
+}
+
+.stream-placeholder.x {
+  --source-color: var(--x);
+}
+
+.stream-placeholder.room {
+  --source-color: var(--native);
 }
 
 .viewer-counter {
@@ -773,7 +841,7 @@ h2 {
 
 .profile-social-row {
   display: grid;
-  grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr) 132px;
   gap: 12px;
   align-items: end;
   padding: 13px 0;
@@ -781,7 +849,7 @@ h2 {
 }
 
 .profile-social-row.platform-x {
-  grid-template-columns: 170px minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
+  grid-template-columns: 170px minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.2fr) 132px;
 }
 
 .profile-platform {
@@ -801,6 +869,14 @@ h2 {
 .profile-enabled-field {
   display: flex;
   align-items: center;
+}
+
+.profile-stream-field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  color: var(--text);
 }
 
 .platform-twitch {
