@@ -491,7 +491,7 @@ h2 {
 .chat-message {
   position: relative;
   display: block;
-  padding: 13px 15px;
+  padding: 10px 12px;
   border: 0;
   border-bottom: 1px solid var(--line-soft);
   border-left: 2px solid var(--source-color);
@@ -515,14 +515,40 @@ h2 {
 .message-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+}
+
+.platform-logo {
+  display: grid;
+  flex: 0 0 22px;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(231, 228, 216, 0.18);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--source-color);
+}
+
+.platform-logo svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.platform-logo b {
+  color: var(--source-color);
+  font-family: var(--label-font);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .message-meta strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -532,17 +558,17 @@ h2 {
   margin-left: auto;
   color: var(--muted);
   font-family: var(--label-font);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .platform-badge {
   flex: 0 0 auto;
-  padding: 3px 7px;
+  padding: 2px 6px;
   border: 1px solid rgba(231, 228, 216, 0.18);
   background: rgba(255, 255, 255, 0.026);
   color: var(--source-color);
   font-family: var(--label-font);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -551,12 +577,12 @@ h2 {
   flex: 0 1 150px;
   min-width: 44px;
   overflow: hidden;
-  padding: 3px 7px;
+  padding: 2px 6px;
   border: 1px solid rgba(231, 228, 216, 0.18);
   background: rgba(255, 255, 255, 0.018);
   color: var(--text);
   font-family: var(--label-font);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -564,10 +590,10 @@ h2 {
 }
 
 .chat-message p {
-  margin: 6px 0 0;
+  margin: 4px 0 0 28px;
   color: var(--text);
-  font-size: 16px;
-  line-height: 1.32;
+  font-size: 15px;
+  line-height: 1.28;
 }
 
 .chat-emote {

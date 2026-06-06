@@ -66,7 +66,7 @@ async function initializeApp() {
       .map((source) => [source.sourceId, "connecting"]),
   );
 
-  setMessages(isDemoChatEnabled() ? seedDemoMessages({ hasSource, buildSourceMessage }) : []);
+  setMessages(isDemoChatEnabled() ? seedDemoMessages({ sources: connectedSources, buildSourceMessage }) : []);
   renderer.render();
   initStreamPlayer({ document, sources: connectedSources, window });
   loadTwitchEmotes({ sources: connectedSources, state, queueRender });
@@ -76,9 +76,9 @@ async function initializeApp() {
     startDemoChat({
       addMessage,
       buildConfiguredMessage,
-      hasSource,
       isInspectingProfile: () => state.inspectingProfile,
       queueRender,
+      sources: connectedSources,
       window,
     });
   }

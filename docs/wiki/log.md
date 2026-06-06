@@ -17,3 +17,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Added Chrome extension backend URL storage so the popup controls the backend base URL used for source config and X chat ingest.
 - Added `tests/architecture-contract.test.mjs` to pin the new architecture boundaries.
 - Verification: `git diff --check`; `node --test tests/*.test.mjs` (62 passed); `node --check` on browser/extension modules; in-app browser smoke for `/`, `/?demoChat=1`, and `/chat/?demoChat=1` with no console errors.
+
+## [2026-06-06] ui | Add platform logos to compact chat rows
+
+- Added compact Twitch, Kick, X, and MB platform logo badges before chat usernames.
+- Tightened chat row spacing, label padding, message text size, and body alignment.
+- Updated demo chat source resolution so `?demoChat=1` exercises current configured Twitch/Kick/X/room sources.
+- Verification: `git diff --check`; `node --test tests/*.test.mjs` (63 passed); `node --check src/chat-renderer.mjs src/demo-chat.mjs src/app.mjs`; in-app browser smoke for `/chat/?demoChat=1` with Twitch/Kick/X/room logos and no console errors.

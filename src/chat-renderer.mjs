@@ -182,6 +182,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       <article class="chat-message ${message.platform}">
         <div class="message-body">
           <div class="message-meta">
+            ${renderPlatformLogo(message.platform, `${meta.label} logo`)}
             <strong title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong>
             <span class="platform-badge ${message.platform}">${meta.label}</span>
             <span class="source-label ${message.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(message.sourceLabel)}">${escapeHtml(message.sourceLabel)}</span>
@@ -231,6 +232,34 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       state.queueRender();
     }
   }
+}
+
+function renderPlatformLogo(platform, label) {
+  const logos = {
+    twitch: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 3h16v11l-5 5h-4l-3 3v-3H5V3z" />
+        <path d="M9 7h2v6H9V7zm6 0h2v6h-2V7z" />
+      </svg>
+    `,
+    kick: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 3h6v6h2V6h2V3h4v6h-2v2h-2v2h2v2h2v6h-6v-5h-2v5H5V3z" />
+      </svg>
+    `,
+    x: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 3h5.1l4 5.7L18 3h2.1l-6 7 6.6 11H15.6l-4.4-6.5L5.8 21H3.7l6.5-7.7L4 3z" />
+      </svg>
+    `,
+    room: "<b>MB</b>",
+  };
+
+  return `
+    <span class="platform-logo ${escapeHtml(platform)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">
+      ${logos[platform] || logos.room}
+    </span>
+  `;
 }
 
 function formatNumber(value) {

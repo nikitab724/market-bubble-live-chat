@@ -75,6 +75,22 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".avatar"), false);
   });
 
+  it("renders compact platform logos before chat usernames", () => {
+    const app = readAppRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes("renderPlatformLogo"), true);
+    assert.equal(app.includes('class="platform-logo ${escapeHtml(platform)}"'), true);
+    assert.equal(app.includes('aria-label="${escapeHtml(label)}"'), true);
+    assert.equal(app.includes("twitch:"), true);
+    assert.equal(app.includes("kick:"), true);
+    assert.equal(app.includes("x:"), true);
+    assert.match(app, /renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*\n\s*<strong title/);
+    assert.match(styles, /\.platform-logo\s*\{[^}]*width: 22px[^}]*height: 22px/s);
+    assert.match(styles, /\.chat-message\s*\{[^}]*padding: 10px 12px/s);
+    assert.match(styles, /\.message-meta\s*\{[^}]*gap: 6px/s);
+  });
+
   it("uses the Market Bubble broadcast treatment with platform color accents", () => {
     const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
