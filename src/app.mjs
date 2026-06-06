@@ -26,6 +26,7 @@ const platformMeta = {
   },
 };
 
+const PLATFORM_ORDER = Object.keys(platformMeta);
 const LIVE_STATE_REFRESH_MS = 30_000;
 const CHAT_RENDER_INTERVAL_MS = 80;
 const CHAT_BOTTOM_THRESHOLD_PX = 8;
@@ -79,6 +80,8 @@ let lastRenderAt = 0;
 let queuedRenderFrame = 0;
 let queuedRenderTimer = 0;
 let queuedScrollFrame = 0;
+let renderedMessageIds = [];
+let knownMessageIds = new Set();
 
 const scriptedMessages = [
   ["twitch-marketbubble", "TapeReader", "tape-reader", "Twitch chat finally in one place would be insane", -118],
@@ -143,7 +146,7 @@ async function initializeApp() {
       .filter((source) => source.platform === "twitch")
       .map((source) => [source.sourceId, "connecting"]),
   );
-  state.messages = seedMessages();
+  setMessages(seedMessages());
   render();
   initTwitchPlayer();
   loadTwitchEmotes();
@@ -195,11 +198,7 @@ function startTwitchConnectors() {
     connectTwitchChat(twitchSource.sourceHandle, {
       source: twitchSource,
       onMessage(rawMessage) {
-        state.messages = mergeMessages([
-          ...state.messages,
-          normalizeMessage(rawMessage),
-        ]);
-        queueRender();
+        addMessage(rawMessage);
       },
       onStatus(status) {
         state.twitchStatuses[twitchSource.sourceId] = status;
@@ -240,11 +239,7 @@ function startBackendChatEvents() {
 }
 
 function addBackendMessage(rawMessage) {
-  state.messages = mergeMessages([
-    ...state.messages,
-    normalizeMessage(rawMessage),
-  ]);
-  queueRender();
+  addMessage(rawMessage);
 }
 
 function buildSourceMap(sources) {
@@ -317,10 +312,39 @@ function pushLiveMessage() {
 
   const [sourceId, author, handle, body] = availableMessages[Math.floor(Math.random() * availableMessages.length)];
 
-  state.messages = mergeMessages([
-    ...state.messages,
-    buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
-  ]);
+  addMessage(buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()));
+}
+
+function setMessages(messages) {
+  state.messages = mergeMessages(messages);
+  knownMessageIds = new Set(state.messages.map((message) => message.id));
+}
+
+function addMessage(rawMessage) {
+  const message = normalizeMessage(rawMessage);
+  if (knownMessageIds.has(message.id)) {
+    return false;
+  }
+
+  knownMessageIds.add(message.id);
+  const lastMessage = state.messages.at(-1);
+  if (!lastMessage || compareMessageOrder(lastMessage, message) <= 0) {
+    state.messages.push(message);
+  } else {
+    state.messages = mergeMessages([...state.messages, message]);
+  }
+
+  queueRender();
+  return true;
+}
+
+function compareMessageOrder(left, right) {
+  const timeDifference = Date.parse(left.timestamp) - Date.parse(right.timestamp);
+  if (timeDifference !== 0) {
+    return timeDifference;
+  }
+
+  return PLATFORM_ORDER.indexOf(left.platform) - PLATFORM_ORDER.indexOf(right.platform);
 }
 
 function buildSourceMessage(sourceId, author, handle, body, timestamp) {
@@ -416,13 +440,41 @@ function render() {
 }
 
 function renderChatFeed(shouldFollowChat, previousScrollTop) {
-  elements.chatFeed.innerHTML = `<div class="chat-stack">${state.messages.map(renderMessage).join("")}</div>`;
+  const messageIds = state.messages.map((message) => message.id);
+  const chatStack = getChatStack();
+
+  if (canAppendMessages(messageIds)) {
+    const newMessages = state.messages.slice(renderedMessageIds.length);
+    if (newMessages.length > 0) {
+      chatStack.insertAdjacentHTML("beforeend", newMessages.map(renderMessage).join(""));
+    }
+  } else {
+    chatStack.innerHTML = state.messages.map(renderMessage).join("");
+  }
+
+  renderedMessageIds = messageIds;
+
   if (shouldFollowChat) {
     scrollChatToBottom();
   } else {
     elements.chatFeed.scrollTop = previousScrollTop;
     updateJumpToLive();
   }
+}
+
+function getChatStack() {
+  const existingStack = elements.chatFeed.querySelector(".chat-stack");
+  if (existingStack) {
+    return existingStack;
+  }
+
+  elements.chatFeed.innerHTML = `<div class="chat-stack"></div>`;
+  return elements.chatFeed.querySelector(".chat-stack");
+}
+
+function canAppendMessages(messageIds) {
+  return renderedMessageIds.length <= messageIds.length
+    && renderedMessageIds.every((id, index) => id === messageIds[index]);
 }
 
 function scrollChatToBottom() {

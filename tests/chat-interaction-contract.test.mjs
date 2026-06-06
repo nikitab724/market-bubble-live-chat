@@ -149,6 +149,24 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: auto[^}]*overflow-anchor: none/s);
   });
 
+  it("appends new chat rows without rebuilding the full chat history", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("renderedMessageIds"), true);
+    assert.equal(app.includes("function canAppendMessages"), true);
+    assert.equal(app.includes("insertAdjacentHTML(\"beforeend\""), true);
+    assert.equal(app.includes('elements.chatFeed.innerHTML = `<div class="chat-stack">${state.messages.map(renderMessage).join("")}</div>`'), false);
+  });
+
+  it("ingests chronological chat messages without remerging the full history", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("knownMessageIds"), true);
+    assert.equal(app.includes("function addMessage"), true);
+    assert.equal(app.includes("state.messages.push(message)"), true);
+    assert.doesNotMatch(app, /state\.messages = mergeMessages\(\[\s*\.\.\.state\.messages,\s*normalizeMessage\(rawMessage\),\s*\]\);/);
+  });
+
   it("loads and renders Twitch emotes", () => {
     const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
