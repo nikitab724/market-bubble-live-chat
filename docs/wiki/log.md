@@ -54,3 +54,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Changed wheel/touch handling to always cancel native scroll and manually clamp `scrollTop` between `0` and the last message.
 - Updated the app module cache-bust query for the controlled scroller.
 - Verification: `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed); in-app browser smoke for `/chat/?demoChat=1` confirmed `overflow-y: hidden`, `touch-action: none`, repeated wheel-down directly over the last row stayed at distance `0`, normal wheel-up paused live mode, wheel-down clamped to bottom, `window.scrollY` stayed `0`, and console errors were empty.
+
+## [2026-06-06] ui | Keep bottom hover live
+
+- Allowed append-only live rendering while hovering bottom chat rows so profile hover does not make the feed fall behind live.
+- Kept hover/profile render freezing only for the scrolled-up reading state.
+- Updated the app module cache-bust query for the hover follow-up.
+- Verification: Chrome deployed-page repro showed live chat could fall `181px` behind bottom while hammering the newest rows before this patch; `git diff --check`; `node --check src/chat-renderer.mjs src/app.mjs`; `node --test tests/*.test.mjs` (65 passed) now pins bottom hover as a live-following state.

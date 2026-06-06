@@ -59,7 +59,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes('addEventListener("focusout"'), false);
     assert.equal(styles.includes(".chat-message:focus"), false);
     assert.equal(app.includes("pendingChatRender"), true);
-    assert.equal(app.includes("if (state.inspectingProfile)"), true);
+    assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), true);
     assert.equal(app.includes("state.pendingChatRender = true"), true);
     assert.equal(app.includes("state.pendingChatRender = false"), true);
     assert.equal(app.includes("renderChatFeed"), true);
@@ -185,6 +185,8 @@ describe("chat interaction contract", () => {
     const app = readAppRuntime();
 
     assert.equal(app.includes("shouldPauseChatRender"), true);
+    assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), true);
+    assert.equal(app.includes("if (state.inspectingProfile)"), false);
     assert.match(app, /if \(shouldPauseChatRender\(shouldFollowChat\)\)\s*\{/);
     assert.match(app, /state\.pendingChatRender = true;[\s\S]*updateJumpToLive\(\);[\s\S]*return;/);
     assert.equal(app.includes("renderPendingChat"), true);

@@ -30,7 +30,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     elements.viewerCount.textContent = formatNumber(viewerSummary.total);
     elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
 
-    if (state.inspectingProfile) {
+    if (state.inspectingProfile && !shouldFollowChat) {
       state.pendingChatRender = true;
       updateJumpToLive();
       return;

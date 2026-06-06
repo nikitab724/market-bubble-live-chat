@@ -48,7 +48,7 @@ Every chat message is normalized into the shared chat shape before rendering:
 - timestamp
 - profile URL/source URL
 
-The browser keeps all received messages in memory for correctness, but only renders the latest message window to the DOM for performance. Chat scrolling follows the common live-chat threshold pattern: within 120px of the bottom, incoming messages keep the view pinned to live; farther away, the message DOM freezes so the viewer can read older messages without jitter. The chat feed does not use native vertical wheel/touch scrolling; wheel and touch gestures are canceled, then `scrollTop` is manually clamped between the first and last message so the feed cannot rubber-band past the newest row. The jump-to-live action renders the pending message window once and scrolls back to the newest row.
+The browser keeps all received messages in memory for correctness, but only renders the latest message window to the DOM for performance. Chat scrolling follows the common live-chat threshold pattern: within 120px of the bottom, incoming messages keep the view pinned to live; farther away, the message DOM freezes so the viewer can read older messages without jitter. Hover/profile inspection only freezes rendering while the viewer is away from live; hovering the newest rows still allows append-only rendering and bottom follow. The chat feed does not use native vertical wheel/touch scrolling; wheel and touch gestures are canceled, then `scrollTop` is manually clamped between the first and last message so the feed cannot rubber-band past the newest row. The jump-to-live action renders the pending message window once and scrolls back to the newest row.
 
 ## Browser Runtime Modules
 
