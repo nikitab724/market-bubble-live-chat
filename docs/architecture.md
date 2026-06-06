@@ -48,7 +48,7 @@ Every chat message is normalized into the shared chat shape before rendering:
 - timestamp
 - profile URL/source URL
 
-The browser keeps all received messages in memory for correctness, but only renders the latest message window to the DOM for performance. When the viewer scrolls up, new rendering pauses until they jump back to live.
+The browser keeps all received messages in memory for correctness, but only renders the latest message window to the DOM for performance. Chat scrolling follows the common live-chat threshold pattern: within 120px of the bottom, incoming messages keep the view pinned to live; farther away, the message DOM freezes so the viewer can read older messages without jitter. The jump-to-live action renders the pending message window once and scrolls back to the newest row.
 
 ## Browser Runtime Modules
 

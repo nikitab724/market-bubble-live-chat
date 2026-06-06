@@ -2,7 +2,7 @@ import { buildViewerSummary } from "./chat-model.mjs";
 import { renderMessageBody } from "./emote-renderer.mjs";
 import { escapeHtml, platformMeta } from "./platforms.mjs";
 
-const CHAT_BOTTOM_THRESHOLD_PX = 8;
+const AUTO_SCROLL_THRESHOLD_PX = 120;
 const CHAT_RENDER_WINDOW_SIZE = 500;
 
 export function createChatRenderer({ window, elements, state, getAuthorProfile, getTwitchEmoteMap }) {
@@ -12,15 +12,15 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
   return {
     handleChatScroll,
     render,
+    renderPendingChat,
     scrollChatToBottom,
     updateInspectingState,
     updateJumpToLive,
   };
 
   function render() {
-    const shouldFollowChat = state.followingChat || isChatAtBottom();
+    const shouldFollowChat = state.followingChat || isChatNearBottom();
     state.followingChat = shouldFollowChat;
-    const previousScrollTop = elements.chatFeed.scrollTop;
     const viewerSummary = buildViewerSummary(state.sources);
 
     elements.viewerCount.textContent = formatNumber(viewerSummary.total);
@@ -32,11 +32,27 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       return;
     }
 
+    if (shouldPauseChatRender(shouldFollowChat)) {
+      state.pendingChatRender = true;
+      updateJumpToLive();
+      return;
+    }
+
     state.pendingChatRender = false;
-    renderChatFeed(shouldFollowChat, previousScrollTop);
+    renderChatFeed(shouldFollowChat);
   }
 
-  function renderChatFeed(shouldFollowChat, previousScrollTop) {
+  function renderPendingChat() {
+    state.followingChat = true;
+    state.pendingChatRender = false;
+    renderChatFeed(true);
+  }
+
+  function shouldPauseChatRender(shouldFollowChat) {
+    return !shouldFollowChat;
+  }
+
+  function renderChatFeed(shouldFollowChat) {
     const visibleMessages = getVisibleMessages();
     const messageIds = visibleMessages.map((message) => message.id);
     const chatStack = getChatStack();
@@ -62,7 +78,6 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     if (shouldFollowChat) {
       scrollChatToBottom();
     } else {
-      elements.chatFeed.scrollTop = previousScrollTop;
       updateJumpToLive();
     }
   }
@@ -123,17 +138,25 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
   }
 
   function handleChatScroll() {
-    if (isChatAtBottom()) {
+    if (isChatNearBottom()) {
       state.followingChat = true;
     } else {
       state.followingChat = false;
     }
 
+    if (state.followingChat && state.pendingChatRender) {
+      state.queueRender();
+    }
+
     updateJumpToLive();
   }
 
-  function isChatAtBottom() {
-    return elements.chatFeed.scrollHeight - elements.chatFeed.clientHeight - elements.chatFeed.scrollTop <= CHAT_BOTTOM_THRESHOLD_PX;
+  function isChatNearBottom() {
+    return getDistanceFromBottom() <= AUTO_SCROLL_THRESHOLD_PX;
+  }
+
+  function getDistanceFromBottom() {
+    return Math.max(0, elements.chatFeed.scrollHeight - elements.chatFeed.clientHeight - elements.chatFeed.scrollTop);
   }
 
   function updateJumpToLive() {

@@ -137,8 +137,7 @@ function bindEvents() {
 
   elements.jumpToLive.addEventListener("click", () => {
     state.followingChat = true;
-    renderer.updateJumpToLive();
-    renderer.scrollChatToBottom();
+    renderer.renderPendingChat();
   });
 }
 

@@ -164,19 +164,32 @@ describe("chat interaction contract", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("scrollChatToBottom"), true);
-    assert.equal(app.includes("isChatAtBottom"), true);
+    assert.equal(app.includes("isChatNearBottom"), true);
     assert.equal(app.includes("handleChatScroll"), true);
     assert.equal(app.includes("jumpToLive"), true);
     assert.equal(app.includes("followingChat: true"), true);
     assert.equal(app.includes("state.followingChat = false"), true);
     assert.equal(app.includes("state.followingChat = true"), true);
-    assert.equal(app.includes("const shouldFollowChat = state.followingChat || isChatAtBottom()"), true);
+    assert.equal(app.includes("AUTO_SCROLL_THRESHOLD_PX = 120"), true);
+    assert.equal(app.includes("getDistanceFromBottom"), true);
+    assert.equal(app.includes("const shouldFollowChat = state.followingChat || isChatNearBottom()"), true);
     assert.equal(app.includes('class="chat-stack"'), true);
     assert.equal(app.includes("elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight"), true);
     assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: auto[^}]*overflow-anchor: none/s);
     assert.match(styles, /\.jump-to-live\s*\{[^}]*position: absolute/s);
     assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);
+  });
+
+  it("freezes chat DOM updates while reading older messages and renders pending chat on jump to live", () => {
+    const app = readAppRuntime();
+
+    assert.equal(app.includes("shouldPauseChatRender"), true);
+    assert.match(app, /if \(shouldPauseChatRender\(shouldFollowChat\)\)\s*\{/);
+    assert.match(app, /state\.pendingChatRender = true;[\s\S]*updateJumpToLive\(\);[\s\S]*return;/);
+    assert.equal(app.includes("renderPendingChat"), true);
+    assert.match(app, /elements\.jumpToLive\.addEventListener\("click", \(\) => \{[\s\S]*renderer\.renderPendingChat\(\);/);
+    assert.match(app, /if \(state\.followingChat && state\.pendingChatRender\) \{[\s\S]*state\.queueRender\(\);/);
   });
 
   it("coalesces bursty chat updates while keeping native scrolling locked down", () => {
