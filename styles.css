@@ -723,6 +723,10 @@ h2 {
   padding: 0 14px 14px;
 }
 
+.profile-editor-body[hidden] {
+  display: none;
+}
+
 .profile-name-field {
   max-width: 420px;
 }

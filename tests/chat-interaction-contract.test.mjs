@@ -139,6 +139,7 @@ describe("chat interaction contract", () => {
     assert.equal(admin.includes("profile-toggle-icon"), true);
     assert.equal(styles.includes(".profile-editor-card"), true);
     assert.equal(styles.includes(".profile-social-grid"), true);
+    assert.equal(styles.includes(".profile-editor-body[hidden]"), true);
     assert.equal(styles.includes(".profile-toggle-icon"), true);
   });
 });
