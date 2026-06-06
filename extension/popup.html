@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Market Bubble X Bridge</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        width: 260px;
+        font-family: -apple-system, Arial, sans-serif;
+        font-size: 13px;
+        background: #0a0a0a;
+        color: #e7e4d8;
+      }
+
+      header {
+        padding: 12px 14px 10px;
+        border-bottom: 1px solid #1e1e1e;
+      }
+
+      header h1 {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #17a7ff;
+      }
+
+      header p {
+        margin-top: 2px;
+        font-size: 11px;
+        color: #666;
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-bottom: 1px solid #1e1e1e;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: #555;
+      }
+
+      .dot.watching { background: #3ddc84; box-shadow: 0 0 5px #3ddc84aa; animation: pulse 2s ease-in-out infinite; }
+      .dot.idle { background: #555; }
+      .dot.no-container { background: #f5a623; animation: pulse 1s ease-in-out infinite; }
+
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+      .status-text { font-size: 12px; color: #aaa; }
+      .status-text strong { color: #e7e4d8; }
+
+      .section {
+        padding: 10px 14px;
+        border-bottom: 1px solid #1e1e1e;
+      }
+
+      .section label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #666;
+        margin-bottom: 6px;
+      }
+
+      select {
+        width: 100%;
+        padding: 6px 8px;
+        background: #111;
+        border: 1px solid #2a2a2a;
+        color: #e7e4d8;
+        font-size: 12px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      select:focus { outline: 1px solid #17a7ff; }
+
+      .actions {
+        padding: 10px 14px;
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        flex: 1;
+        padding: 7px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border: 1px solid #2a2a2a;
+        border-radius: 3px;
+        cursor: pointer;
+        background: #111;
+        color: #e7e4d8;
+      }
+
+      button:hover { background: #1a1a1a; }
+
+      #notLive {
+        padding: 14px;
+        font-size: 12px;
+        color: #555;
+        text-align: center;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Market Bubble</h1>
+      <p>X Live Chat Bridge</p>
+    </header>
+
+    <div id="liveControls" style="display:none">
+      <div class="status-row">
+        <div class="dot" id="dot"></div>
+        <div class="status-text" id="statusText">Checking…</div>
+      </div>
+
+      <div class="section">
+        <label for="sourceSelect">X Source</label>
+        <select id="sourceSelect">
+          <option value="">— Select stream —</option>
+        </select>
+      </div>
+
+      <div class="actions">
+        <button id="retryBtn">Retry</button>
+        <button id="applyBtn">Apply</button>
+      </div>
+    </div>
+
+    <div id="notLive">
+      Open an X livestream or Space page<br />and click the extension icon.
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -92,6 +92,26 @@ export function createAppServer(options = {}) {
         return chatHub.connect(response);
       }
 
+      if (url.pathname === "/api/x-chat") {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+        if (request.method === "OPTIONS") {
+          response.writeHead(204);
+          return response.end();
+        }
+
+        if (request.method === "POST") {
+          const body = await readJsonBody(request);
+          const sources = await readSources(configPath);
+          const message = normalizeXChatMessage(body, sources);
+          chatHub.broadcast("chat", message);
+          response.writeHead(204);
+          return response.end();
+        }
+      }
+
       if (url.pathname === "/api/webhooks/kick" && request.method === "POST") {
         const rawBody = await readRawBody(request);
 
@@ -231,6 +251,32 @@ function getDevKickSource(body, sources) {
     sourceId: `kick-${requestedHandle || "marketbubble"}`,
     sourceLabel: "Market Bubble",
     sourceName: "Market Bubble",
+  };
+}
+
+function normalizeXChatMessage(body, sources) {
+  const requestedHandle = String(body.sourceHandle || "").replace(/^@/, "").toLowerCase().trim();
+  const xSources = (Array.isArray(sources) ? sources : []).filter((s) => s.platform === "x");
+  const source = xSources.find((s) => s.sourceHandle === requestedHandle) || xSources[0];
+
+  if (!source) {
+    throw new Error("No X source configured");
+  }
+
+  const handle = String(body.handle || body.author || "viewer").replace(/^@/, "").toLowerCase().trim();
+  const author = String(body.author || handle).trim();
+
+  return {
+    platform: "x",
+    author,
+    handle,
+    body: String(body.body || "").trim(),
+    timestamp: body.timestamp || new Date().toISOString(),
+    sourceUrl: `https://x.com/${handle}`,
+    sourceId: source.sourceId,
+    sourceName: source.sourceName,
+    sourceHandle: source.sourceHandle,
+    sourceLabel: source.sourceLabel,
   };
 }
 
