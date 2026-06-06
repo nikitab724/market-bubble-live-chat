@@ -73,3 +73,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 
 - Moved the chat jump-to-live button to bottom center of the chat panel.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `git diff --check`.
+
+## [2026-06-06] ui | Anchor profile cards to hovered users
+
+- Kept profile cards fixed so they do not add chat scroll height, but positioned them from the hovered username row instead of the viewport corner.
+- Added pointer-move positioning so live chat row movement keeps the card attached to the user under the cursor.
+- Updated the app module cache-bust query for the anchored hover-card runtime.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; Chrome local hover check measured the profile card left edge matching the hovered username left edge with chat still at `distanceFromBottom: 0`.

@@ -125,8 +125,17 @@ function buildConfiguredMessage(sourceId, author, handle, body, timestamp) {
 
 function bindEvents() {
   elements.chatFeed.addEventListener("pointerover", (event) => {
-    if (event.target.closest(".chat-message")) {
+    const message = event.target.closest(".chat-message");
+    if (message) {
       state.inspectingProfile = true;
+      renderer.positionProfileCard(message);
+    }
+  });
+
+  elements.chatFeed.addEventListener("pointermove", (event) => {
+    const message = event.target.closest(".chat-message");
+    if (message) {
+      renderer.positionProfileCard(message);
     }
   });
 

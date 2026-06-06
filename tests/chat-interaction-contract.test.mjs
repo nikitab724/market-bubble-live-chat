@@ -63,7 +63,10 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("state.pendingChatRender = true"), true);
     assert.equal(app.includes("state.pendingChatRender = false"), true);
     assert.equal(app.includes("renderChatFeed"), true);
+    assert.equal(app.includes("renderer.positionProfileCard(message);"), true);
+    assert.equal(app.includes('elements.chatFeed.addEventListener("pointermove"'), true);
     assert.match(styles, /\.profile-card\s*\{[^}]*display: none/s);
+    assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*left: var\(--profile-card-left, 24px\)[^}]*top: var\(--profile-card-top, 24px\)/s);
     assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
@@ -177,7 +180,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("elements.chatFeed.scrollTop = getMaxScrollTop()"), true);
     assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*overflow-anchor: none/s);
-    assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*bottom:/s);
+    assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*left: var\(--profile-card-left, 24px\)[^}]*top: var\(--profile-card-top, 24px\)/s);
     assert.match(styles, /\.jump-to-live\s*\{[^}]*position: absolute/s);
     assert.match(styles, /\.jump-to-live\s*\{[^}]*left: 50%[^}]*transform: translateX\(-50%\)/s);
     assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);

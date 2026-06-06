@@ -7,6 +7,7 @@ const CHAT_RENDER_WINDOW_SIZE = 500;
 
 export function createChatRenderer({ window, elements, state, getAuthorProfile, getTwitchEmoteMap }) {
   let renderedMessageIds = [];
+  let queuedProfileCardFrame = 0;
   let queuedScrollFrame = 0;
   let lastTouchClientY = null;
 
@@ -15,6 +16,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     handleChatTouchMove,
     handleChatTouchStart,
     handleChatWheel,
+    positionProfileCard,
     render,
     renderPendingChat,
     scrollChatToBottom,
@@ -215,6 +217,37 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     }
   }
 
+  function positionProfileCard(messageRow) {
+    const profileCard = messageRow?.querySelector(".profile-card");
+    const anchor = messageRow?.querySelector(".message-meta strong") || messageRow;
+
+    if (!profileCard || !anchor) {
+      return;
+    }
+
+    if (queuedProfileCardFrame) {
+      window.cancelAnimationFrame(queuedProfileCardFrame);
+    }
+
+    queuedProfileCardFrame = window.requestAnimationFrame(() => {
+      queuedProfileCardFrame = 0;
+      const gutter = 12;
+      const anchorRect = anchor.getBoundingClientRect();
+      const cardRect = profileCard.getBoundingClientRect();
+      const cardWidth = cardRect.width || Math.min(330, window.innerWidth - gutter * 2);
+      const cardHeight = cardRect.height || Math.min(320, window.innerHeight - gutter * 2);
+      const left = clampToViewport(anchorRect.left, gutter, window.innerWidth - cardWidth - gutter);
+      const belowTop = anchorRect.bottom + 8;
+      const aboveTop = anchorRect.top - cardHeight - 8;
+      const top = belowTop + cardHeight <= window.innerHeight - gutter
+        ? belowTop
+        : clampToViewport(aboveTop, gutter, window.innerHeight - cardHeight - gutter);
+
+      profileCard.style.setProperty("--profile-card-left", `${Math.round(left)}px`);
+      profileCard.style.setProperty("--profile-card-top", `${Math.round(top)}px`);
+    });
+  }
+
   function isChatNearBottom() {
     return getDistanceFromBottom() <= AUTO_SCROLL_THRESHOLD_PX;
   }
@@ -225,6 +258,10 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
 
   function getMaxScrollTop() {
     return Math.max(0, elements.chatFeed.scrollHeight - elements.chatFeed.clientHeight);
+  }
+
+  function clampToViewport(value, min, max) {
+    return Math.min(Math.max(min, max), Math.max(min, value));
   }
 
   function getDistanceFromBottom() {

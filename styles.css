@@ -623,8 +623,8 @@ h2 {
 .profile-card {
   display: none;
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  left: var(--profile-card-left, 24px);
+  top: var(--profile-card-top, 24px);
   z-index: 10;
   width: min(330px, calc(100vw - 32px));
   max-height: min(320px, calc(100vh - 48px));
