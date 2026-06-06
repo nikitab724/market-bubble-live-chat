@@ -103,6 +103,15 @@ describe("chat interaction contract", () => {
 
     assert.equal(app.includes("MAX_CHAT_MESSAGES = 200"), true);
     assert.equal(app.includes(".slice(0, 60)"), false);
+    assert.equal(app.includes("keepRecentMessages"), true);
+    assert.equal(app.includes(".slice(-MAX_CHAT_MESSAGES)"), true);
+  });
+
+  it("keeps the chat viewport pinned to the newest bottom messages", () => {
+    const app = readFileSync(new URL("../src/app.mjs", import.meta.url), "utf8");
+
+    assert.equal(app.includes("scrollChatToBottom"), true);
+    assert.equal(app.includes("elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight"), true);
   });
 
   it("loads and renders Twitch emotes", () => {

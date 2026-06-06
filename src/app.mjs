@@ -187,10 +187,10 @@ function startTwitchConnectors() {
     connectTwitchChat(twitchSource.sourceHandle, {
       source: twitchSource,
       onMessage(rawMessage) {
-        state.messages = mergeMessages([
-          normalizeMessage(rawMessage),
+        state.messages = keepRecentMessages(mergeMessages([
           ...state.messages,
-        ]).slice(0, MAX_CHAT_MESSAGES);
+          normalizeMessage(rawMessage),
+        ]));
         render();
       },
       onStatus(status) {
@@ -232,10 +232,10 @@ function startBackendChatEvents() {
 }
 
 function addBackendMessage(rawMessage) {
-  state.messages = mergeMessages([
-    normalizeMessage(rawMessage),
+  state.messages = keepRecentMessages(mergeMessages([
     ...state.messages,
-  ]).slice(0, MAX_CHAT_MESSAGES);
+    normalizeMessage(rawMessage),
+  ]));
   render();
 }
 
@@ -301,10 +301,10 @@ function pushLiveMessage() {
 
   const [sourceId, author, handle, body] = availableMessages[Math.floor(Math.random() * availableMessages.length)];
 
-  state.messages = mergeMessages([
-    buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
+  state.messages = keepRecentMessages(mergeMessages([
     ...state.messages,
-  ]).slice(0, MAX_CHAT_MESSAGES);
+    buildConfiguredMessage(sourceId, author, handle, body, new Date().toISOString()),
+  ]));
 }
 
 function buildSourceMessage(sourceId, author, handle, body, timestamp) {
@@ -366,6 +366,17 @@ function render() {
   elements.viewerCount.textContent = formatNumber(viewerSummary.total);
   elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
   elements.chatFeed.innerHTML = state.messages.map(renderMessage).join("");
+  scrollChatToBottom();
+}
+
+function keepRecentMessages(messages) {
+  return messages.slice(-MAX_CHAT_MESSAGES);
+}
+
+function scrollChatToBottom() {
+  window.requestAnimationFrame(() => {
+    elements.chatFeed.scrollTop = elements.chatFeed.scrollHeight;
+  });
 }
 
 function renderSource(source) {
