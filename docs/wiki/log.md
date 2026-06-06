@@ -68,3 +68,8 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Removed the native chat feed scroll listener from the controlled-scroll path and clamped live autoscroll to the feed's current max scroll position.
 - Updated the app module cache-bust query for the fixed hover-card runtime.
 - Verification: focused `node --test tests/chat-interaction-contract.test.mjs` passed; Chrome local repro with 180 injected chat messages plus repeated wheel-down gestures over the bottom rows stayed at `distanceFromBottom: 0`, with jump-to-live hidden and `window.scrollY: 0`; scroll-up still paused at `distanceFromBottom: 900`, and jump-to-live returned to `0`.
+
+## [2026-06-06] ui | Center jump-to-live control
+
+- Moved the chat jump-to-live button to bottom center of the chat panel.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `git diff --check`.

@@ -179,6 +179,7 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*overflow-anchor: none/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*bottom:/s);
     assert.match(styles, /\.jump-to-live\s*\{[^}]*position: absolute/s);
+    assert.match(styles, /\.jump-to-live\s*\{[^}]*left: 50%[^}]*transform: translateX\(-50%\)/s);
     assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);
   });
 
