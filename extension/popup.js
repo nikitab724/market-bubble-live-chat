@@ -6,7 +6,7 @@ const STATUS_LABELS = {
 
 async function getXSources() {
   try {
-    const r = await fetch("http://localhost:4178/api/public-config");
+    const r = await fetch("https://marketbubble.192-210-192-116.sslip.io/api/public-config");
     const data = await r.json();
     return (data.sources || []).filter((s) => s.platform === "x");
   } catch {

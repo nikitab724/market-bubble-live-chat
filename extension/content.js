@@ -9,7 +9,7 @@
  * and extractMessage() below.
  */
 
-const BACKEND_URL = "http://localhost:4178/api/x-chat";
+const BACKEND_URL = "https://marketbubble.192-210-192-116.sslip.io/api/x-chat";
 
 // Selectors tried in order to find the scrollable chat container.
 // X uses data-testid attributes that are relatively stable across releases.
