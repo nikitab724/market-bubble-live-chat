@@ -94,3 +94,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Counted profile-card hover as active profile inspection so the fixed card stays open while navigating onto it.
 - Updated the app module cache-bust query for the border-attached hover-card runtime.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; Chrome local hover check measured the profile card overlapping the hovered message border by `1px`, left-aligned with the username, with chat still at `distanceFromBottom: 0`.
+
+## [2026-06-06] ui | Shift profile cards to message right side
+
+- Anchored profile cards toward the right side of the hovered message row instead of the username's left edge.
+- Preserved the 1px message-border overlap so pointer travel from message to card stays continuous.
+- Updated the app module cache-bust query for the right-side hover-card runtime.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; Chrome local hover check measured a `12px` right gutter from message row to card, `1px` message-border overlap, and chat still at `distanceFromBottom: 0`.
