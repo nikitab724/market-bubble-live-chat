@@ -233,18 +233,16 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       queuedProfileCardFrame = 0;
       const gutter = 12;
       const anchorRect = anchor.getBoundingClientRect();
+      const messageRect = messageRow.getBoundingClientRect();
       const cardRect = profileCard.getBoundingClientRect();
       const cardWidth = cardRect.width || Math.min(330, window.innerWidth - gutter * 2);
-      const cardHeight = cardRect.height || Math.min(320, window.innerHeight - gutter * 2);
       const left = clampToViewport(anchorRect.left, gutter, window.innerWidth - cardWidth - gutter);
-      const belowTop = anchorRect.bottom + 8;
-      const aboveTop = anchorRect.top - cardHeight - 8;
-      const top = belowTop + cardHeight <= window.innerHeight - gutter
-        ? belowTop
-        : clampToViewport(aboveTop, gutter, window.innerHeight - cardHeight - gutter);
+      const top = messageRect.bottom + 10;
+      const maxHeight = Math.max(96, window.innerHeight - top - gutter);
 
       profileCard.style.setProperty("--profile-card-left", `${Math.round(left)}px`);
       profileCard.style.setProperty("--profile-card-top", `${Math.round(top)}px`);
+      profileCard.style.setProperty("--profile-card-max-height", `${Math.round(maxHeight)}px`);
     });
   }
 

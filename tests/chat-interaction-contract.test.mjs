@@ -65,8 +65,11 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("renderChatFeed"), true);
     assert.equal(app.includes("renderer.positionProfileCard(message);"), true);
     assert.equal(app.includes('elements.chatFeed.addEventListener("pointermove"'), true);
+    assert.equal(app.includes("const top = messageRect.bottom + 10"), true);
+    assert.equal(app.includes("--profile-card-max-height"), true);
     assert.match(styles, /\.profile-card\s*\{[^}]*display: none/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*left: var\(--profile-card-left, 24px\)[^}]*top: var\(--profile-card-top, 24px\)/s);
+    assert.match(styles, /\.profile-card\s*\{[^}]*overflow: auto/s);
     assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 

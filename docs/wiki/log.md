@@ -80,3 +80,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Added pointer-move positioning so live chat row movement keeps the card attached to the user under the cursor.
 - Updated the app module cache-bust query for the anchored hover-card runtime.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; Chrome local hover check measured the profile card left edge matching the hovered username left edge with chat still at `distanceFromBottom: 0`.
+
+## [2026-06-06] ui | Place profile cards below messages
+
+- Positioned profile cards from the hovered message bottom edge so the card opens below the message instead of covering it.
+- Made clipped bottom-edge cards scrollable while keeping them fixed outside chat layout.
+- Updated the app module cache-bust query for the below-message hover-card runtime.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; Chrome local hover check measured the card `10px` below the hovered message row, left-aligned with the username, with chat still at `distanceFromBottom: 0`.
