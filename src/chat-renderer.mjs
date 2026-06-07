@@ -336,15 +336,17 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     return `
       <article class="chat-message ${message.platform}" data-message-id="${escapeHtml(message.id)}">
         <div class="message-body">
-          <div class="message-meta">
-            <span class="platform-mark">
-              ${renderPlatformLogo(message.platform, `${meta.label} logo`)}
-              <span class="source-label ${message.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(message.sourceLabel)}">${escapeHtml(message.sourceLabel)}</span>
-            </span>
-            <strong title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong>
-            <time>${formatTime(message.timestamp)}</time>
+          <span class="platform-mark">
+            ${renderPlatformLogo(message.platform, `${meta.label} logo`)}
+            <span class="source-label ${message.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(message.sourceLabel)}">${escapeHtml(message.sourceLabel)}</span>
+          </span>
+          <div class="message-content">
+            <div class="message-meta">
+              <strong title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong>
+              <time>${formatTime(message.timestamp)}</time>
+            </div>
+            <p>${renderMessageBody(message, getTwitchEmoteMap(message))}</p>
           </div>
-          <p>${renderMessageBody(message, getTwitchEmoteMap(message))}</p>
         </div>
         <div class="profile-card" role="tooltip">
           <div class="profile-card-header">

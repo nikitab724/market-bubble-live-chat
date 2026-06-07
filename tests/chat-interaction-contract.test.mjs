@@ -145,18 +145,33 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("renderPlatformLogo"), true);
     assert.equal(app.includes('class="platform-logo ${escapeHtml(platform)}"'), true);
     assert.equal(app.includes('class="platform-mark"'), true);
+    assert.equal(app.includes('class="message-content"'), true);
     assert.equal(app.includes('aria-label="${escapeHtml(label)}"'), true);
     assert.equal(app.includes("twitch:"), true);
     assert.equal(app.includes("kick:"), true);
     assert.equal(app.includes("x:"), true);
     assert.equal(app.includes('class="platform-badge ${message.platform}"'), false);
-    assert.match(app, /<span class="platform-mark">\s*\$\{renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*<span class="source-label \$\{message\.platform\}"/);
-    assert.match(app, /<\/span>\s*<strong title="\$\{escapeHtml\(message\.author\)\}">/);
+    assert.match(app, /<div class="message-body">\s*<span class="platform-mark">\s*\$\{renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*<span class="source-label \$\{message\.platform\}"/);
+    assert.match(app, /<\/span>\s*<div class="message-content">\s*<div class="message-meta">\s*<strong title="\$\{escapeHtml\(message\.author\)\}">/);
+    assert.match(styles, /\.message-body\s*\{[^}]*display: flex[^}]*gap: 5px/s);
+    assert.match(styles, /\.message-content\s*\{[^}]*flex: 1 1 auto/s);
     assert.match(styles, /\.platform-logo\s*\{[^}]*width: 18px[^}]*height: 18px/s);
     assert.match(styles, /\.platform-mark\s*\{[^}]*display: grid[^}]*justify-items: center/s);
     assert.match(styles, /\.chat-message\s*\{[^}]*padding: 7px 10px/s);
     assert.match(styles, /\.message-meta\s*\{[^}]*gap: 5px/s);
-    assert.match(styles, /\.source-label\s*\{[^}]*border: 0[^}]*background: transparent/s);
+    assert.match(styles, /\.source-label\s*\{[^}]*width: 100%[^}]*border: 0[^}]*background: transparent[^}]*text-align: center/s);
+  });
+
+  it("keeps chat rows tight and borderless", () => {
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    const chatMessageRule = styles.match(/\.chat-message\s*\{(?<body>[^}]*)\}/s)?.groups.body || "";
+
+    assert.equal(chatMessageRule.includes("border-bottom:"), false);
+    assert.equal(chatMessageRule.includes("border-left:"), false);
+    assert.match(chatMessageRule, /border: 0/);
+    assert.match(chatMessageRule, /background: rgba\(255, 255, 255, 0\.012\)/);
+    assert.match(styles, /\.chat-message p\s*\{[^}]*margin: 0/s);
+    assert.equal(styles.includes("margin-left: 51px;"), false);
   });
 
   it("uses the Market Bubble broadcast treatment with platform color accents", () => {

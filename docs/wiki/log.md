@@ -148,3 +148,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Moved each row's stream/source label into a compact stack directly beneath the platform logo.
 - Updated stylesheet and app cache-bust query strings so deployed browsers fetch the revised row layout.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (68 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; in-app browser local check found zero chat-row platform badges, the source label below the logo, and message text aligned with the username.
+
+## [2026-06-07] ui | Soften chat row spacing
+
+- Centered the source label within the platform logo stack so logo and text read as one centered mark.
+- Removed per-message borders and reduced alternating row contrast to make the feed less boxy.
+- Tightened the vertical gap between username metadata and message text.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (69 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; in-app browser local check measured `0px` message-row borders, centered logo/source mark, and `0px` gap between username line and message text.

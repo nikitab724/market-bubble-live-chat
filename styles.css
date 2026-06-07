@@ -413,15 +413,13 @@ h2 {
   display: block;
   padding: 7px 10px;
   border: 0;
-  border-bottom: 1px solid var(--line-soft);
-  border-left: 2px solid var(--source-color);
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.018);
+  background: rgba(255, 255, 255, 0.012);
   outline: 0;
 }
 
 .chat-message:nth-child(even) {
-  background: rgba(255, 255, 255, 0.034);
+  background: rgba(255, 255, 255, 0.024);
 }
 
 .chat-message:hover {
@@ -429,12 +427,20 @@ h2 {
 }
 
 .message-body {
+  display: flex;
+  gap: 5px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.message-content {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .message-meta {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 5px;
   min-width: 0;
 }
@@ -445,6 +451,7 @@ h2 {
   gap: 2px;
   justify-items: center;
   min-width: 0;
+  text-align: center;
 }
 
 .platform-logo {
@@ -490,6 +497,7 @@ h2 {
 }
 
 .source-label {
+  width: 100%;
   max-width: 52px;
   min-width: 0;
   overflow: hidden;
@@ -501,13 +509,14 @@ h2 {
   font-size: 8px;
   font-weight: 900;
   line-height: 1;
+  text-align: center;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .chat-message p {
-  margin: 2px 0 0 57px;
+  margin: 0;
   color: var(--text);
   font-size: 13px;
   line-height: 1.24;
@@ -1027,10 +1036,6 @@ button:hover {
 
   .source-label {
     max-width: 46px;
-  }
-
-  .chat-message p {
-    margin-left: 51px;
   }
 
   .admin-body {
