@@ -398,8 +398,12 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
 
     return {
       name: profileName,
-      sources: profileSources,
+      sources: profileSources.filter(isSocialProfileSource),
     };
+  }
+
+  function isSocialProfileSource(source) {
+    return source.platform !== "room";
   }
 
   function getProfileSources(source) {

@@ -1,7 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+const LAYOUT_STORAGE_KEY = "market-bubble-viewer-layout";
+const layoutModes = new Set(["full", "mini"]);
 
 export function ViewerApp({ surface = "viewer" }) {
   const showStream = surface === "viewer";
+  const [layoutMode, setLayoutMode] = useState(() => getInitialLayout(surface));
+  const effectiveLayout = showStream ? layoutMode : "full";
 
   useEffect(() => {
     let active = true;
@@ -17,13 +22,34 @@ export function ViewerApp({ surface = "viewer" }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (showStream) {
+      window.localStorage.setItem(LAYOUT_STORAGE_KEY, effectiveLayout);
+    }
+  }, [effectiveLayout, showStream]);
+
+  function toggleLayout() {
+    setLayoutMode((currentLayout) => (currentLayout === "mini" ? "full" : "mini"));
+  }
+
   return (
-    <>
+    <div className={`live-surface live-layout-${effectiveLayout}`} data-layout={effectiveLayout} data-surface={surface}>
       <header className="broadcast-topbar" aria-label="Market Bubble live status">
         <div className="brand-mark" aria-hidden="true">
           <span>Market</span>
           <span>Bubble</span>
         </div>
+        {showStream && (
+          <button
+            aria-label={effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+            aria-pressed={effectiveLayout === "mini"}
+            className="layout-toggle"
+            onClick={toggleLayout}
+            type="button"
+          >
+            {effectiveLayout === "mini" ? "FULL" : "MIN"}
+          </button>
+        )}
         <div className="broadcast-metrics">
           <div className="viewer-counter" aria-label="Combined viewers">
             <strong id="viewerCount">0</strong>
@@ -49,6 +75,21 @@ export function ViewerApp({ surface = "viewer" }) {
           </button>
         </section>
       </main>
-    </>
+    </div>
   );
+}
+
+function getInitialLayout(surface) {
+  if (surface !== "viewer") {
+    return "full";
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const requestedLayout = searchParams.get("layout");
+  if (layoutModes.has(requestedLayout)) {
+    return requestedLayout;
+  }
+
+  const storedLayout = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+  return layoutModes.has(storedLayout) ? storedLayout : "full";
 }

@@ -73,6 +73,24 @@ describe("chat interaction contract", () => {
     assert.equal(chat.includes("?v="), false);
   });
 
+  it("adds a main-viewer-only mini layout mode", () => {
+    const viewer = readViewerRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(viewer.includes("LAYOUT_STORAGE_KEY"), true);
+    assert.equal(viewer.includes("function getInitialLayout(surface)"), true);
+    assert.equal(viewer.includes('searchParams.get("layout")'), true);
+    assert.equal(viewer.includes('surface === "viewer"'), true);
+    assert.equal(viewer.includes("live-layout-${effectiveLayout}"), true);
+    assert.equal(viewer.includes('className="layout-toggle"'), true);
+    assert.equal(viewer.includes("showStream &&"), true);
+    assert.match(styles, /\.live-surface\s*\{[^}]*width: 100%[^}]*height: 100%/s);
+    assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*width: 250px/s);
+    assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(340px, 390px\)/s);
+    assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*height: min\(62vh, 620px\)/s);
+    assert.equal(styles.includes(".chat-shell .layout-toggle"), false);
+  });
+
   it("does not keep profile cards open through row focus", () => {
     const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
@@ -248,6 +266,8 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("--source-popover-left"), false);
     assert.equal(app.includes("function getSourceProfile(source)"), true);
     assert.equal(app.includes("function getProfileSources(source)"), true);
+    assert.equal(app.includes("function isSocialProfileSource(source)"), true);
+    assert.equal(app.includes(".filter(isSocialProfileSource)"), true);
     assert.equal(app.includes("function renderProfileSourceLink(source)"), true);
     assert.equal(app.includes('class="source-social-link ${source.platform}"'), true);
     assert.equal(app.includes('class="source-popover"'), true);
