@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 
 const LAYOUT_STORAGE_KEY = "market-bubble-viewer-layout";
 const layoutModes = new Set(["full", "mini"]);
@@ -28,8 +29,43 @@ export function ViewerApp({ surface = "viewer" }) {
     }
   }, [effectiveLayout, showStream]);
 
-  function toggleLayout() {
-    setLayoutMode((currentLayout) => (currentLayout === "mini" ? "full" : "mini"));
+  useEffect(() => {
+    if (!showStream) {
+      return undefined;
+    }
+
+    function handleLayoutShortcut(event) {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (String(event.key || "").toLowerCase() !== "f") {
+        return;
+      }
+
+      if (isEditableShortcutTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      toggleLayoutWithTransition();
+    }
+
+    window.addEventListener("keydown", handleLayoutShortcut);
+    return () => window.removeEventListener("keydown", handleLayoutShortcut);
+  }, [effectiveLayout, showStream]);
+
+  function toggleLayoutWithTransition() {
+    const nextLayout = effectiveLayout === "mini" ? "full" : "mini";
+
+    if (typeof document.startViewTransition === "function") {
+      document.startViewTransition(() => {
+        flushSync(() => setLayoutMode(nextLayout));
+      });
+      return;
+    }
+
+    setLayoutMode(nextLayout);
   }
 
   return (
@@ -42,12 +78,21 @@ export function ViewerApp({ surface = "viewer" }) {
         {showStream && (
           <button
             aria-label={effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+            aria-keyshortcuts="F"
             aria-pressed={effectiveLayout === "mini"}
             className="layout-toggle"
-            onClick={toggleLayout}
+            onClick={toggleLayoutWithTransition}
+            title={effectiveLayout === "mini" ? "Use full layout (F)" : "Use mini layout (F)"}
             type="button"
           >
-            {effectiveLayout === "mini" ? "FULL" : "MIN"}
+            <span
+              aria-hidden="true"
+              className="layout-toggle-icon"
+              data-layout-action={effectiveLayout === "mini" ? "expand" : "minimize"}
+            />
+            <span className="layout-toggle-label">
+              {effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+            </span>
           </button>
         )}
         <div className="broadcast-metrics">
@@ -77,6 +122,14 @@ export function ViewerApp({ surface = "viewer" }) {
       </main>
     </div>
   );
+}
+
+function isEditableShortcutTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return target.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
 }
 
 function getInitialLayout(surface) {

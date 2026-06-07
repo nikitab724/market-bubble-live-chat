@@ -209,3 +209,40 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Changed mini-layout source/profile popovers to open to the right of the left source rail instead of below each source chip.
 - Kept the popover touching the chip edge so the viewer can move from the chip into the popover without losing hover.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (81 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-07] ui | Add cinematic layout transition
+
+- Replaced the text mini/full toggle with an icon-only layout control and `F` keyboard shortcut.
+- Added View Transitions API support for the mini/full layout switch, with CSS transition fallback on the stream, chat, and top bar surfaces.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (81 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-07] ui | Roll viewer count changes
+
+- Added persistent animated counters for the combined viewer total and each source viewer count.
+- Count changes now step up or down by one with a subtle vertical roll animation after the initial paint; reduced-motion clients snap directly to the latest count.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `npm test` (82 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-07] ui | Speed up viewer count rolling
+
+- Replaced the fixed one-count timer with a timestamp-based `requestAnimationFrame` loop for smoother browser-scheduled number animation.
+- Added exponential catch-up math so large viewer-count gaps move quickly, then ease into small final steps near the target.
+- Shortened the visual roll duration from 140ms to 90ms.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `npm test` (82 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-07] fix | Remove viewer count bounce
+
+- Removed the vertical count-roll keyframes from live viewer counts because they restarted every animation frame during exponential catch-up.
+- Kept the fast exponential counter, but changed the live visual treatment to a non-moving color/opacity highlight so count changes do not bounce.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `npm test` (82 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-07] ui | Add per-digit count motion
+
+- Replaced whole-number viewer count highlighting with individual clipped digit slots so changed digits roll independently during exponential catch-up.
+- Changed the full-layout toggle icon from inward corners to a simple minimize line while keeping the mini-layout expand corners.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `npm test` (82 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-07] perf | Remove extra viewer count animations
+
+- Removed the per-digit odometer DOM, digit-roll keyframes, and decorative rolling state from viewer counts.
+- Kept the exponential catch-up value updates and tabular number styling so counts remain responsive without extra visual work.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `npm test` (83 passed); `npm run build`; `git diff --check`.

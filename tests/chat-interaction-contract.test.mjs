@@ -78,15 +78,30 @@ describe("chat interaction contract", () => {
     const viewer = readViewerRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
+    assert.equal(viewer.includes('import { flushSync } from "react-dom";'), true);
     assert.equal(viewer.includes("LAYOUT_STORAGE_KEY"), true);
     assert.equal(viewer.includes("function getInitialLayout(surface)"), true);
     assert.equal(viewer.includes('searchParams.get("layout")'), true);
     assert.equal(viewer.includes('surface === "viewer"'), true);
     assert.equal(viewer.includes("live-layout-${effectiveLayout}"), true);
+    assert.equal(viewer.includes("function toggleLayoutWithTransition()"), true);
+    assert.equal(viewer.includes("document.startViewTransition"), true);
+    assert.equal(viewer.includes("flushSync(() => setLayoutMode(nextLayout));"), true);
+    assert.equal(viewer.includes('window.addEventListener("keydown", handleLayoutShortcut);'), true);
+    assert.equal(viewer.includes('aria-keyshortcuts="F"'), true);
     assert.equal(viewer.includes('className="layout-toggle"'), true);
+    assert.equal(viewer.includes('className="layout-toggle-icon"'), true);
+    assert.equal(viewer.includes('className="layout-toggle-label"'), true);
+    assert.equal(viewer.includes("FULL"), false);
+    assert.equal(viewer.includes("MIN"), false);
     assert.equal(viewer.includes("showStream &&"), true);
     assert.match(styles, /\.live-surface\s*\{[^}]*width: 100%[^}]*height: 100%/s);
     assert.match(styles, /\.live-layout-mini\s*\{[^}]*background: #050505/s);
+    assert.match(styles, /::view-transition-old\(mb-stream\),\s*::view-transition-new\(mb-stream\)\s*\{[^}]*animation-duration: 420ms/s);
+    assert.match(styles, /\.stream-view\s*\{[^}]*view-transition-name: mb-stream/s);
+    assert.match(styles, /\.chat-view\s*\{[^}]*view-transition-name: mb-chat/s);
+    assert.match(styles, /\.broadcast-topbar\s*\{[^}]*view-transition-name: mb-topbar/s);
+    assert.match(styles, /\.layout-toggle-icon\s*\{[^}]*display: block/s);
     assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*top: 50%[^}]*width: 220px[^}]*background: transparent[^}]*box-shadow: none[^}]*animation: none/s);
     assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(520px, 1fr\) minmax\(270px, 320px\)/s);
     assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 32px/s);
@@ -479,6 +494,48 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("function getViewerSummaryKey(viewerSummary)"), true);
     assert.equal(app.includes("if (summaryKey === renderedViewerSummaryKey)"), true);
     assert.equal(app.includes("elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join(\"\")"), true);
+  });
+
+  it("updates viewer counts with lightweight exponential catch-up", () => {
+    const app = readAppRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes("viewerCountAnimations"), true);
+    assert.equal(app.includes("syncAnimatedViewerCountNode(elements.viewerCount, \"total\", viewerSummary.total);"), true);
+    assert.equal(app.includes('data-viewer-count-key="${escapeHtml(source.sourceId)}"'), true);
+    assert.equal(app.includes('data-viewer-count-target="${source.viewerCount}"'), true);
+    assert.equal(app.includes("function syncAnimatedViewerCountNode(node, key, target)"), true);
+    assert.equal(app.includes("function tickAnimatedViewerCount(key, timestamp)"), true);
+    assert.equal(app.includes("VIEWER_COUNT_EXPONENTIAL_RATE"), true);
+    assert.equal(app.includes("function getExponentialViewerCountStep(animation, timestamp)"), true);
+    assert.equal(app.includes("const progress = 1 - Math.exp(-VIEWER_COUNT_EXPONENTIAL_RATE * deltaSeconds);"), true);
+    assert.equal(app.includes("const step = getExponentialViewerCountStep(animation, timestamp);"), true);
+    assert.equal(app.includes("animation.current += animation.current < animation.target ? step : -step;"), true);
+    assert.equal(app.includes("window.requestAnimationFrame((timestamp) => tickAnimatedViewerCount(key, timestamp));"), true);
+    assert.equal(app.includes("window.cancelAnimationFrame(animation.frameId);"), true);
+    assert.equal(app.includes("window.matchMedia(\"(prefers-reduced-motion: reduce)\")"), true);
+    assert.equal(app.includes("VIEWER_COUNT_TICK_MS"), false);
+    assert.equal(app.includes("VIEWER_COUNT_ROLL_CLEAR_MS"), false);
+    assert.equal(app.includes("countPulse"), false);
+    assert.equal(app.includes("data-count-pulse"), false);
+    assert.equal(app.includes("function renderAnimatedViewerCountText(previousText, nextText, direction)"), false);
+    assert.equal(app.includes("node.dataset.renderedCountText"), false);
+    assert.equal(app.includes("node.innerHTML = renderAnimatedViewerCountText(previousText, formatted, animation.direction);"), false);
+    assert.equal(app.includes("node.textContent = formatNumber(animation.current);"), true);
+    assert.match(styles, /\.rolling-number\s*\{[^}]*font-variant-numeric: tabular-nums/s);
+    assert.equal(styles.includes(".rolling-number.is-rolling"), false);
+    assert.equal(styles.includes(".rolling-number-digit"), false);
+    assert.equal(styles.includes("@keyframes digit-roll"), false);
+    assert.equal(styles.includes("@keyframes count-roll"), false);
+  });
+
+  it("uses a clear minimize icon for the full layout toggle", () => {
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.match(styles, /\.layout-toggle-icon\[data-layout-action="minimize"\]::before\s*\{[^}]*width: 14px[^}]*border-top: 2px solid/s);
+    assert.match(styles, /\.layout-toggle-icon\[data-layout-action="minimize"\]::after\s*\{[^}]*display: none/s);
+    assert.match(styles, /\.layout-toggle-icon\[data-layout-action="expand"\]::before\s*\{[^}]*border-top: 2px solid/s);
+    assert.match(styles, /\.layout-toggle-icon\[data-layout-action="expand"\]::after\s*\{[^}]*border-bottom: 2px solid/s);
   });
 
   it("mounts only a rolling live chat window while keeping full message state", () => {

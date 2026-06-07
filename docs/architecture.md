@@ -34,7 +34,7 @@ Important fields:
 - `enabled`: controls whether a source appears in public config.
 - `showStream`: marks the one source used by the hosted stream player.
 
-The server strips editable `viewerCount` values from admin writes. Viewer counts are live provider data when available.
+The server strips editable `viewerCount` values from admin writes. Viewer counts are live provider data when available. The viewer renders combined and per-source count changes with lightweight exponential catch-up after the initial paint, moving quickly across large gaps and easing into the target with plain tabular text; reduced-motion clients snap directly to the latest value.
 
 ## Chat Flow
 

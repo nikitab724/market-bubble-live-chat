@@ -4,6 +4,8 @@ import { PLATFORM_ORDER, escapeHtml, platformMeta } from "./platforms.mjs";
 
 const AUTO_SCROLL_THRESHOLD_PX = 120;
 const CHAT_RENDER_WINDOW_SIZE = 500;
+const VIEWER_COUNT_EXPONENTIAL_RATE = 18;
+const VIEWER_COUNT_MAX_FRAME_MS = 48;
 
 export function createChatRenderer({
   window,
@@ -18,6 +20,7 @@ export function createChatRenderer({
   let queuedProfileCardFrame = 0;
   let queuedScrollFrame = 0;
   let lastTouchClientY = null;
+  const viewerCountAnimations = new Map();
 
   return {
     handleChatScroll,
@@ -69,8 +72,13 @@ export function createChatRenderer({
     }
 
     renderedViewerSummaryKey = summaryKey;
-    elements.viewerCount.textContent = formatNumber(viewerSummary.total);
     elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
+    syncAnimatedViewerCountNode(elements.viewerCount, "total", viewerSummary.total);
+    elements.sourceBreakdown
+      .querySelectorAll("[data-viewer-count-key]")
+      .forEach((node) => {
+        syncAnimatedViewerCountNode(node, node.dataset.viewerCountKey, node.dataset.viewerCountTarget);
+      });
   }
 
   function getViewerSummaryKey(viewerSummary) {
@@ -383,7 +391,7 @@ export function createChatRenderer({
         <span>${escapeHtml(meta.label)}</span>
         <strong>${escapeHtml(source.sourceLabel)}</strong>
         ${statusDot}
-        <b>${formatNumber(source.viewerCount)}</b>
+        <b class="rolling-number" data-viewer-count-key="${escapeHtml(source.sourceId)}" data-viewer-count-target="${source.viewerCount}">${formatNumber(source.viewerCount)}</b>
         <div class="source-popover" role="tooltip">
           <div class="source-popover-kicker">Profile</div>
           <strong>${escapeHtml(profile.name)}</strong>
@@ -394,7 +402,7 @@ export function createChatRenderer({
             </div>
             <div>
               <dt>Viewers</dt>
-              <dd>${formatNumber(source.viewerCount)}</dd>
+              <dd><span class="rolling-number" data-viewer-count-key="${escapeHtml(source.sourceId)}" data-viewer-count-target="${source.viewerCount}">${formatNumber(source.viewerCount)}</span></dd>
             </div>
             <div>
               <dt>Status</dt>
@@ -478,6 +486,132 @@ export function createChatRenderer({
     }
 
     return source.viewerCount > 0 ? "connected" : "configured";
+  }
+
+  function syncAnimatedViewerCountNode(node, key, target) {
+    if (!node || !key) {
+      return;
+    }
+
+    node.classList.add("rolling-number");
+    node.dataset.viewerCountKey = key;
+    node.dataset.viewerCountTarget = String(target);
+
+    const normalizedTarget = normalizeAnimatedViewerCount(target);
+    let animation = viewerCountAnimations.get(key);
+
+    if (!animation) {
+      animation = {
+        current: normalizedTarget,
+        frameId: 0,
+        lastTimestamp: 0,
+        nodes: new Set(),
+        target: normalizedTarget,
+      };
+      viewerCountAnimations.set(key, animation);
+    }
+
+    pruneAnimatedViewerCountNodes(animation);
+    animation.nodes.add(node);
+    animation.target = normalizedTarget;
+
+    if (shouldReduceMotion()) {
+      stopAnimatedViewerCount(animation);
+      animation.current = normalizedTarget;
+      renderAnimatedViewerCount(animation);
+      return;
+    }
+
+    renderAnimatedViewerCount(animation);
+
+    if (animation.current !== animation.target) {
+      scheduleAnimatedViewerCountTick(key);
+    }
+  }
+
+  function tickAnimatedViewerCount(key, timestamp) {
+    const animation = viewerCountAnimations.get(key);
+    if (!animation) {
+      return;
+    }
+
+    animation.frameId = 0;
+
+    if (animation.current === animation.target) {
+      animation.lastTimestamp = 0;
+      return;
+    }
+
+    const step = getExponentialViewerCountStep(animation, timestamp);
+    animation.current += animation.current < animation.target ? step : -step;
+    renderAnimatedViewerCount(animation);
+
+    if (animation.current !== animation.target) {
+      scheduleAnimatedViewerCountTick(key);
+    } else {
+      animation.lastTimestamp = 0;
+    }
+  }
+
+  function getExponentialViewerCountStep(animation, timestamp) {
+    const distance = Math.abs(animation.target - animation.current);
+    if (distance <= 1) {
+      animation.lastTimestamp = timestamp;
+      return distance;
+    }
+
+    const frameMs = animation.lastTimestamp
+      ? Math.min(VIEWER_COUNT_MAX_FRAME_MS, Math.max(0, timestamp - animation.lastTimestamp))
+      : 16.67;
+    animation.lastTimestamp = timestamp;
+
+    const deltaSeconds = frameMs / 1000;
+    const progress = 1 - Math.exp(-VIEWER_COUNT_EXPONENTIAL_RATE * deltaSeconds);
+    return Math.min(distance, Math.max(1, Math.ceil(distance * progress)));
+  }
+
+  function scheduleAnimatedViewerCountTick(key) {
+    const animation = viewerCountAnimations.get(key);
+    if (!animation || animation.frameId) {
+      return;
+    }
+
+    animation.frameId = window.requestAnimationFrame((timestamp) => tickAnimatedViewerCount(key, timestamp));
+  }
+
+  function renderAnimatedViewerCount(animation) {
+    pruneAnimatedViewerCountNodes(animation);
+
+    for (const node of animation.nodes) {
+      node.textContent = formatNumber(animation.current);
+    }
+  }
+
+  function pruneAnimatedViewerCountNodes(animation) {
+    for (const node of animation.nodes) {
+      if (!node.isConnected) {
+        animation.nodes.delete(node);
+      }
+    }
+  }
+
+  function stopAnimatedViewerCount(animation) {
+    if (animation.frameId) {
+      window.cancelAnimationFrame(animation.frameId);
+      animation.frameId = 0;
+    }
+
+    animation.lastTimestamp = 0;
+  }
+
+  function normalizeAnimatedViewerCount(value) {
+    const count = Number(value);
+    return Number.isFinite(count) ? Math.max(0, Math.round(count)) : 0;
+  }
+
+  function shouldReduceMotion() {
+    return typeof window.matchMedia === "function"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
   function formatSourceStatus(status) {
