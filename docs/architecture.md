@@ -48,6 +48,8 @@ Every chat message is normalized into the shared chat shape before rendering:
 - timestamp
 - profile URL/source URL
 
+Chat rows show the platform as a colored logo, with the specific stream/source label directly beneath that logo. The written platform badge is intentionally omitted from each row to keep the username line compact while still showing source identity.
+
 The browser keeps all received messages in memory for correctness, but only renders the latest message window to the DOM for performance. Chat scrolling follows the common live-chat threshold pattern: within 120px of the bottom, incoming messages keep the view pinned to live; farther away, the message DOM freezes so the viewer can read older messages without jitter. Hover/profile inspection only freezes rendering while the viewer is away from live; hovering the newest rows still allows append-only rendering and bottom follow. Clicking a chat message pins that profile card until an outside click or jump-to-live clears it, and pinned profiles pause live following so the row does not move while inspected. While a profile is pinned, ordinary hover cards are suppressed so only the pinned profile card can be visible. Profile hover cards are fixed overlays so they cannot increase chat feed scroll height when shown near the newest message, and they reserve space above a visible jump-to-live button. The chat feed does not use native vertical wheel/touch scrolling; wheel and touch gestures are canceled, then `scrollTop` is manually clamped between the first and last message so the feed cannot rubber-band past the newest row. The jump-to-live action clears profile inspection, renders the pending message window once, and scrolls back to the newest row.
 
 ## Browser Runtime Modules

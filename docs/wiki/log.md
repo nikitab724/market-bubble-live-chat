@@ -141,3 +141,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Kept the pinned card visible and interactive, then removed pinned mode when the lock clears.
 - Updated app and stylesheet cache-bust query strings so deployed browsers fetch the tightened selector.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (68 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; in-app browser local check pinned one profile, hovered a different row, kept exactly one visible profile card, then cleared on outside click.
+
+## [2026-06-07] ui | Move chat source labels under logos
+
+- Removed the written Twitch/Kick/X platform badge from individual chat rows.
+- Moved each row's stream/source label into a compact stack directly beneath the platform logo.
+- Updated stylesheet and app cache-bust query strings so deployed browsers fetch the revised row layout.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (68 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; in-app browser local check found zero chat-row platform badges, the source label below the logo, and message text aligned with the username.

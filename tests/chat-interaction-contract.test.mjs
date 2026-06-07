@@ -138,20 +138,25 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".avatar"), false);
   });
 
-  it("renders compact platform logos before chat usernames", () => {
+  it("renders compact platform logos with streamer labels under the logo", () => {
     const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("renderPlatformLogo"), true);
     assert.equal(app.includes('class="platform-logo ${escapeHtml(platform)}"'), true);
+    assert.equal(app.includes('class="platform-mark"'), true);
     assert.equal(app.includes('aria-label="${escapeHtml(label)}"'), true);
     assert.equal(app.includes("twitch:"), true);
     assert.equal(app.includes("kick:"), true);
     assert.equal(app.includes("x:"), true);
-    assert.match(app, /renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*\n\s*<strong title/);
+    assert.equal(app.includes('class="platform-badge ${message.platform}"'), false);
+    assert.match(app, /<span class="platform-mark">\s*\$\{renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*<span class="source-label \$\{message\.platform\}"/);
+    assert.match(app, /<\/span>\s*<strong title="\$\{escapeHtml\(message\.author\)\}">/);
     assert.match(styles, /\.platform-logo\s*\{[^}]*width: 18px[^}]*height: 18px/s);
+    assert.match(styles, /\.platform-mark\s*\{[^}]*display: grid[^}]*justify-items: center/s);
     assert.match(styles, /\.chat-message\s*\{[^}]*padding: 7px 10px/s);
     assert.match(styles, /\.message-meta\s*\{[^}]*gap: 5px/s);
+    assert.match(styles, /\.source-label\s*\{[^}]*border: 0[^}]*background: transparent/s);
   });
 
   it("uses the Market Bubble broadcast treatment with platform color accents", () => {

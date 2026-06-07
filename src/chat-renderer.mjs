@@ -337,10 +337,11 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       <article class="chat-message ${message.platform}" data-message-id="${escapeHtml(message.id)}">
         <div class="message-body">
           <div class="message-meta">
-            ${renderPlatformLogo(message.platform, `${meta.label} logo`)}
+            <span class="platform-mark">
+              ${renderPlatformLogo(message.platform, `${meta.label} logo`)}
+              <span class="source-label ${message.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(message.sourceLabel)}">${escapeHtml(message.sourceLabel)}</span>
+            </span>
             <strong title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong>
-            <span class="platform-badge ${message.platform}">${meta.label}</span>
-            <span class="source-label ${message.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(message.sourceLabel)}">${escapeHtml(message.sourceLabel)}</span>
             <time>${formatTime(message.timestamp)}</time>
           </div>
           <p>${renderMessageBody(message, getTwitchEmoteMap(message))}</p>
