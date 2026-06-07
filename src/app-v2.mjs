@@ -21,7 +21,7 @@ const STREAMS = [
   {
     id: "ansem",
     label: "Ansem",
-    twitchChannel: "stableronaldo",
+    twitchChannel: "xqc",
     sourceIds: ["twitch-stableronaldo"],
   },
   {
@@ -151,8 +151,7 @@ async function loadPublicConfig() {
 function initTwitchPlayer(channel) {
   if (!el.twitchPlayer) return;
 
-  const twitchChannel = channel || getActiveTab()?.twitchChannel
-    || connectedSources.find((s) => s.platform === "twitch")?.sourceHandle;
+  const twitchChannel = channel || getActiveTab()?.twitchChannel || "xqc";
 
   if (!twitchChannel) return;
 
