@@ -111,8 +111,11 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes('elements.chatFeed.addEventListener("pointermove"'), true);
     assert.equal(app.includes("const preferredLeft = messageRect.right - cardWidth - gutter"), true);
     assert.equal(app.includes('messageRow?.querySelector(".message-line")'), true);
-    assert.equal(app.includes("const preferredTop = anchorRect.bottom + 4"), true);
-    assert.equal(app.includes("const top = clampToViewport(preferredTop"), true);
+    assert.equal(app.includes("const measuredCardHeight = Math.max(cardRect.height, profileCard.offsetHeight, profileCard.scrollHeight || 0);"), true);
+    assert.equal(app.includes("const preferredTop = messageRect.top - cardHeight - 4"), true);
+    assert.equal(app.includes("const fallbackTop = messageRect.bottom + 4"), true);
+    assert.equal(app.includes("const unclampedTop = preferredTop >= gutter ? preferredTop : fallbackTop"), true);
+    assert.equal(app.includes("const top = clampToViewport(unclampedTop"), true);
     assert.equal(app.includes("return Math.min(max, Math.max(min, value));"), true);
     assert.equal(app.includes("--profile-card-max-height"), true);
     assert.equal(app.includes('elements.chatFeed.querySelector(".profile-card:hover")'), true);
@@ -136,7 +139,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("return Math.max(gutter, jumpRect.top - gutter);"), true);
     assert.equal(app.includes("const availableBottom = getProfileCardAvailableBottom();"), true);
     assert.equal(app.includes("availableBottom - cardHeight"), true);
-    assert.equal(app.includes("const maxHeight = Math.max(96, availableBottom - top);"), true);
+    assert.equal(app.includes("const maxHeight = Math.max(84, availableBottom - top);"), true);
     assert.equal(app.includes("function repositionActiveProfileCard()"), true);
     assert.equal(app.includes('elements.chatFeed.querySelector(".chat-message.is-profile-pinned")'), true);
     assert.equal(app.includes('elements.chatFeed.querySelector(".chat-message:hover")'), true);
@@ -169,20 +172,29 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-feed:not\(\.has-profile-pin\)\s+\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.chat-feed:not\(\.has-profile-pin\)\s+\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
-  it("keeps profile hover cards compact beside twitch-sized chat", () => {
+  it("keeps profile hover cards compact above twitch-sized chat", () => {
+    const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
-    assert.match(styles, /\.profile-card\s*\{[^}]*width: min\(270px, calc\(100vw - 28px\)\)[^}]*padding: 10px/s);
+    assert.equal(app.includes("<dt>Platform</dt>"), false);
+    assert.equal(app.includes("<dt>Messages</dt>"), false);
+    assert.equal(app.includes("<dt>Last seen</dt>"), false);
+    assert.equal(app.includes("formatTime("), false);
+    assert.equal(app.includes("<dt>Source</dt>"), true);
+    assert.equal(app.includes("<dt>Profile</dt>"), true);
+    assert.match(app, /<dd>\$\{escapeHtml\(`\$\{meta\.label\} \/ \$\{profile\.sourceLabel\}`\)\}<\/dd>/);
+    assert.match(app, /<a href="\$\{escapeHtml\(profile\.sourceUrl\)\}" target="_blank" rel="noreferrer">\$\{escapeHtml\(profile\.displayHandle\)\}<\/a>/);
+    assert.match(styles, /\.profile-card\s*\{[^}]*width: min\(218px, calc\(100vw - 28px\)\)[^}]*max-height: min\(180px, var\(--profile-card-max-height, calc\(100vh - 40px\)\)\)[^}]*padding: 8px/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*background: #000/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*box-shadow:\s*inset 0 0 0 1px rgba\(0, 0, 0, 0\.9\),\s*0 18px 48px rgba\(0, 0, 0, 0\.9\)/s);
     assert.match(styles, /\.profile-card a\s*\{[^}]*display: block[^}]*pointer-events: auto/s);
-    assert.match(styles, /\.profile-card-header\s*\{[^}]*margin-bottom: 8px/s);
-    assert.match(styles, /\.profile-card-header strong\s*\{[^}]*font-size: 20px/s);
-    assert.match(styles, /\.profile-card-header span\s*\{[^}]*font-size: 11px/s);
-    assert.match(styles, /\.profile-card dl\s*\{[^}]*gap: 5px/s);
-    assert.match(styles, /\.profile-card dl div\s*\{[^}]*grid-template-columns: 68px minmax\(0, 1fr\)[^}]*gap: 6px/s);
-    assert.match(styles, /\.profile-card dt\s*\{[^}]*font-size: 11px/s);
-    assert.match(styles, /\.profile-card dd\s*\{[^}]*font-size: 11px/s);
+    assert.match(styles, /\.profile-card-header\s*\{[^}]*margin-bottom: 6px/s);
+    assert.match(styles, /\.profile-card-header strong\s*\{[^}]*font-size: 17px/s);
+    assert.match(styles, /\.profile-card-header span\s*\{[^}]*font-size: 10px/s);
+    assert.match(styles, /\.profile-card dl\s*\{[^}]*gap: 4px/s);
+    assert.match(styles, /\.profile-card dl div\s*\{[^}]*grid-template-columns: 48px minmax\(0, 1fr\)[^}]*gap: 6px/s);
+    assert.match(styles, /\.profile-card dt\s*\{[^}]*font-size: 10px/s);
+    assert.match(styles, /\.profile-card dd\s*\{[^}]*font-size: 10px/s);
   });
 
   it("does not render user profile picture placeholders in chat rows", () => {
@@ -210,7 +222,7 @@ describe("chat interaction contract", () => {
     assert.match(app, /<\/span>\s*<div class="message-content">\s*<p class="message-line">\s*<strong class="message-author" style="--author-color: \$\{escapeHtml\(message\.authorColor\)\};" title="\$\{escapeHtml\(message\.author\)\}">/);
     assert.match(app, /<\/strong><span class="message-colon">:<\/span>\s*\$\{renderMessageBody\(message, getTwitchEmoteMap\(message\)\)\}/);
     assert.equal(app.includes("<time>${formatTime(message.timestamp)}</time>"), false);
-    assert.equal(app.includes("<dt>Last seen</dt>"), true);
+    assert.equal(app.includes("<dt>Last seen</dt>"), false);
     assert.match(styles, /\.message-body\s*\{[^}]*display: flex[^}]*gap: 5px/s);
     assert.match(styles, /\.message-content\s*\{[^}]*flex: 1 1 auto/s);
     assert.match(styles, /\.platform-logo\s*\{[^}]*width: 18px[^}]*height: 18px/s);
