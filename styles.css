@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  --bg: #151515;
+  --bg: #050505;
   --panel: #0c0c0c;
   --panel-soft: #181818;
   --paper: #e4e4e4;
@@ -39,10 +39,7 @@ body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  background:
-    radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.085), transparent 34vh),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 180px),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--body-font);
   -webkit-font-smoothing: antialiased;
@@ -70,11 +67,9 @@ body {
   align-items: center;
   height: 52px;
   padding: 8px 14px 7px;
-  border-bottom: 1px solid var(--line-soft);
-  background: rgba(12, 12, 12, 0.82);
-  box-shadow:
-    inset 0 -1px rgba(255, 255, 255, 0.03),
-    0 10px 34px rgba(0, 0, 0, 0.28);
+  border-bottom: 1px solid rgba(228, 228, 228, 0.08);
+  background: rgba(5, 5, 5, 0.9);
+  box-shadow: none;
   overflow: visible;
   animation: shell-calm-in 520ms var(--ease-out) both;
 }
@@ -94,9 +89,9 @@ body {
   width: 44px;
   height: 34px;
   padding: 0;
-  border-color: rgba(228, 228, 228, 0.42);
-  border-radius: 8px;
-  background: rgba(228, 228, 228, 0.04);
+  border-color: rgba(228, 228, 228, 0.16);
+  border-radius: 6px;
+  background: transparent;
   color: var(--text);
   cursor: pointer;
   font-family: var(--label-font);
@@ -107,7 +102,7 @@ body {
 }
 
 .layout-toggle:hover {
-  background: rgba(228, 228, 228, 0.08);
+  background: rgba(228, 228, 228, 0.07);
 }
 
 .layout-toggle[aria-pressed="true"] {
@@ -128,72 +123,162 @@ body {
   gap: 10px;
 }
 
+.live-layout-mini {
+  background: #050505;
+}
+
 .live-layout-mini .broadcast-topbar {
   position: absolute;
-  top: 12px;
-  bottom: 12px;
-  left: 12px;
-  width: 250px;
-  height: auto;
+  top: 50%;
+  bottom: auto;
+  left: 24px;
+  width: 220px;
+  height: min(74vh, 640px);
   grid-template-columns: 1fr;
   grid-template-rows: auto auto minmax(0, 1fr);
-  align-content: start;
+  align-content: center;
   align-items: stretch;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--line-soft);
-  border-radius: 8px;
+  gap: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-50%);
+  animation: none;
 }
 
 .live-layout-mini .brand-mark,
 .live-layout-mini .layout-toggle {
-  width: 100%;
+  width: auto;
 }
 
 .live-layout-mini .brand-mark {
-  height: 62px;
-  font-size: 28px;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 38px;
+  line-height: 0.82;
+}
+
+.live-layout-mini .layout-toggle {
+  justify-self: start;
+  min-height: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.live-layout-mini .layout-toggle:hover,
+.live-layout-mini .layout-toggle[aria-pressed="true"] {
+  background: transparent;
+  color: var(--text);
 }
 
 .live-layout-mini .broadcast-metrics {
   grid-template-columns: 1fr;
-  align-content: start;
+  align-content: center;
   align-items: stretch;
   justify-self: stretch;
   width: 100%;
   min-height: 0;
+  gap: 18px;
 }
 
 .live-layout-mini .viewer-counter {
+  display: grid;
+  justify-content: start;
+  gap: 3px;
   width: 100%;
-  min-height: 54px;
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.live-layout-mini .viewer-counter strong {
+  font-size: 50px;
+  line-height: 0.86;
+}
+
+.live-layout-mini .viewer-counter span {
+  margin-top: 0;
+  font-size: 10px;
 }
 
 .live-layout-mini .source-breakdown {
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 4px;
 }
 
 .live-layout-mini .source-chip {
-  min-height: 40px;
+  min-height: 28px;
+  padding: 0;
+}
+
+.live-layout-mini .source-chip:hover {
+  background: transparent;
+}
+
+.live-layout-mini .source-chip > strong {
+  font-size: 12px;
+}
+
+.live-layout-mini .source-chip > b {
+  font-size: 11px;
 }
 
 .live-layout-mini .viewer-shell {
   height: 100vh;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
-  align-items: stretch;
-  padding: 12px 12px 12px 274px;
+  grid-template-columns: minmax(520px, 1fr) minmax(270px, 320px);
+  align-items: center;
+  gap: 28px;
+  padding: 28px 26px 28px 270px;
 }
 
 .live-layout-mini .stream-view {
   align-self: center;
   justify-self: center;
   width: min(100%, 980px);
-  height: min(62vh, 620px);
+  max-height: min(58vh, 560px);
+  height: auto;
+  aspect-ratio: 16 / 10;
+  padding: 14px;
+  border: 0;
+  border-radius: 32px;
+  background: rgba(22, 22, 22, 0.86);
+  box-shadow: none;
 }
 
 .live-layout-mini .chat-view {
-  height: calc(100vh - 24px);
+  align-self: center;
+  height: min(74vh, 640px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.live-layout-mini .video-frame {
+  border-radius: 18px;
+}
+
+.live-layout-mini .source-popover {
+  right: auto;
+  left: 0;
+}
+
+.live-layout-mini .chat-message {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.live-layout-mini .chat-message:hover {
+  background: rgba(228, 228, 228, 0.045);
 }
 
 .chat-shell {
@@ -201,16 +286,20 @@ body {
   height: calc(100vh - 52px);
 }
 
+.chat-shell .chat-view {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .stream-view,
 .chat-view {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--line-soft);
+  border: 1px solid rgba(228, 228, 228, 0.1);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.008)), var(--panel);
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.04),
-    0 22px 70px rgba(0, 0, 0, 0.42);
+  background: var(--panel);
+  box-shadow: none;
 }
 
 .stream-view {
@@ -232,15 +321,15 @@ body {
   align-content: center;
   width: 92px;
   height: 36px;
-  padding: 5px 9px;
-  border: 1px solid rgba(228, 228, 228, 0.42);
-  border-radius: 10px;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
   color: var(--text);
   font-family: var(--display-font);
   font-size: 19px;
   line-height: 0.82;
-  background: rgba(228, 228, 228, 0.035);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+  background: transparent;
+  box-shadow: none;
 }
 
 .brand-mark span {
@@ -366,30 +455,29 @@ h2 {
   min-width: 96px;
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid rgba(228, 228, 228, 0.62);
-  border-radius: 10px;
-  background: var(--paper);
-  color: var(--ink);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
   font-family: var(--label-font);
   text-align: center;
   text-transform: uppercase;
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.72),
-    inset 0 -1px rgba(0, 0, 0, 0.12),
-    0 8px 18px rgba(0, 0, 0, 0.24);
+  box-shadow: none;
 }
 
 .viewer-counter strong {
   display: block;
-  color: var(--ink);
+  color: var(--text);
+  font-family: var(--display-font);
   font-size: 16px;
+  font-weight: 800;
   line-height: 1;
 }
 
 .viewer-counter span {
   display: block;
   margin-top: 0;
-  color: rgba(8, 8, 8, 0.7);
+  color: var(--muted);
   font-size: 9px;
   font-weight: 900;
   line-height: 1;
@@ -416,27 +504,22 @@ h2 {
   min-width: 0;
   min-height: 34px;
   padding: 0 11px;
-  border: 1px solid rgba(228, 228, 228, 0.18);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.014);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.045),
-    inset 0 -1px rgba(0, 0, 0, 0.42);
+  box-shadow: none;
   transition:
     background 180ms ease,
-    border-color 180ms ease,
-    transform 180ms ease;
+    color 180ms ease;
 }
 
 .source-chip:hover {
-  border-color: rgba(228, 228, 228, 0.28);
-  background: rgba(255, 255, 255, 0.026);
-  transform: translateY(-1px);
+  background: rgba(228, 228, 228, 0.045);
 }
 
 .source-chip:focus-visible {
-  border-color: rgba(228, 228, 228, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(228, 228, 228, 0.28);
   outline: none;
 }
 
@@ -701,14 +784,14 @@ h2 {
   padding: 7px 10px;
   border: 0;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.012);
+  background: transparent;
   outline: 0;
   animation: chat-message-rise 180ms var(--ease-out) both;
   transition: background 130ms ease;
 }
 
 .chat-message:nth-child(even) {
-  background: rgba(255, 255, 255, 0.024);
+  background: transparent;
 }
 
 .chat-message:hover {

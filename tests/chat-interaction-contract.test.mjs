@@ -41,6 +41,7 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.includes('id="jumpToLive"'), true);
     assert.equal(viewer.includes('id="viewerCount"'), true);
     assert.equal(viewer.includes('id="sourceBreakdown"'), true);
+    assert.match(readFileSync(new URL("../styles.css", import.meta.url), "utf8"), /\.chat-shell\s+\.chat-view\s*\{[^}]*border: 0[^}]*background: transparent[^}]*box-shadow: none/s);
   });
 
   it("mounts /chat as the chat-only embed surface", () => {
@@ -85,9 +86,11 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.includes('className="layout-toggle"'), true);
     assert.equal(viewer.includes("showStream &&"), true);
     assert.match(styles, /\.live-surface\s*\{[^}]*width: 100%[^}]*height: 100%/s);
-    assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*width: 250px/s);
-    assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(340px, 390px\)/s);
-    assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*height: min\(62vh, 620px\)/s);
+    assert.match(styles, /\.live-layout-mini\s*\{[^}]*background: #050505/s);
+    assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*top: 50%[^}]*width: 220px[^}]*background: transparent[^}]*box-shadow: none[^}]*animation: none/s);
+    assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(520px, 1fr\) minmax\(270px, 320px\)/s);
+    assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 32px/s);
+    assert.match(styles, /\.live-layout-mini\s+\.chat-view\s*\{[^}]*background: transparent[^}]*box-shadow: none/s);
     assert.equal(styles.includes(".chat-shell .layout-toggle"), false);
   });
 
@@ -221,12 +224,14 @@ describe("chat interaction contract", () => {
 
   it("keeps chat rows tight and borderless", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-    const chatMessageRule = styles.match(/\.chat-message\s*\{(?<body>[^}]*)\}/s)?.groups.body || "";
+    const chatMessageRule = [...styles.matchAll(/\.chat-message\s*\{(?<body>[^}]*)\}/gs)]
+      .map((match) => match.groups.body)
+      .find((body) => body.includes("border: 0")) || "";
 
     assert.equal(chatMessageRule.includes("border-bottom:"), false);
     assert.equal(chatMessageRule.includes("border-left:"), false);
     assert.match(chatMessageRule, /border: 0/);
-    assert.match(chatMessageRule, /background: rgba\(255, 255, 255, 0\.012\)/);
+    assert.match(chatMessageRule, /background: transparent/);
     assert.match(styles, /\.chat-message p\s*\{[^}]*margin: 0/s);
     assert.equal(styles.includes("margin-left: 51px;"), false);
   });
@@ -249,8 +254,8 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes("--twitch:"), true);
     assert.equal(styles.includes("--kick:"), true);
     assert.equal(styles.includes("--x:"), true);
-    assert.match(styles, /\.viewer-counter\s*\{[^}]*background: var\(--paper\)/s);
-    assert.match(styles, /\.source-chip\s*\{[^}]*background: rgba\(255, 255, 255, 0\.014\)/s);
+    assert.match(styles, /\.viewer-counter\s*\{[^}]*border: 0[^}]*background: transparent[^}]*box-shadow: none/s);
+    assert.match(styles, /\.source-chip\s*\{[^}]*border: 0[^}]*background: transparent[^}]*box-shadow: none/s);
     assert.match(styles, /\.source-popover\s*\{[^}]*position: absolute[^}]*right: 0[^}]*top: calc\(100% - 1px\)/s);
     assert.match(styles, /\.source-popover\s*\{[^}]*width: min\(248px, calc\(100vw - 24px\)\)/s);
     assert.match(styles, /\.source-popover\s*\{[^}]*max-height: calc\(100vh - 66px\)[^}]*overflow: auto/s);
