@@ -127,3 +127,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Profile hover cards now use the visible jump-to-live button as their lower boundary, keeping the profile card accessible while the live button remains available.
 - Clicking jump-to-live clears profile inspection before rendering the pending live chat window.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (67 passed); `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; in-app browser local check scrolled up chat, showed jump-to-live, clicked it, and returned to `distanceFromBottom: 0` with the button hidden.
+
+## [2026-06-07] ui | Pin profile cards on click
+
+- Clicking a chat message now pins that message's profile card until the viewer clicks outside any chat message/profile card or uses jump-to-live.
+- Pinned profile cards pause live following so incoming chat cannot move the inspected row, while jump-to-live clears the pin and resumes the live window.
+- Updated both app module cache-bust query strings so browsers fetch the new pin runtime.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (68 passed); `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; in-app browser local check pinned one profile card at 270px, showed jump-to-live, cleared on outside click, and cleared again through jump-to-live with `distanceFromBottom: 0`.

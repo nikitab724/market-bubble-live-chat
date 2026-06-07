@@ -78,7 +78,7 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.profile-card\s*\{[^}]*display: none/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*left: var\(--profile-card-left, 24px\)[^}]*top: var\(--profile-card-top, 24px\)/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*overflow: auto/s);
-    assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
+    assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
   it("keeps profile hover cards from colliding with jump-to-live", () => {
@@ -92,6 +92,26 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("availableBottom - cardHeight"), true);
     assert.equal(app.includes("const maxHeight = Math.max(96, availableBottom - top);"), true);
     assert.match(app, /elements\.jumpToLive\.addEventListener\("click", \(\) => \{[\s\S]*state\.inspectingProfile = false;[\s\S]*renderer\.renderPendingChat\(\);/);
+  });
+
+  it("locks profile cards on click until an outside click", () => {
+    const app = readAppRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes("pinnedProfileMessageId"), true);
+    assert.equal(app.includes('data-message-id="${escapeHtml(message.id)}"'), true);
+    assert.equal(app.includes('elements.chatFeed.addEventListener("click", handleProfilePinClick);'), true);
+    assert.equal(app.includes('document.addEventListener("click", handleDocumentProfileUnpinClick);'), true);
+    assert.equal(app.includes("function handleProfilePinClick(event)"), true);
+    assert.equal(app.includes("function clearPinnedProfileCard"), true);
+    assert.equal(app.includes('elements.chatFeed.querySelector(".chat-message.is-profile-pinned")'), true);
+    assert.equal(app.includes('message.classList.add("is-profile-pinned")'), true);
+    assert.equal(app.includes("state.pinnedProfileMessageId = message.dataset.messageId || \"\""), true);
+    assert.equal(app.includes("if (state.pinnedProfileMessageId) return;"), true);
+    assert.equal(app.includes("if (state.pinnedProfileMessageId) {"), true);
+    assert.equal(app.includes("const shouldFollowChat = state.pinnedProfileMessageId ? false : state.followingChat || isChatNearBottom();"), true);
+    assert.match(app, /elements\.jumpToLive\.addEventListener\("click", \(\) => \{[\s\S]*clearPinnedProfileCard\(\{ syncScroll: false \}\);[\s\S]*renderer\.renderPendingChat\(\);/);
+    assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
   it("keeps profile hover cards compact beside twitch-sized chat", () => {
@@ -216,7 +236,7 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("state.followingChat = true"), true);
     assert.equal(app.includes("AUTO_SCROLL_THRESHOLD_PX = 120"), true);
     assert.equal(app.includes("getDistanceFromBottom"), true);
-    assert.equal(app.includes("const shouldFollowChat = state.followingChat || isChatNearBottom()"), true);
+    assert.equal(app.includes("const shouldFollowChat = state.pinnedProfileMessageId ? false : state.followingChat || isChatNearBottom()"), true);
     assert.equal(app.includes('class="chat-stack"'), true);
     assert.equal(app.includes("elements.chatFeed.scrollTop = getMaxScrollTop()"), true);
     assert.match(styles, /\.chat-stack\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*justify-content: flex-end[^}]*min-height: 100%/s);

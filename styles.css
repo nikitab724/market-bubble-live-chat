@@ -553,6 +553,7 @@ h2 {
 }
 
 .chat-message:hover .profile-card,
+.chat-message.is-profile-pinned .profile-card,
 .profile-card:hover {
   display: block;
   opacity: 1;

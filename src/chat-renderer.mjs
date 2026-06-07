@@ -25,12 +25,18 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
   };
 
   function render() {
-    const shouldFollowChat = state.followingChat || isChatNearBottom();
+    const shouldFollowChat = state.pinnedProfileMessageId ? false : state.followingChat || isChatNearBottom();
     state.followingChat = shouldFollowChat;
     const viewerSummary = buildViewerSummary(state.sources);
 
     elements.viewerCount.textContent = formatNumber(viewerSummary.total);
     elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
+
+    if (state.pinnedProfileMessageId) {
+      state.pendingChatRender = true;
+      updateJumpToLive();
+      return;
+    }
 
     if (state.inspectingProfile && !shouldFollowChat) {
       state.pendingChatRender = true;
@@ -328,7 +334,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     const profile = getAuthorProfile(message);
 
     return `
-      <article class="chat-message ${message.platform}">
+      <article class="chat-message ${message.platform}" data-message-id="${escapeHtml(message.id)}">
         <div class="message-body">
           <div class="message-meta">
             ${renderPlatformLogo(message.platform, `${meta.label} logo`)}
@@ -374,6 +380,11 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
   }
 
   function updateInspectingState() {
+    if (state.pinnedProfileMessageId) {
+      state.inspectingProfile = true;
+      return;
+    }
+
     const wasInspectingProfile = state.inspectingProfile;
     state.inspectingProfile = elements.chatFeed.matches(":hover")
       || Boolean(elements.chatFeed.querySelector(".profile-card:hover"));

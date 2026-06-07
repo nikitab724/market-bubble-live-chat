@@ -31,6 +31,7 @@ const state = {
   inspectingProfile: false,
   messages: [],
   pendingChatRender: false,
+  pinnedProfileMessageId: "",
   queueRender,
   sources: [],
   twitchEmotes: {},
@@ -125,6 +126,8 @@ function buildConfiguredMessage(sourceId, author, handle, body, timestamp) {
 
 function bindEvents() {
   elements.chatFeed.addEventListener("pointerover", (event) => {
+    if (state.pinnedProfileMessageId) return;
+
     const message = event.target.closest(".chat-message");
     if (message) {
       state.inspectingProfile = true;
@@ -133,6 +136,8 @@ function bindEvents() {
   });
 
   elements.chatFeed.addEventListener("pointermove", (event) => {
+    if (state.pinnedProfileMessageId) return;
+
     const message = event.target.closest(".chat-message");
     if (message) {
       renderer.positionProfileCard(message);
@@ -146,12 +151,53 @@ function bindEvents() {
   elements.chatView.addEventListener("wheel", renderer.handleChatWheel, { capture: true, passive: false });
   elements.chatView.addEventListener("touchstart", renderer.handleChatTouchStart, { capture: true, passive: true });
   elements.chatView.addEventListener("touchmove", renderer.handleChatTouchMove, { capture: true, passive: false });
+  elements.chatFeed.addEventListener("click", handleProfilePinClick);
+  document.addEventListener("click", handleDocumentProfileUnpinClick);
 
   elements.jumpToLive.addEventListener("click", () => {
+    clearPinnedProfileCard({ syncScroll: false });
     state.followingChat = true;
     state.inspectingProfile = false;
     renderer.renderPendingChat();
   });
+}
+
+function handleProfilePinClick(event) {
+  const message = event.target.closest(".chat-message");
+  if (!message) {
+    return;
+  }
+
+  clearPinnedProfileCard({ syncScroll: false });
+  state.pinnedProfileMessageId = message.dataset.messageId || "";
+  state.inspectingProfile = true;
+  state.followingChat = false;
+  message.classList.add("is-profile-pinned");
+  renderer.positionProfileCard(message);
+  renderer.updateJumpToLive();
+}
+
+function handleDocumentProfileUnpinClick(event) {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target || target.closest(".chat-message")) {
+    return;
+  }
+
+  clearPinnedProfileCard();
+}
+
+function clearPinnedProfileCard({ syncScroll = true } = {}) {
+  const pinnedMessage = elements.chatFeed.querySelector(".chat-message.is-profile-pinned");
+  if (pinnedMessage) {
+    pinnedMessage.classList.remove("is-profile-pinned");
+  }
+
+  state.pinnedProfileMessageId = "";
+  state.inspectingProfile = false;
+
+  if (syncScroll) {
+    renderer.handleChatScroll();
+  }
 }
 
 function setMessages(messages) {
