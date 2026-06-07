@@ -2,14 +2,14 @@
 
 ## Runtime Surfaces
 
-- `/` serves `index.html` and the browser runtime rooted at `src/app.mjs`. It is the hosted viewer page with one selected stream embed, combined viewer count, platform/source breakdown, and combined chat.
-- `/chat/` serves `chat/index.html` with the same browser runtime in chat-only mode for OBS/browser-source embedding.
+- `/` serves the Vite/React shell rooted at `src/ui/main.jsx`. It renders one selected stream embed, combined viewer count, platform/source breakdown, and combined chat, then mounts the existing live runtime through `src/app.mjs`.
+- `/chat/` serves the same React shell in chat-only mode for OBS/browser-source embedding.
 - `/admin/` serves the source editor. It manages profile rows and platform accounts, and chooses exactly one source for the stream view.
 - `extension/` is a Chrome extension for X Live chat capture. It is loaded manually as an unpacked extension.
 
 ## Server
 
-`server.mjs` owns the HTTP server. It serves static assets from an explicit allowlist and provides these API routes:
+`server.mjs` owns the HTTP server. It serves Vite-built static assets from `dist/client` first, falls back to the explicit source allowlist for tests/local inspection, and provides these API routes:
 
 - `GET /api/public-config`: enabled source config for browsers and the X extension popup.
 - `GET /api/live-state`: Twitch and Kick live state/viewer count aggregation.
@@ -55,7 +55,9 @@ The browser keeps all received messages in memory for correctness, but only rend
 
 ## Browser Runtime Modules
 
-`src/app.mjs` is the browser orchestrator. Focused modules own the heavy pieces:
+`src/ui/main.jsx` is the React entry for the viewer/chat shell. It renders stable DOM ids consumed by the live runtime: `streamPlayer`, `chatFeed`, `jumpToLive`, `viewerCount`, and `sourceBreakdown`.
+
+`src/app.mjs` exports `mountLiveApp()` and remains the browser runtime orchestrator after React has mounted. Focused modules own the heavy pieces:
 
 - `src/client-sources.mjs`: static fallback source config for offline/dev loading.
 - `src/viewer-stream.mjs`: Twitch, Kick, X, and placeholder stream rendering.

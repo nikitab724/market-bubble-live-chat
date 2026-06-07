@@ -14,14 +14,17 @@ The demo treats each stream source separately, including Market Bubble on Twitch
 
 ## Run
 
-Start the app:
+Install dependencies, build the browser assets, then start the app:
 
 ```bash
+npm ci
+npm run build
+
 TWITCH_CLIENT_ID='your-twitch-client-id' \
 TWITCH_CLIENT_SECRET='your-twitch-client-secret' \
 KICK_CLIENT_ID='your-kick-client-id' \
 KICK_CLIENT_SECRET='your-kick-client-secret' \
-node server.mjs
+npm start
 ```
 
 Then open:
@@ -71,5 +74,6 @@ That should immediately add a Kick message to `/` and `/chat/` through the same 
 ## Test
 
 ```bash
-node --test tests/*.test.mjs
+npm test
+npm run build
 ```

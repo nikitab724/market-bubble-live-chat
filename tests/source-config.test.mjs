@@ -99,6 +99,8 @@ describe("source config", () => {
       normalizeSources([
         {
           platform: "x",
+          profileId: "banks",
+          profileName: "Banks",
           sourceName: "Banks",
           sourceHandle: "Banks",
           conversationId: "2062574325970973093",
@@ -113,6 +115,8 @@ describe("source config", () => {
         {
           enabled: true,
           platform: "x",
+          profileId: "banks",
+          profileName: "Banks",
           sourceHandle: "banks",
           sourceId: "x-banks",
           sourceLabel: "Banks",
@@ -143,7 +147,7 @@ describe("source config", () => {
     );
   });
 
-  it("keeps admin profile metadata private to source editing", () => {
+  it("projects profile metadata for public source hover cards", () => {
     const [source] = normalizeSources([
       {
         platform: "kick",
@@ -156,8 +160,8 @@ describe("source config", () => {
 
     assert.equal(source.profileId, "market-bubble");
     assert.equal(source.profileName, "Market Bubble");
-    assert.equal(toPublicConfig([source]).sources[0].profileId, undefined);
-    assert.equal(toPublicConfig([source]).sources[0].profileName, undefined);
+    assert.equal(toPublicConfig([source]).sources[0].profileId, "market-bubble");
+    assert.equal(toPublicConfig([source]).sources[0].profileName, "Market Bubble");
   });
 
   it("keeps the default config focused on the requested platforms", () => {

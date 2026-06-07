@@ -23,6 +23,7 @@ This is the content-oriented catalog for the Market Bubble Live LLM Wiki. Read t
 
 - [Dashboard design spec](../superpowers/specs/2026-06-05-market-bubble-dashboard-design.md): Original dashboard design direction.
 - [Admin config backend plan](../superpowers/plans/2026-06-05-admin-config-backend.md): Historical implementation plan for admin config/backend work.
+- [React Tailwind refresh plan](../superpowers/plans/2026-06-06-react-tailwind-refresh.md): Implementation plan for the React/Vite/Tailwind visual refresh.
 
 ## Maintenance Notes
 

@@ -3,3 +3,5 @@
 !.env.example
 .playwright-cli/
 output/
+node_modules/
+dist/

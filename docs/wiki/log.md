@@ -2,6 +2,20 @@
 
 Append-only timeline for ingests, queries, lint passes, and repo-changing runs. Use stable headings so `rg "^## \\[" docs/wiki/log.md` shows the history.
 
+## [2026-06-06] ui | React Tailwind visual refresh
+
+- Added a Vite/React/Tailwind frontend shell for `/` and `/chat/` while keeping the existing backend, provider connectors, and high-volume chat renderer.
+- Updated Docker/server static serving so production builds `dist/client` and the Node server serves built assets before source fallbacks.
+- Refreshed the Market Bubble visual treatment with softer black/off-white panels, compact source metrics, restrained motion, and cleaner chat/profile styling.
+- Verification: `npm run build`; `npm test`; in-app browser smoke checks for `/`, `/chat/?demoChat=1`, and `/admin/` with no console warnings/errors.
+
+## [2026-06-06] fix | Remove chat bottom bounce regression
+
+- Removed the visual-refresh bottom padding from `.chat-feed` so the newest row sits flush with the controlled scroll boundary again.
+- Changed chat row entrance motion to fade-only so new rows do not use vertical transforms that can look like bounce at the bottom clamp.
+- Added a chat interaction contract covering the no-padding/no-row-transform behavior.
+- Verification: `npm test`; `npm run build`; `git diff --check`; in-app browser `/chat/?demoChat=1` check confirmed bottom distance stayed `0`, newest row bottom equaled feed bottom, and `window.scrollY` stayed `0` after hard down-scroll.
+
 ## [2026-06-06] docs | Add LLM Wiki structure
 
 - Added persistent wiki navigation with `docs/wiki/index.md`.

@@ -1,11 +1,12 @@
 import { buildViewerSummary } from "./chat-model.mjs";
 import { renderMessageBody } from "./emote-renderer.mjs";
-import { escapeHtml, platformMeta } from "./platforms.mjs";
+import { PLATFORM_ORDER, escapeHtml, platformMeta } from "./platforms.mjs";
 
 const AUTO_SCROLL_THRESHOLD_PX = 120;
 const CHAT_RENDER_WINDOW_SIZE = 500;
 
 export function createChatRenderer({ window, elements, state, getAuthorProfile, getTwitchEmoteMap }) {
+  let renderedViewerSummaryKey = "";
   let renderedMessageIds = [];
   let queuedProfileCardFrame = 0;
   let queuedScrollFrame = 0;
@@ -27,10 +28,8 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
   function render() {
     const shouldFollowChat = state.pinnedProfileMessageId ? false : state.followingChat || isChatNearBottom();
     state.followingChat = shouldFollowChat;
-    const viewerSummary = buildViewerSummary(state.sources);
 
-    elements.viewerCount.textContent = formatNumber(viewerSummary.total);
-    elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
+    renderViewerSummary();
 
     if (state.pinnedProfileMessageId) {
       state.pendingChatRender = true;
@@ -52,6 +51,46 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
 
     state.pendingChatRender = false;
     renderChatFeed(shouldFollowChat);
+  }
+
+  function renderViewerSummary() {
+    const viewerSummary = buildViewerSummary(state.sources);
+    const summaryKey = getViewerSummaryKey(viewerSummary);
+
+    if (summaryKey === renderedViewerSummaryKey) {
+      return;
+    }
+
+    renderedViewerSummaryKey = summaryKey;
+    elements.viewerCount.textContent = formatNumber(viewerSummary.total);
+    elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join("");
+  }
+
+  function getViewerSummaryKey(viewerSummary) {
+    return JSON.stringify({
+      sources: viewerSummary.sources.map((source) => ({
+        gameName: source.gameName || "",
+        isLive: source.isLive === true,
+        platform: source.platform,
+        profileId: source.profileId || "",
+        profileName: source.profileName || "",
+        profileSources: getSourceProfile(source).sources.map((profileSource) => ({
+          platform: profileSource.platform,
+          sourceHandle: profileSource.sourceHandle,
+          sourceLabel: profileSource.sourceLabel,
+          sourceUrl: profileSource.sourceUrl,
+        })),
+        sourceId: source.sourceId,
+        sourceHandle: source.sourceHandle,
+        sourceLabel: source.sourceLabel,
+        sourceUrl: source.sourceUrl,
+        status: source.platform === "twitch" ? state.twitchStatuses[source.sourceId] || "connecting" : "",
+        streamTitle: source.streamTitle || "",
+        viewerCount: source.viewerCount,
+        viewerCountLocked: source.viewerCountLocked === true,
+      })),
+      total: viewerSummary.total,
+    });
   }
 
   function renderPendingChat() {
@@ -147,6 +186,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       state.followingChat = true;
       elements.chatFeed.scrollTop = getMaxScrollTop();
       updateJumpToLive();
+      repositionActiveProfileCard();
     });
   }
 
@@ -162,6 +202,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     }
 
     updateJumpToLive();
+    repositionActiveProfileCard();
   }
 
   function handleChatWheel(event) {
@@ -225,7 +266,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
 
   function positionProfileCard(messageRow) {
     const profileCard = messageRow?.querySelector(".profile-card");
-    const anchor = messageRow?.querySelector(".message-meta strong") || messageRow;
+    const anchor = messageRow?.querySelector(".message-line") || messageRow?.querySelector(".message-author") || messageRow;
 
     if (!profileCard || !anchor) {
       return;
@@ -251,7 +292,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       const preferredLeft = messageRect.right - cardWidth - gutter;
       const minimumLeft = Math.min(anchorRect.left, messageRect.right - cardWidth);
       const left = clampToViewport(preferredLeft, minimumLeft, window.innerWidth - cardWidth - gutter);
-      const preferredTop = messageRect.bottom - 1;
+      const preferredTop = anchorRect.bottom + 4;
       const top = clampToViewport(preferredTop, gutter, availableBottom - cardHeight);
       const maxHeight = Math.max(96, availableBottom - top);
 
@@ -259,6 +300,15 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       profileCard.style.setProperty("--profile-card-top", `${Math.round(top)}px`);
       profileCard.style.setProperty("--profile-card-max-height", `${Math.round(maxHeight)}px`);
     });
+  }
+
+  function repositionActiveProfileCard() {
+    const activeMessage = elements.chatFeed.querySelector(".chat-message.is-profile-pinned")
+      || elements.chatFeed.querySelector(".chat-message:hover");
+
+    if (activeMessage) {
+      positionProfileCard(activeMessage);
+    }
   }
 
   function getProfileCardAvailableBottom() {
@@ -284,7 +334,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
   }
 
   function clampToViewport(value, min, max) {
-    return Math.min(Math.max(min, max), Math.max(min, value));
+    return Math.min(max, Math.max(min, value));
   }
 
   function getDistanceFromBottom() {
@@ -297,19 +347,120 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
 
   function renderSource(source) {
     const meta = platformMeta[source.platform];
+    const profile = getSourceProfile(source);
+    const sourceStatus = getSourceStatus(source);
     const statusDot = source.platform === "twitch"
-      ? renderStatusDot(state.twitchStatuses[source.sourceId] || "connecting")
+      ? renderStatusDot(sourceStatus)
       : "";
     const chipTitle = getSourceChipTitle(meta, source);
 
     return `
-      <div class="source-chip ${source.platform}" title="${escapeHtml(chipTitle)}">
+      <div class="source-chip ${source.platform}" aria-label="${escapeHtml(chipTitle)}">
         <span>${escapeHtml(meta.label)}</span>
         <strong>${escapeHtml(source.sourceLabel)}</strong>
         ${statusDot}
         <b>${formatNumber(source.viewerCount)}</b>
+        <div class="source-popover" role="tooltip">
+          <div class="source-popover-kicker">Profile</div>
+          <strong>${escapeHtml(profile.name)}</strong>
+          <dl>
+            <div>
+              <dt>Source</dt>
+              <dd>${escapeHtml(`${meta.label} / ${source.sourceLabel}`)}</dd>
+            </div>
+            <div>
+              <dt>Viewers</dt>
+              <dd>${formatNumber(source.viewerCount)}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>${escapeHtml(formatSourceStatus(sourceStatus))}</dd>
+            </div>
+            <div>
+              <dt>Handle</dt>
+              <dd>${escapeHtml(source.sourceHandle ? `@${source.sourceHandle}` : source.sourceLabel)}</dd>
+            </div>
+          </dl>
+          <div class="source-socials">
+            ${profile.sources.map(renderProfileSourceLink).join("")}
+          </div>
+        </div>
       </div>
     `;
+  }
+
+  function getSourceProfile(source) {
+    const profileSources = getProfileSources(source);
+    const profileName = source.profileName
+      || profileSources.find((profileSource) => profileSource.profileName)?.profileName
+      || source.sourceName
+      || source.sourceLabel;
+
+    return {
+      name: profileName,
+      sources: profileSources,
+    };
+  }
+
+  function getProfileSources(source) {
+    const profileId = String(source.profileId || "").trim();
+    const sourceMatches = state.sources.filter((candidate) => {
+      if (candidate.enabled === false) {
+        return false;
+      }
+
+      if (profileId && candidate.profileId === profileId) {
+        return true;
+      }
+
+      return candidate.sourceId === source.sourceId;
+    });
+    const sources = sourceMatches.length > 0 ? sourceMatches : [source];
+    const uniqueSources = new Map();
+
+    for (const profileSource of sources) {
+      const key = [
+        profileSource.platform,
+        profileSource.sourceUrl || profileSource.sourceHandle || profileSource.sourceId,
+      ].join(":");
+      uniqueSources.set(key, profileSource);
+    }
+
+    return [...uniqueSources.values()].sort(
+      (left, right) => PLATFORM_ORDER.indexOf(left.platform) - PLATFORM_ORDER.indexOf(right.platform),
+    );
+  }
+
+  function renderProfileSourceLink(source) {
+    const meta = platformMeta[source.platform];
+    const handle = source.sourceHandle ? `@${source.sourceHandle}` : source.sourceLabel;
+    const url = source.sourceUrl || meta.source;
+
+    return `
+      <a class="source-social-link ${source.platform}" href="${escapeHtml(url)}" target="_blank" rel="noreferrer">
+        <span>${escapeHtml(meta.label)}</span>
+        <b>${escapeHtml(handle)}</b>
+      </a>
+    `;
+  }
+
+  function getSourceStatus(source) {
+    if (source.platform === "twitch") {
+      return state.twitchStatuses[source.sourceId] || "connecting";
+    }
+
+    return source.viewerCount > 0 ? "connected" : "configured";
+  }
+
+  function formatSourceStatus(status) {
+    const labels = {
+      connected: "Live",
+      connecting: "Connecting",
+      configured: "Configured",
+      disconnected: "Offline",
+    };
+
+    return labels[status] || status;
   }
 
   function getSourceChipTitle(meta, source) {

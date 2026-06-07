@@ -5,7 +5,13 @@
 Run all Node tests:
 
 ```bash
-node --test tests/*.test.mjs
+npm test
+```
+
+Build the Vite/React frontend:
+
+```bash
+npm run build
 ```
 
 ## Useful Local Checks
@@ -13,6 +19,7 @@ node --test tests/*.test.mjs
 Start the server locally:
 
 ```bash
+npm run build
 node --env-file=.env server.mjs
 ```
 

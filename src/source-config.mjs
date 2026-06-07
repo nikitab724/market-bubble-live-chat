@@ -9,6 +9,8 @@ const PLATFORM_LABELS = {
 export const DEFAULT_SOURCES = normalizeSources([
   {
     platform: "twitch",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "Market Bubble",
     sourceHandle: "marketbubble",
     showStream: true,
@@ -16,12 +18,16 @@ export const DEFAULT_SOURCES = normalizeSources([
   },
   {
     platform: "kick",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "Market Bubble",
     sourceHandle: "marketbubble",
     viewerCount: 1260,
   },
   {
     platform: "x",
+    profileId: "banks",
+    profileName: "Banks",
     sourceName: "Banks",
     sourceHandle: "Banks",
     conversationId: "2062574325970973093",
@@ -29,6 +35,8 @@ export const DEFAULT_SOURCES = normalizeSources([
   },
   {
     platform: "x",
+    profileId: "z",
+    profileName: "Z",
     sourceName: "Z",
     sourceHandle: "z",
     conversationId: "",
@@ -36,6 +44,8 @@ export const DEFAULT_SOURCES = normalizeSources([
   },
   {
     platform: "room",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "MarketBubble.com",
     sourceHandle: "marketbubble",
     viewerCount: 518,
@@ -57,6 +67,8 @@ export function toPublicConfig(sources) {
       .map((source) => ({
         enabled: source.enabled,
         platform: source.platform,
+        ...(source.profileId ? { profileId: source.profileId } : {}),
+        ...(source.profileName ? { profileName: source.profileName } : {}),
         sourceHandle: source.sourceHandle,
         sourceId: source.sourceId,
         sourceLabel: source.sourceLabel,

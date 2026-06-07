@@ -30,12 +30,20 @@ let devChatMessageSequence = 0;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 const CONTENT_TYPES = {
+  ".avif": "image/avif",
   ".css": "text/css; charset=utf-8",
+  ".ico": "image/x-icon",
   ".html": "text/html; charset=utf-8",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
+  ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".ttf": "font/ttf",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
 };
 
 const PUBLIC_ASSETS = new Map([
@@ -360,35 +368,74 @@ function sendJson(response, statusCode, body) {
 }
 
 async function serveStatic(rootDir, pathname, response) {
-  const filePath = resolveStaticPath(rootDir, pathname);
+  const filePaths = resolveStaticPaths(rootDir, pathname);
 
-  if (!filePath) {
+  if (filePaths.length === 0) {
     response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
     return response.end("Not found");
   }
 
-  try {
-    const body = await readFile(filePath);
-    response.writeHead(200, {
-      "Content-Type": CONTENT_TYPES[extname(filePath)] || "application/octet-stream",
-    });
-    return response.end(body);
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-      return response.end("Not found");
-    }
+  for (const filePath of filePaths) {
+    try {
+      const body = await readFile(filePath);
+      response.writeHead(200, {
+        "Content-Type": CONTENT_TYPES[extname(filePath)] || "application/octet-stream",
+      });
+      return response.end(body);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        continue;
+      }
 
-    throw error;
+      throw error;
+    }
   }
+
+  response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+  return response.end("Not found");
 }
 
-function resolveStaticPath(rootDir, pathname) {
+function resolveStaticPaths(rootDir, pathname) {
   const routePath = decodeURIComponent(pathname);
-  const relativePath = PUBLIC_ASSETS.get(routePath);
-  if (!relativePath) {
+  const paths = [];
+  const distPath = resolveDistPath(rootDir, routePath);
+  if (distPath) paths.push(distPath);
+
+  const sourcePath = resolveSourceStaticPath(rootDir, routePath);
+  if (sourcePath) paths.push(sourcePath);
+
+  return paths;
+}
+
+function resolveDistPath(rootDir, routePath) {
+  const relativePath = getDistRelativePath(routePath);
+  if (!relativePath) return null;
+
+  const distRoot = join(rootDir, "dist", "client");
+  const filePath = normalize(join(distRoot, relativePath));
+
+  if (relative(distRoot, filePath).startsWith("..")) {
     return null;
   }
+
+  return filePath;
+}
+
+function getDistRelativePath(routePath) {
+  if (routePath === "/" || routePath === "/index.html") return "index.html";
+  if (routePath === "/chat" || routePath === "/chat/" || routePath === "/chat/index.html") {
+    return "chat/index.html";
+  }
+  if (routePath === "/admin" || routePath === "/admin/" || routePath === "/admin/index.html") {
+    return "admin/index.html";
+  }
+  if (routePath.startsWith("/assets/")) return routePath.slice(1);
+  return null;
+}
+
+function resolveSourceStaticPath(rootDir, routePath) {
+  const relativePath = PUBLIC_ASSETS.get(routePath);
+  if (!relativePath) return null;
 
   const filePath = normalize(join(rootDir, relativePath));
 

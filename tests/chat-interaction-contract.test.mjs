@@ -14,45 +14,63 @@ function readAppRuntime() {
   ].map((path) => readFileSync(new URL(path, import.meta.url), "utf8")).join("\n");
 }
 
-describe("chat interaction contract", () => {
-  it("renders the hosted viewer page with stream and chat", () => {
-    const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+function readViewerRuntime() {
+  return [
+    "../src/ui/main.jsx",
+    "../src/ui/ViewerApp.jsx",
+  ].map((path) => readFileSync(new URL(path, import.meta.url), "utf8")).join("\n");
+}
 
-    assert.equal(html.includes("stream-view"), true);
-    assert.equal(html.includes("video-frame"), true);
-    assert.equal(html.includes("Market Bubble stream"), true);
-    assert.equal(html.includes("broadcast-topbar"), true);
+describe("chat interaction contract", () => {
+  it("mounts the hosted viewer page through the React shell", () => {
+    const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+    const viewer = readViewerRuntime();
+
+    assert.equal(html.includes('id="root"'), true);
+    assert.equal(html.includes('data-surface="viewer"'), true);
+    assert.equal(html.includes("/src/ui/main.jsx"), true);
+    assert.equal(viewer.includes("stream-view"), true);
+    assert.equal(viewer.includes("video-frame"), true);
+    assert.equal(viewer.includes("Market Bubble stream"), true);
+    assert.equal(viewer.includes("broadcast-topbar"), true);
     assert.equal(html.includes("stream-header"), false);
     assert.equal(html.includes("chat-header"), false);
-    assert.equal(html.includes('id="streamPlayer"'), true);
-    assert.equal(html.includes('class="chat-view"'), true);
-    assert.equal(html.includes('id="chatFeed"'), true);
-    assert.equal(html.includes('id="jumpToLive"'), true);
-    assert.equal(html.includes('id="viewerCount"'), true);
-    assert.equal(html.includes('id="sourceBreakdown"'), true);
+    assert.equal(viewer.includes('id="streamPlayer"'), true);
+    assert.equal(viewer.includes('className="chat-view"'), true);
+    assert.equal(viewer.includes('id="chatFeed"'), true);
+    assert.equal(viewer.includes('id="jumpToLive"'), true);
+    assert.equal(viewer.includes('id="viewerCount"'), true);
+    assert.equal(viewer.includes('id="sourceBreakdown"'), true);
   });
 
-  it("renders /chat as the chat-only embed surface", () => {
+  it("mounts /chat as the chat-only embed surface", () => {
     const html = readFileSync(new URL("../chat/index.html", import.meta.url), "utf8");
+    const viewer = readViewerRuntime();
 
-    assert.equal(html.includes("stream-view"), false);
-    assert.equal(html.includes("video-frame"), false);
-    assert.equal(html.includes("Market Bubble stream"), false);
-    assert.equal(html.includes("broadcast-topbar"), true);
+    assert.equal(html.includes('id="root"'), true);
+    assert.equal(html.includes('data-surface="chat"'), true);
+    assert.equal(html.includes("/src/ui/main.jsx"), true);
+    assert.equal(viewer.includes("surface === \"viewer\""), true);
+    assert.equal(viewer.includes("stream-view"), true);
+    assert.equal(viewer.includes("video-frame"), true);
+    assert.equal(viewer.includes("Market Bubble stream"), true);
+    assert.equal(viewer.includes("broadcast-topbar"), true);
     assert.equal(html.includes("chat-header"), false);
-    assert.equal(html.includes('class="chat-view"'), true);
-    assert.equal(html.includes('id="chatFeed"'), true);
-    assert.equal(html.includes('id="jumpToLive"'), true);
-    assert.equal(html.includes('id="viewerCount"'), true);
-    assert.equal(html.includes('id="sourceBreakdown"'), true);
+    assert.equal(viewer.includes('className="chat-view"'), true);
+    assert.equal(viewer.includes('id="chatFeed"'), true);
+    assert.equal(viewer.includes('id="jumpToLive"'), true);
+    assert.equal(viewer.includes('id="viewerCount"'), true);
+    assert.equal(viewer.includes('id="sourceBreakdown"'), true);
   });
 
-  it("cache-busts the app module on both chat surfaces", () => {
+  it("uses the same React entry on both chat surfaces", () => {
     const viewer = readFileSync(new URL("../index.html", import.meta.url), "utf8");
     const chat = readFileSync(new URL("../chat/index.html", import.meta.url), "utf8");
 
-    assert.match(viewer, /src="\.\/src\/app\.mjs\?v=[^"]+"/);
-    assert.match(chat, /src="\.\.\/src\/app\.mjs\?v=[^"]+"/);
+    assert.match(viewer, /src="\/src\/ui\/main\.jsx"/);
+    assert.match(chat, /src="\/src\/ui\/main\.jsx"/);
+    assert.equal(viewer.includes("?v="), false);
+    assert.equal(chat.includes("?v="), false);
   });
 
   it("does not keep profile cards open through row focus", () => {
@@ -60,8 +78,8 @@ describe("chat interaction contract", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes('class="chat-message" tabindex="0"'), false);
-    assert.equal(app.includes('addEventListener("focusin"'), false);
-    assert.equal(app.includes('addEventListener("focusout"'), false);
+    assert.equal(app.includes('elements.chatFeed.addEventListener("focusin"'), false);
+    assert.equal(app.includes('elements.chatFeed.addEventListener("focusout"'), false);
     assert.equal(styles.includes(".chat-message:focus"), false);
     assert.equal(app.includes("pendingChatRender"), true);
     assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), true);
@@ -71,18 +89,25 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("renderer.positionProfileCard(message);"), true);
     assert.equal(app.includes('elements.chatFeed.addEventListener("pointermove"'), true);
     assert.equal(app.includes("const preferredLeft = messageRect.right - cardWidth - gutter"), true);
-    assert.equal(app.includes("const preferredTop = messageRect.bottom - 1"), true);
+    assert.equal(app.includes('messageRow?.querySelector(".message-line")'), true);
+    assert.equal(app.includes("const preferredTop = anchorRect.bottom + 4"), true);
     assert.equal(app.includes("const top = clampToViewport(preferredTop"), true);
+    assert.equal(app.includes("return Math.min(max, Math.max(min, value));"), true);
     assert.equal(app.includes("--profile-card-max-height"), true);
     assert.equal(app.includes('elements.chatFeed.querySelector(".profile-card:hover")'), true);
     assert.match(styles, /\.profile-card\s*\{[^}]*display: none/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*left: var\(--profile-card-left, 24px\)[^}]*top: var\(--profile-card-top, 24px\)/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*overflow: auto/s);
+    assert.match(styles, /\.chat-message:hover\s*\{[^}]*z-index: 20/s);
+    assert.match(styles, /\.chat-feed\.has-profile-pin\s+\.chat-message:hover:not\(\.is-profile-pinned\)\s*\{[^}]*z-index: auto/s);
+    assert.match(styles, /\.chat-message\.is-profile-pinned\s*\{[^}]*z-index: 80/s);
+    assert.match(styles, /\.profile-card\s*\{[^}]*z-index: 90/s);
     assert.match(styles, /\.chat-feed:not\(\.has-profile-pin\)\s+\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.chat-feed:not\(\.has-profile-pin\)\s+\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
   it("keeps profile hover cards from colliding with jump-to-live", () => {
     const app = readAppRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("function getProfileCardAvailableBottom()"), true);
     assert.equal(app.includes("if (elements.jumpToLive.hidden)"), true);
@@ -91,6 +116,11 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("const availableBottom = getProfileCardAvailableBottom();"), true);
     assert.equal(app.includes("availableBottom - cardHeight"), true);
     assert.equal(app.includes("const maxHeight = Math.max(96, availableBottom - top);"), true);
+    assert.equal(app.includes("function repositionActiveProfileCard()"), true);
+    assert.equal(app.includes('elements.chatFeed.querySelector(".chat-message.is-profile-pinned")'), true);
+    assert.equal(app.includes('elements.chatFeed.querySelector(".chat-message:hover")'), true);
+    assert.equal(app.includes("repositionActiveProfileCard();"), true);
+    assert.match(styles, /\.app-shell\s*\{[^}]*animation: shell-calm-in 700ms var\(--ease-out\) 80ms backwards/s);
     assert.match(app, /elements\.jumpToLive\.addEventListener\("click", \(\) => \{[\s\S]*state\.inspectingProfile = false;[\s\S]*renderer\.renderPendingChat\(\);/);
   });
 
@@ -103,6 +133,8 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes('elements.chatFeed.addEventListener("click", handleProfilePinClick);'), true);
     assert.equal(app.includes('document.addEventListener("click", handleDocumentProfileUnpinClick);'), true);
     assert.equal(app.includes("function handleProfilePinClick(event)"), true);
+    assert.equal(app.includes('event.target.closest(".profile-card a")'), true);
+    assert.equal(app.includes("event.stopPropagation();"), true);
     assert.equal(app.includes("function clearPinnedProfileCard"), true);
     assert.equal(app.includes('elements.chatFeed.querySelector(".chat-message.is-profile-pinned")'), true);
     assert.equal(app.includes('message.classList.add("is-profile-pinned")'), true);
@@ -120,7 +152,9 @@ describe("chat interaction contract", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.match(styles, /\.profile-card\s*\{[^}]*width: min\(270px, calc\(100vw - 28px\)\)[^}]*padding: 10px/s);
-    assert.match(styles, /\.profile-card\s*\{[^}]*box-shadow: 0 16px 42px rgba\(0, 0, 0, 0\.62\)/s);
+    assert.match(styles, /\.profile-card\s*\{[^}]*background: #000/s);
+    assert.match(styles, /\.profile-card\s*\{[^}]*box-shadow:\s*inset 0 0 0 1px rgba\(0, 0, 0, 0\.9\),\s*0 18px 48px rgba\(0, 0, 0, 0\.9\)/s);
+    assert.match(styles, /\.profile-card a\s*\{[^}]*display: block[^}]*pointer-events: auto/s);
     assert.match(styles, /\.profile-card-header\s*\{[^}]*margin-bottom: 8px/s);
     assert.match(styles, /\.profile-card-header strong\s*\{[^}]*font-size: 20px/s);
     assert.match(styles, /\.profile-card-header span\s*\{[^}]*font-size: 11px/s);
@@ -179,13 +213,15 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes("margin-left: 51px;"), false);
   });
 
-  it("uses the Market Bubble broadcast treatment with platform color accents", () => {
+  it("uses the Market Bubble broadcast treatment with profile source popovers", () => {
     const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+    const viewer = readViewerRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
     const app = readAppRuntime();
 
-    assert.equal(html.includes("broadcast-topbar"), true);
-    assert.equal(html.includes("broadcast-metrics"), true);
+    assert.equal(html.includes('data-surface="viewer"'), true);
+    assert.equal(viewer.includes("broadcast-topbar"), true);
+    assert.equal(viewer.includes("broadcast-metrics"), true);
     assert.equal(html.includes("broadcast-clock"), false);
     assert.match(styles, /\.app-shell\s*\{[^}]*height: calc\(100vh - 52px\)[^}]*padding: 10px 12px 12px/s);
     assert.match(styles, /\.viewer-shell\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(360px, 420px\)[^}]*gap: 10px/s);
@@ -195,6 +231,27 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes("--twitch:"), true);
     assert.equal(styles.includes("--kick:"), true);
     assert.equal(styles.includes("--x:"), true);
+    assert.match(styles, /\.viewer-counter\s*\{[^}]*background: var\(--paper\)/s);
+    assert.match(styles, /\.source-chip\s*\{[^}]*background: rgba\(255, 255, 255, 0\.014\)/s);
+    assert.match(styles, /\.source-popover\s*\{[^}]*position: absolute[^}]*right: 0[^}]*top: calc\(100% - 1px\)/s);
+    assert.match(styles, /\.source-popover\s*\{[^}]*width: min\(248px, calc\(100vw - 24px\)\)/s);
+    assert.match(styles, /\.source-popover\s*\{[^}]*max-height: calc\(100vh - 66px\)[^}]*overflow: auto/s);
+    assert.match(styles, /\.source-popover\s*\{[^}]*background: #111/s);
+    assert.match(styles, /\.source-popover\s*\{[^}]*visibility: hidden/s);
+    assert.equal(styles.includes(".source-chip::before"), false);
+    assert.equal(styles.includes(".source-popover::before"), false);
+    assert.match(styles, /\.source-chip:hover\s+\.source-popover\s*\{[^}]*opacity: 1[^}]*visibility: visible/s);
+    assert.equal(styles.includes(".source-chip:focus-within .source-popover"), false);
+    assert.equal(app.includes("positionSourcePopover"), false);
+    assert.equal(app.includes("handleSourcePopoverPosition"), false);
+    assert.equal(app.includes('elements.sourceBreakdown.addEventListener("pointermove"'), false);
+    assert.equal(app.includes("--source-popover-left"), false);
+    assert.equal(app.includes("function getSourceProfile(source)"), true);
+    assert.equal(app.includes("function getProfileSources(source)"), true);
+    assert.equal(app.includes("function renderProfileSourceLink(source)"), true);
+    assert.equal(app.includes('class="source-social-link ${source.platform}"'), true);
+    assert.equal(app.includes('class="source-popover"'), true);
+    assert.equal(app.includes('tabindex="0"'), false);
     assert.equal(app.includes("x-banks"), true);
     assert.equal(app.includes("x-z"), true);
     assert.equal(app.includes("room-marketbubble"), true);
@@ -270,6 +327,7 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*overflow-anchor: none/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*left: var\(--profile-card-left, 24px\)[^}]*top: var\(--profile-card-top, 24px\)/s);
     assert.match(styles, /\.jump-to-live\s*\{[^}]*position: absolute/s);
+    assert.match(styles, /\.jump-to-live\s*\{[^}]*z-index: 100/s);
     assert.match(styles, /\.jump-to-live\s*\{[^}]*left: 50%[^}]*transform: translateX\(-50%\)/s);
     assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);
   });
@@ -324,6 +382,18 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*touch-action: none/s);
   });
 
+  it("keeps the controlled chat bottom visually fixed without row transform bounce", () => {
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    const chatFeedRule = styles.match(/\.chat-feed\s*\{(?<body>[^}]*)\}/s)?.groups.body || "";
+    const chatMessageRule = styles.match(/\.chat-message\s*\{(?<body>[^}]*)\}/s)?.groups.body || "";
+    const chatRiseKeyframes = styles.match(/@keyframes chat-message-rise\s*\{(?<body>[\s\S]*?)\n\}/)?.groups.body || "";
+
+    assert.match(chatFeedRule, /padding: 0/);
+    assert.doesNotMatch(chatMessageRule, /transform-origin/);
+    assert.doesNotMatch(chatMessageRule, /transition:[^}]*transform/s);
+    assert.doesNotMatch(chatRiseKeyframes, /translateY/);
+  });
+
   it("appends new chat rows without rebuilding the full chat history", () => {
     const app = readAppRuntime();
 
@@ -331,6 +401,16 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("function canAppendMessages"), true);
     assert.equal(app.includes("insertAdjacentHTML(\"beforeend\""), true);
     assert.equal(app.includes('elements.chatFeed.innerHTML = `<div class="chat-stack">${state.messages.map(renderMessage).join("")}</div>`'), false);
+  });
+
+  it("does not rebuild top source stats during chat-only renders", () => {
+    const app = readAppRuntime();
+
+    assert.equal(app.includes("renderedViewerSummaryKey"), true);
+    assert.equal(app.includes("function renderViewerSummary()"), true);
+    assert.equal(app.includes("function getViewerSummaryKey(viewerSummary)"), true);
+    assert.equal(app.includes("if (summaryKey === renderedViewerSummaryKey)"), true);
+    assert.equal(app.includes("elements.sourceBreakdown.innerHTML = viewerSummary.sources.map(renderSource).join(\"\")"), true);
   });
 
   it("mounts only a rolling live chat window while keeping full message state", () => {

@@ -5,35 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Market Bubble Live</title>
     <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="10" fill="%23090b0f"/><text x="32" y="40" text-anchor="middle" font-family="Arial" font-size="22" font-weight="900" fill="%2317a7ff">MB</text></svg>' />
-    <link rel="stylesheet" href="./styles.css?v=20260607-hide-row-times" />
   </head>
   <body>
-    <header class="broadcast-topbar" aria-label="Market Bubble live status">
-      <div class="brand-mark" aria-hidden="true">
-        <span>Market</span>
-        <span>Bubble</span>
-      </div>
-      <div class="broadcast-metrics">
-        <div class="viewer-counter" aria-label="Combined viewers">
-          <strong id="viewerCount">0</strong>
-          <span>Viewers</span>
-        </div>
-        <div id="sourceBreakdown" class="source-breakdown" aria-label="Viewer sources"></div>
-      </div>
-    </header>
-    <main class="app-shell viewer-shell">
-      <section class="stream-view" aria-label="Market Bubble stream">
-        <div class="video-frame">
-          <div id="streamPlayer" class="stream-player"></div>
-        </div>
-      </section>
-
-      <section class="chat-view" aria-label="Combined live chat">
-        <div id="chatFeed" class="chat-feed" role="log" aria-live="polite"></div>
-        <button id="jumpToLive" class="jump-to-live" type="button" hidden>Jump to live</button>
-      </section>
-    </main>
-
-    <script type="module" src="./src/app.mjs?v=20260607-hide-row-times"></script>
+    <div id="root" data-surface="viewer"></div>
+    <script type="module" src="/src/ui/main.jsx"></script>
   </body>
 </html>

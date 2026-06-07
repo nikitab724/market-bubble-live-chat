@@ -8,7 +8,7 @@ Key files:
 
 - `.github/workflows/deploy-firecrawl.yml`: SSHes into the Firecrawl server and runs the deploy script.
 - `scripts/deploy-firecrawl.sh`: builds the Docker image, recreates the container, and mounts persistent data.
-- `Dockerfile`: container image for the Node server.
+- `Dockerfile`: installs npm dependencies, builds the Vite frontend into `dist/client`, then runs the Node server.
 
 ## Firecrawl Paths
 
@@ -46,6 +46,17 @@ Common env vars:
 - `KICK_CLIENT_ID`
 - `KICK_CLIENT_SECRET`
 - `KICK_REDIRECT_URI`
+
+## Build Step
+
+The frontend is a Vite/React/Tailwind build. Docker runs:
+
+```bash
+npm ci
+npm run build
+```
+
+The Node server serves `dist/client` for `/`, `/chat/`, `/admin/`, and `/assets/*` before falling back to source files used by tests.
 
 ## Manual Deploy Smoke Check
 

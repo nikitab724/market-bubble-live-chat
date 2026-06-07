@@ -18,306 +18,328 @@ import { initStreamPlayer } from "./viewer-stream.mjs";
 const LIVE_STATE_REFRESH_MS = 30_000;
 const CHAT_RENDER_INTERVAL_MS = 80;
 
-let connectedSources = fallbackSources.map((source) => ({ ...source }));
-let sourceById = buildSourceMap(connectedSources);
-let lastRenderAt = 0;
-let queuedRenderFrame = 0;
-let queuedRenderTimer = 0;
-let knownMessageIds = new Set();
-let authorProfilesByKey = new Map();
+let mountedLiveApp = null;
 
-const state = {
-  followingChat: true,
-  inspectingProfile: false,
-  messages: [],
-  pendingChatRender: false,
-  pinnedProfileMessageId: "",
-  queueRender,
-  sources: [],
-  twitchEmotes: {},
-  twitchStatuses: {},
-};
+export function mountLiveApp({ document: documentRef = document, window: windowRef = window } = {}) {
+  if (mountedLiveApp) {
+    return mountedLiveApp;
+  }
 
-const elements = {
-  chatFeed: document.querySelector("#chatFeed"),
-  chatView: document.querySelector(".chat-view"),
-  jumpToLive: document.querySelector("#jumpToLive"),
-  sourceBreakdown: document.querySelector("#sourceBreakdown"),
-  viewerCount: document.querySelector("#viewerCount"),
-};
+  mountedLiveApp = createLiveApp({ document: documentRef, window: windowRef }).mount();
+  return mountedLiveApp;
+}
 
-const renderer = createChatRenderer({
-  elements,
-  getAuthorProfile,
-  getTwitchEmoteMap,
-  state,
-  window,
-});
+function createLiveApp({ document, window }) {
+  let connectedSources = fallbackSources.map((source) => ({ ...source }));
+  let sourceById = buildSourceMap(connectedSources);
+  let lastRenderAt = 0;
+  let queuedRenderFrame = 0;
+  let queuedRenderTimer = 0;
+  let knownMessageIds = new Set();
+  let authorProfilesByKey = new Map();
 
-bindEvents();
-await initializeApp();
-window.setInterval(refreshLiveStateFromBackend, LIVE_STATE_REFRESH_MS);
+  const state = {
+    followingChat: true,
+    inspectingProfile: false,
+    messages: [],
+    pendingChatRender: false,
+    pinnedProfileMessageId: "",
+    queueRender,
+    sources: [],
+    twitchEmotes: {},
+    twitchStatuses: {},
+  };
 
-async function initializeApp() {
-  connectedSources = await loadPublicConfig({ fallbackSources });
-  sourceById = buildSourceMap(connectedSources);
-  state.sources = connectedSources.map((source) => ({ ...source }));
-  state.twitchStatuses = Object.fromEntries(
-    connectedSources
-      .filter((source) => source.platform === "twitch")
-      .map((source) => [source.sourceId, "connecting"]),
-  );
+  const elements = {
+    chatFeed: document.querySelector("#chatFeed"),
+    chatView: document.querySelector(".chat-view"),
+    jumpToLive: document.querySelector("#jumpToLive"),
+    sourceBreakdown: document.querySelector("#sourceBreakdown"),
+    viewerCount: document.querySelector("#viewerCount"),
+  };
 
-  setMessages(isDemoChatEnabled() ? seedDemoMessages({ sources: connectedSources, buildSourceMessage }) : []);
-  renderer.render();
-  initStreamPlayer({ document, sources: connectedSources, window });
-  loadTwitchEmotes({ sources: connectedSources, state, queueRender });
-  startTwitchConnectors({ sources: connectedSources, state, addMessage, queueRender });
-  startBackendChatEvents({ window, addBackendMessage });
-  if (isDemoChatEnabled()) {
-    startDemoChat({
-      addMessage,
-      buildConfiguredMessage,
-      isInspectingProfile: () => state.inspectingProfile,
-      queueRender,
-      sources: connectedSources,
-      window,
+  const renderer = createChatRenderer({
+    elements,
+    getAuthorProfile,
+    getTwitchEmoteMap,
+    state,
+    window,
+  });
+
+  return { mount };
+
+  async function mount() {
+    bindEvents();
+    await initializeApp();
+    window.setInterval(refreshLiveStateFromBackend, LIVE_STATE_REFRESH_MS);
+  }
+
+  async function initializeApp() {
+    connectedSources = await loadPublicConfig({ fallbackSources });
+    sourceById = buildSourceMap(connectedSources);
+    state.sources = connectedSources.map((source) => ({ ...source }));
+    state.twitchStatuses = Object.fromEntries(
+      connectedSources
+        .filter((source) => source.platform === "twitch")
+        .map((source) => [source.sourceId, "connecting"]),
+    );
+
+    setMessages(isDemoChatEnabled() ? seedDemoMessages({ sources: connectedSources, buildSourceMessage }) : []);
+    renderer.render();
+    initStreamPlayer({ document, sources: connectedSources, window });
+    loadTwitchEmotes({ sources: connectedSources, state, queueRender });
+    startTwitchConnectors({ sources: connectedSources, state, addMessage, queueRender });
+    startBackendChatEvents({ window, addBackendMessage });
+    if (isDemoChatEnabled()) {
+      startDemoChat({
+        addMessage,
+        buildConfiguredMessage,
+        isInspectingProfile: () => state.inspectingProfile,
+        queueRender,
+        sources: connectedSources,
+        window,
+      });
+    }
+    refreshLiveStateFromBackend();
+  }
+
+  function isDemoChatEnabled() {
+    const searchParams = new URLSearchParams(window.location.search);
+    return ["1", "true"].includes(String(searchParams.get("demoChat") || "").toLowerCase());
+  }
+
+  function refreshLiveStateFromBackend() {
+    return refreshLiveState({ state, queueRender });
+  }
+
+  function addBackendMessage(rawMessage) {
+    addMessage(rawMessage);
+  }
+
+  function buildSourceMap(sources) {
+    return new Map(sources.map((source) => [source.sourceId, source]));
+  }
+
+  function hasSource(sourceId) {
+    return sourceById.has(sourceId);
+  }
+
+  function getSource(sourceId) {
+    const source = sourceById.get(sourceId);
+
+    if (!source) {
+      throw new Error(`Unknown source: ${sourceId}`);
+    }
+
+    return source;
+  }
+
+  function buildConfiguredMessage(sourceId, author, handle, body, timestamp) {
+    return normalizeMessage({
+      ...buildSourceMessage(sourceId, author, handle, body, timestamp),
     });
   }
-  refreshLiveStateFromBackend();
-}
 
-function isDemoChatEnabled() {
-  const searchParams = new URLSearchParams(window.location.search);
-  return ["1", "true"].includes(String(searchParams.get("demoChat") || "").toLowerCase());
-}
+  function bindEvents() {
+    elements.chatFeed.addEventListener("pointerover", (event) => {
+      if (state.pinnedProfileMessageId) return;
 
-function refreshLiveStateFromBackend() {
-  return refreshLiveState({ state, queueRender });
-}
+      const message = event.target.closest(".chat-message");
+      if (message) {
+        state.inspectingProfile = true;
+        renderer.positionProfileCard(message);
+      }
+    });
 
-function addBackendMessage(rawMessage) {
-  addMessage(rawMessage);
-}
+    elements.chatFeed.addEventListener("pointermove", (event) => {
+      if (state.pinnedProfileMessageId) return;
 
-function buildSourceMap(sources) {
-  return new Map(sources.map((source) => [source.sourceId, source]));
-}
+      const message = event.target.closest(".chat-message");
+      if (message) {
+        renderer.positionProfileCard(message);
+      }
+    });
 
-function hasSource(sourceId) {
-  return sourceById.has(sourceId);
-}
+    elements.chatFeed.addEventListener("pointerout", () => {
+      window.setTimeout(renderer.updateInspectingState, 0);
+    });
 
-function getSource(sourceId) {
-  const source = sourceById.get(sourceId);
+    elements.chatView.addEventListener("wheel", renderer.handleChatWheel, { capture: true, passive: false });
+    elements.chatView.addEventListener("touchstart", renderer.handleChatTouchStart, { capture: true, passive: true });
+    elements.chatView.addEventListener("touchmove", renderer.handleChatTouchMove, { capture: true, passive: false });
+    elements.chatFeed.addEventListener("click", handleProfilePinClick);
+    document.addEventListener("click", handleDocumentProfileUnpinClick);
 
-  if (!source) {
-    throw new Error(`Unknown source: ${sourceId}`);
+    elements.jumpToLive.addEventListener("click", () => {
+      clearPinnedProfileCard({ syncScroll: false });
+      state.followingChat = true;
+      state.inspectingProfile = false;
+      renderer.renderPendingChat();
+    });
   }
 
-  return source;
-}
-
-function buildConfiguredMessage(sourceId, author, handle, body, timestamp) {
-  return normalizeMessage({
-    ...buildSourceMessage(sourceId, author, handle, body, timestamp),
-  });
-}
-
-function bindEvents() {
-  elements.chatFeed.addEventListener("pointerover", (event) => {
-    if (state.pinnedProfileMessageId) return;
+  function handleProfilePinClick(event) {
+    if (event.target.closest(".profile-card a")) {
+      event.stopPropagation();
+      return;
+    }
 
     const message = event.target.closest(".chat-message");
-    if (message) {
-      state.inspectingProfile = true;
-      renderer.positionProfileCard(message);
+    if (!message) {
+      return;
     }
-  });
 
-  elements.chatFeed.addEventListener("pointermove", (event) => {
-    if (state.pinnedProfileMessageId) return;
-
-    const message = event.target.closest(".chat-message");
-    if (message) {
-      renderer.positionProfileCard(message);
-    }
-  });
-
-  elements.chatFeed.addEventListener("pointerout", () => {
-    window.setTimeout(renderer.updateInspectingState, 0);
-  });
-
-  elements.chatView.addEventListener("wheel", renderer.handleChatWheel, { capture: true, passive: false });
-  elements.chatView.addEventListener("touchstart", renderer.handleChatTouchStart, { capture: true, passive: true });
-  elements.chatView.addEventListener("touchmove", renderer.handleChatTouchMove, { capture: true, passive: false });
-  elements.chatFeed.addEventListener("click", handleProfilePinClick);
-  document.addEventListener("click", handleDocumentProfileUnpinClick);
-
-  elements.jumpToLive.addEventListener("click", () => {
     clearPinnedProfileCard({ syncScroll: false });
-    state.followingChat = true;
+    state.pinnedProfileMessageId = message.dataset.messageId || "";
+    state.inspectingProfile = true;
+    state.followingChat = false;
+    message.classList.add("is-profile-pinned");
+    elements.chatFeed.classList.add("has-profile-pin");
+    renderer.positionProfileCard(message);
+    renderer.updateJumpToLive();
+  }
+
+  function handleDocumentProfileUnpinClick(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || target.closest(".chat-message")) {
+      return;
+    }
+
+    clearPinnedProfileCard();
+  }
+
+  function clearPinnedProfileCard({ syncScroll = true } = {}) {
+    const pinnedMessage = elements.chatFeed.querySelector(".chat-message.is-profile-pinned");
+    if (pinnedMessage) {
+      pinnedMessage.classList.remove("is-profile-pinned");
+    }
+
+    state.pinnedProfileMessageId = "";
     state.inspectingProfile = false;
-    renderer.renderPendingChat();
-  });
-}
+    elements.chatFeed.classList.remove("has-profile-pin");
 
-function handleProfilePinClick(event) {
-  const message = event.target.closest(".chat-message");
-  if (!message) {
-    return;
+    if (syncScroll) {
+      renderer.handleChatScroll();
+    }
   }
 
-  clearPinnedProfileCard({ syncScroll: false });
-  state.pinnedProfileMessageId = message.dataset.messageId || "";
-  state.inspectingProfile = true;
-  state.followingChat = false;
-  message.classList.add("is-profile-pinned");
-  elements.chatFeed.classList.add("has-profile-pin");
-  renderer.positionProfileCard(message);
-  renderer.updateJumpToLive();
-}
-
-function handleDocumentProfileUnpinClick(event) {
-  const target = event.target instanceof Element ? event.target : null;
-  if (!target || target.closest(".chat-message")) {
-    return;
+  function setMessages(messages) {
+    state.messages = mergeMessages(messages);
+    knownMessageIds = new Set(state.messages.map((message) => message.id));
+    authorProfilesByKey = new Map();
+    state.messages.forEach(recordAuthorProfile);
   }
 
-  clearPinnedProfileCard();
-}
+  function addMessage(rawMessage) {
+    const message = normalizeMessage(rawMessage);
+    if (knownMessageIds.has(message.id)) {
+      return false;
+    }
 
-function clearPinnedProfileCard({ syncScroll = true } = {}) {
-  const pinnedMessage = elements.chatFeed.querySelector(".chat-message.is-profile-pinned");
-  if (pinnedMessage) {
-    pinnedMessage.classList.remove("is-profile-pinned");
+    knownMessageIds.add(message.id);
+    const lastMessage = state.messages.at(-1);
+    if (!lastMessage || compareMessageOrder(lastMessage, message) <= 0) {
+      state.messages.push(message);
+    } else {
+      state.messages = mergeMessages([...state.messages, message]);
+    }
+
+    recordAuthorProfile(message);
+    queueRender();
+    return true;
   }
 
-  state.pinnedProfileMessageId = "";
-  state.inspectingProfile = false;
-  elements.chatFeed.classList.remove("has-profile-pin");
+  function recordAuthorProfile(message) {
+    const key = getAuthorProfileKey(message);
+    const existingProfile = authorProfilesByKey.get(key);
+    const nextMessageCount = (existingProfile?.messageCount || 0) + 1;
+    const nextLastSeen = !existingProfile || Date.parse(message.timestamp) > Date.parse(existingProfile.lastSeen)
+      ? message.timestamp
+      : existingProfile.lastSeen;
 
-  if (syncScroll) {
-    renderer.handleChatScroll();
-  }
-}
-
-function setMessages(messages) {
-  state.messages = mergeMessages(messages);
-  knownMessageIds = new Set(state.messages.map((message) => message.id));
-  authorProfilesByKey = new Map();
-  state.messages.forEach(recordAuthorProfile);
-}
-
-function addMessage(rawMessage) {
-  const message = normalizeMessage(rawMessage);
-  if (knownMessageIds.has(message.id)) {
-    return false;
+    authorProfilesByKey.set(key, {
+      author: message.author,
+      displayHandle: `@${message.handle}`,
+      handle: message.handle,
+      lastSeen: nextLastSeen,
+      messageCount: nextMessageCount,
+      platform: message.platform,
+    });
   }
 
-  knownMessageIds.add(message.id);
-  const lastMessage = state.messages.at(-1);
-  if (!lastMessage || compareMessageOrder(lastMessage, message) <= 0) {
-    state.messages.push(message);
-  } else {
-    state.messages = mergeMessages([...state.messages, message]);
+  function getAuthorProfile(message) {
+    const profile = authorProfilesByKey.get(getAuthorProfileKey(message));
+
+    return {
+      platform: message.platform,
+      author: profile?.author || message.author,
+      handle: profile?.handle || message.handle,
+      displayHandle: profile?.displayHandle || `@${message.handle}`,
+      sourceUrl: message.sourceUrl,
+      sourceId: message.sourceId,
+      sourceName: message.sourceName,
+      sourceHandle: message.sourceHandle,
+      sourceLabel: message.sourceLabel,
+      messageCount: profile?.messageCount || 1,
+      lastSeen: profile?.lastSeen || message.timestamp,
+    };
   }
 
-  recordAuthorProfile(message);
-  queueRender();
-  return true;
-}
-
-function recordAuthorProfile(message) {
-  const key = getAuthorProfileKey(message);
-  const existingProfile = authorProfilesByKey.get(key);
-  const nextMessageCount = (existingProfile?.messageCount || 0) + 1;
-  const nextLastSeen = !existingProfile || Date.parse(message.timestamp) > Date.parse(existingProfile.lastSeen)
-    ? message.timestamp
-    : existingProfile.lastSeen;
-
-  authorProfilesByKey.set(key, {
-    author: message.author,
-    displayHandle: `@${message.handle}`,
-    handle: message.handle,
-    lastSeen: nextLastSeen,
-    messageCount: nextMessageCount,
-    platform: message.platform,
-  });
-}
-
-function getAuthorProfile(message) {
-  const profile = authorProfilesByKey.get(getAuthorProfileKey(message));
-
-  return {
-    platform: message.platform,
-    author: profile?.author || message.author,
-    handle: profile?.handle || message.handle,
-    displayHandle: profile?.displayHandle || `@${message.handle}`,
-    sourceUrl: message.sourceUrl,
-    sourceId: message.sourceId,
-    sourceName: message.sourceName,
-    sourceHandle: message.sourceHandle,
-    sourceLabel: message.sourceLabel,
-    messageCount: profile?.messageCount || 1,
-    lastSeen: profile?.lastSeen || message.timestamp,
-  };
-}
-
-function getAuthorProfileKey(message) {
-  return `${message.platform}:${message.handle.toLowerCase()}`;
-}
-
-function compareMessageOrder(left, right) {
-  const timeDifference = Date.parse(left.timestamp) - Date.parse(right.timestamp);
-  if (timeDifference !== 0) {
-    return timeDifference;
+  function getAuthorProfileKey(message) {
+    return `${message.platform}:${message.handle.toLowerCase()}`;
   }
 
-  return PLATFORM_ORDER.indexOf(left.platform) - PLATFORM_ORDER.indexOf(right.platform);
-}
+  function compareMessageOrder(left, right) {
+    const timeDifference = Date.parse(left.timestamp) - Date.parse(right.timestamp);
+    if (timeDifference !== 0) {
+      return timeDifference;
+    }
 
-function buildSourceMessage(sourceId, author, handle, body, timestamp) {
-  const source = getSource(sourceId);
-
-  return {
-    platform: source.platform,
-    author,
-    handle,
-    body,
-    timestamp,
-    sourceUrl: getProfileUrl(source.platform, handle),
-    sourceId: source.sourceId,
-    sourceName: source.sourceName,
-    sourceHandle: source.sourceHandle,
-    sourceLabel: source.sourceLabel || source.sourceName,
-  };
-}
-
-function getTwitchEmoteMap(message) {
-  if (message.platform !== "twitch") {
-    return {};
+    return PLATFORM_ORDER.indexOf(left.platform) - PLATFORM_ORDER.indexOf(right.platform);
   }
 
-  return state.twitchEmotes[message.sourceId] || {};
-}
+  function buildSourceMessage(sourceId, author, handle, body, timestamp) {
+    const source = getSource(sourceId);
 
-function queueRender() {
-  if (queuedRenderFrame || queuedRenderTimer) {
-    return;
+    return {
+      platform: source.platform,
+      author,
+      handle,
+      body,
+      timestamp,
+      sourceUrl: getProfileUrl(source.platform, handle),
+      sourceId: source.sourceId,
+      sourceName: source.sourceName,
+      sourceHandle: source.sourceHandle,
+      sourceLabel: source.sourceLabel || source.sourceName,
+    };
   }
 
-  const elapsed = window.performance.now() - lastRenderAt;
-  const delay = Math.max(0, CHAT_RENDER_INTERVAL_MS - elapsed);
+  function getTwitchEmoteMap(message) {
+    if (message.platform !== "twitch") {
+      return {};
+    }
 
-  queuedRenderTimer = window.setTimeout(() => {
-    queuedRenderTimer = 0;
-    queuedRenderFrame = window.requestAnimationFrame(flushQueuedRender);
-  }, delay);
-}
+    return state.twitchEmotes[message.sourceId] || {};
+  }
 
-function flushQueuedRender() {
-  queuedRenderFrame = 0;
-  lastRenderAt = window.performance.now();
-  renderer.render();
+  function queueRender() {
+    if (queuedRenderFrame || queuedRenderTimer) {
+      return;
+    }
+
+    const elapsed = window.performance.now() - lastRenderAt;
+    const delay = Math.max(0, CHAT_RENDER_INTERVAL_MS - elapsed);
+
+    queuedRenderTimer = window.setTimeout(() => {
+      queuedRenderTimer = 0;
+      queuedRenderFrame = window.requestAnimationFrame(flushQueuedRender);
+    }, delay);
+  }
+
+  function flushQueuedRender() {
+    queuedRenderFrame = 0;
+    lastRenderAt = window.performance.now();
+    renderer.render();
+  }
 }

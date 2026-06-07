@@ -2,6 +2,8 @@ export const fallbackSources = [
   {
     sourceId: "twitch-marketbubble",
     platform: "twitch",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "Market Bubble",
     sourceHandle: "marketbubble",
     sourceUrl: "https://twitch.tv/marketbubble",
@@ -11,6 +13,8 @@ export const fallbackSources = [
   {
     sourceId: "kick-marketbubble",
     platform: "kick",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "Market Bubble",
     sourceHandle: "marketbubble",
     sourceUrl: "https://kick.com/marketbubble",
@@ -19,6 +23,8 @@ export const fallbackSources = [
   {
     sourceId: "x-banks",
     platform: "x",
+    profileId: "banks",
+    profileName: "Banks",
     sourceName: "Banks",
     sourceHandle: "Banks",
     sourceUrl: "https://x.com/Banks",
@@ -27,6 +33,8 @@ export const fallbackSources = [
   {
     sourceId: "x-z",
     platform: "x",
+    profileId: "z",
+    profileName: "Z",
     sourceName: "Z",
     sourceHandle: "z",
     sourceUrl: "https://x.com/z",
@@ -35,6 +43,8 @@ export const fallbackSources = [
   {
     sourceId: "room-marketbubble",
     platform: "room",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "MarketBubble.com",
     sourceHandle: "marketbubble",
     sourceUrl: "https://marketbubble.com",

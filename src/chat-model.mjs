@@ -153,6 +153,8 @@ function normalizeViewerSource(source) {
   return {
     sourceId,
     platform,
+    profileId: String(source.profileId || "").trim(),
+    profileName: String(source.profileName || "").trim(),
     sourceName,
     sourceHandle,
     sourceLabel,
