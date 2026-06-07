@@ -282,19 +282,22 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       const anchorRect = anchor.getBoundingClientRect();
       const messageRect = messageRow.getBoundingClientRect();
       const cardRect = profileCard.getBoundingClientRect();
-      const cardWidth = cardRect.width || Math.min(270, window.innerWidth - gutter * 2);
+      const cardWidth = cardRect.width || Math.min(218, window.innerWidth - gutter * 2);
       const availableBottom = getProfileCardAvailableBottom();
+      const measuredCardHeight = Math.max(cardRect.height, profileCard.offsetHeight, profileCard.scrollHeight || 0);
       const cardHeight = Math.min(
-        profileCard.scrollHeight || cardRect.height || 260,
-        260,
+        measuredCardHeight || 180,
+        180,
         availableBottom - gutter,
       );
       const preferredLeft = messageRect.right - cardWidth - gutter;
       const minimumLeft = Math.min(anchorRect.left, messageRect.right - cardWidth);
       const left = clampToViewport(preferredLeft, minimumLeft, window.innerWidth - cardWidth - gutter);
-      const preferredTop = anchorRect.bottom + 4;
-      const top = clampToViewport(preferredTop, gutter, availableBottom - cardHeight);
-      const maxHeight = Math.max(96, availableBottom - top);
+      const preferredTop = messageRect.top - cardHeight - 4;
+      const fallbackTop = messageRect.bottom + 4;
+      const unclampedTop = preferredTop >= gutter ? preferredTop : fallbackTop;
+      const top = clampToViewport(unclampedTop, gutter, availableBottom - cardHeight);
+      const maxHeight = Math.max(84, availableBottom - top);
 
       profileCard.style.setProperty("--profile-card-left", `${Math.round(left)}px`);
       profileCard.style.setProperty("--profile-card-top", `${Math.round(top)}px`);
@@ -511,24 +514,12 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
           </div>
           <dl>
             <div>
-              <dt>Platform</dt>
-              <dd>${meta.label}</dd>
-            </div>
-            <div>
-              <dt>Stream</dt>
-              <dd>${escapeHtml(profile.sourceLabel)}</dd>
-            </div>
-            <div>
-              <dt>Messages</dt>
-              <dd>${profile.messageCount}</dd>
-            </div>
-            <div>
-              <dt>Last seen</dt>
-              <dd>${formatTime(profile.lastSeen)}</dd>
+              <dt>Source</dt>
+              <dd>${escapeHtml(`${meta.label} / ${profile.sourceLabel}`)}</dd>
             </div>
             <div>
               <dt>Profile</dt>
-              <dd><a href="${escapeHtml(profile.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(profile.sourceUrl)}</a></dd>
+              <dd><a href="${escapeHtml(profile.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(profile.displayHandle)}</a></dd>
             </div>
           </dl>
         </div>
@@ -582,12 +573,4 @@ function renderPlatformLogo(platform, label) {
 
 function formatNumber(value) {
   return new Intl.NumberFormat("en-US").format(value);
-}
-
-function formatTime(timestamp) {
-  return new Intl.DateTimeFormat("en", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(new Date(timestamp));
 }
