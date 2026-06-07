@@ -269,7 +269,13 @@ body {
 
 .live-layout-mini .source-popover {
   right: auto;
-  left: 0;
+  left: calc(100% - 1px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.live-layout-mini .source-chip:hover .source-popover {
+  transform: translateY(-50%);
 }
 
 .live-layout-mini .chat-message {

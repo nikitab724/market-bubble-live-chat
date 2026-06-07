@@ -91,6 +91,8 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(520px, 1fr\) minmax\(270px, 320px\)/s);
     assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 32px/s);
     assert.match(styles, /\.live-layout-mini\s+\.chat-view\s*\{[^}]*background: transparent[^}]*box-shadow: none/s);
+    assert.match(styles, /\.live-layout-mini\s+\.source-popover\s*\{[^}]*right: auto[^}]*left: calc\(100% - 1px\)[^}]*top: 50%[^}]*transform: translateY\(-50%\)/s);
+    assert.match(styles, /\.live-layout-mini\s+\.source-chip:hover\s+\.source-popover\s*\{[^}]*transform: translateY\(-50%\)/s);
     assert.equal(styles.includes(".chat-shell .layout-toggle"), false);
   });
 
@@ -170,6 +172,14 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("const shouldFollowChat = state.pinnedProfileMessageId ? false : state.followingChat || isChatNearBottom();"), true);
     assert.match(app, /elements\.jumpToLive\.addEventListener\("click", \(\) => \{[\s\S]*clearPinnedProfileCard\(\{ syncScroll: false \}\);[\s\S]*renderer\.renderPendingChat\(\);/);
     assert.match(styles, /\.chat-feed:not\(\.has-profile-pin\)\s+\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.chat-feed:not\(\.has-profile-pin\)\s+\.profile-card:hover\s*\{[^}]*display: block/s);
+  });
+
+  it("keeps jump-to-live visible and stable while a pinned profile card is scrolled", () => {
+    const app = readAppRuntime();
+
+    assert.match(app, /function handleChatScroll\(\) \{\s*if \(state\.pinnedProfileMessageId\) \{[\s\S]*state\.followingChat = false;[\s\S]*updateJumpToLive\(\);[\s\S]*repositionActiveProfileCard\(\);[\s\S]*return;[\s\S]*\}/);
+    assert.match(app, /if \(nextScrollTop === elements\.chatFeed\.scrollTop\) \{\s*if \(state\.pinnedProfileMessageId\) \{[\s\S]*state\.followingChat = false;[\s\S]*updateJumpToLive\(\);[\s\S]*repositionActiveProfileCard\(\);[\s\S]*return;[\s\S]*\}/);
+    assert.equal(app.includes("elements.jumpToLive.hidden = !state.pinnedProfileMessageId && state.followingChat;"), true);
   });
 
   it("keeps profile hover cards compact above twitch-sized chat", () => {

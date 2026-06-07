@@ -198,6 +198,13 @@ export function createChatRenderer({
   }
 
   function handleChatScroll() {
+    if (state.pinnedProfileMessageId) {
+      state.followingChat = false;
+      updateJumpToLive();
+      repositionActiveProfileCard();
+      return;
+    }
+
     if (isChatNearBottom()) {
       state.followingChat = true;
     } else {
@@ -251,6 +258,13 @@ export function createChatRenderer({
     const nextScrollTop = clampChatScrollTop(elements.chatFeed.scrollTop + deltaY);
 
     if (nextScrollTop === elements.chatFeed.scrollTop) {
+      if (state.pinnedProfileMessageId) {
+        state.followingChat = false;
+        updateJumpToLive();
+        repositionActiveProfileCard();
+        return;
+      }
+
       if (deltaY > 0 && isChatNearBottom()) {
         state.followingChat = true;
         if (state.pendingChatRender) {
@@ -352,7 +366,7 @@ export function createChatRenderer({
   }
 
   function updateJumpToLive() {
-    elements.jumpToLive.hidden = state.followingChat;
+    elements.jumpToLive.hidden = !state.pinnedProfileMessageId && state.followingChat;
   }
 
   function renderSource(source) {

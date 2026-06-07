@@ -197,3 +197,15 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Suppressed the user profile hover card while the pointer is on a badge, including badge clicks, so badge inspection does not accidentally pin/open profile details.
 - Kept badge hover on the normal cursor instead of the browser help/question-mark cursor.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (80 passed); `npm run build`; `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`.
+
+## [2026-06-07] ui | Stabilize pinned-profile jump-to-live
+
+- Kept pinned profile cards in paused-chat mode during wheel/touch scroll so scroll events cannot flip the chat back to following live.
+- Kept the Jump to Live control visible while a profile card is pinned, preventing rapid hidden/visible flicker when the pinned card is scrolled near the bottom.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (81 passed); `npm run build`; `node --check src/chat-renderer.mjs`; `git diff --check`.
+
+## [2026-06-07] ui | Move mini source popovers right
+
+- Changed mini-layout source/profile popovers to open to the right of the left source rail instead of below each source chip.
+- Kept the popover touching the chip edge so the viewer can move from the chip into the popover without losing hover.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (81 passed); `npm run build`; `git diff --check`.
