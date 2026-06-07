@@ -278,6 +278,7 @@ function getTabMessages(tab) {
 }
 
 function renderTabs() {
+  if (!el.streamTabs) return;
   el.streamTabs.innerHTML = ALL_TABS.map((tab) => `
     <button
       class="v2-tab"
@@ -295,6 +296,11 @@ function renderTabs() {
 
     state.activeTabId = tabId;
     renderedMessageIds = [];
+    state.followingChat = true;
+
+    // Clear the chat DOM so the next render does a clean append into an empty stack
+    const oldStack = el.chatFeed.querySelector(".v2-chat-stack");
+    if (oldStack) oldStack.innerHTML = "";
 
     el.streamTabs.querySelectorAll(".v2-tab").forEach((b) => {
       b.setAttribute("aria-selected", String(b.dataset.tabId === tabId));
@@ -418,10 +424,11 @@ function renderPlatformBreakdown(messages) {
 
 // ── Chat rendering ────────────────────────────────────────────────────────────
 
+const MAX_MESSAGES = 200;
+
 function renderChatFeed(messages) {
   const shouldFollow = state.followingChat || isChatAtBottom();
   state.followingChat = shouldFollow;
-  const prevScroll = el.chatFeed.scrollTop;
 
   if (state.inspectingProfile) {
     state.pendingChatRender = true;
@@ -431,16 +438,21 @@ function renderChatFeed(messages) {
 
   state.pendingChatRender = false;
 
-  const messageIds = messages.map((m) => m.id);
+  // Cap to avoid unbounded DOM growth
+  const visibleMessages = messages.slice(-MAX_MESSAGES);
+  const messageIds = visibleMessages.map((m) => m.id);
   const stack = getChatStack();
 
+  // Snapshot scroll position relative to bottom before mutating the DOM
+  const scrollBottom = el.chatFeed.scrollHeight - el.chatFeed.scrollTop;
+
   if (canAppendMessages(messageIds)) {
-    const newMessages = messages.slice(renderedMessageIds.length);
+    const newMessages = visibleMessages.slice(renderedMessageIds.length);
     if (newMessages.length > 0) {
       stack.insertAdjacentHTML("beforeend", newMessages.map(renderChatMessage).join(""));
     }
   } else {
-    stack.innerHTML = messages.map(renderChatMessage).join("");
+    stack.innerHTML = visibleMessages.map(renderChatMessage).join("");
   }
 
   renderedMessageIds = messageIds;
@@ -448,7 +460,8 @@ function renderChatFeed(messages) {
   if (shouldFollow) {
     scrollChatToBottom();
   } else {
-    el.chatFeed.scrollTop = prevScroll;
+    // Restore position relative to bottom so new messages appended below don't shift the view
+    el.chatFeed.scrollTop = el.chatFeed.scrollHeight - scrollBottom;
     updateJumpToLive();
   }
 }
