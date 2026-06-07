@@ -176,14 +176,16 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--label-font);
-  font-size: 11px;
-  font-weight: 900;
   color: #fff;
   flex-shrink: 0;
   margin-top: 1px;
-  text-transform: uppercase;
-  letter-spacing: 0;
+  padding: 4px;
+}
+
+.v2-chat-channel-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .v2-chat-channel-icon.twitch { background: var(--twitch); }
