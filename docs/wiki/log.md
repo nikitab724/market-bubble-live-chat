@@ -134,3 +134,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Pinned profile cards pause live following so incoming chat cannot move the inspected row, while jump-to-live clears the pin and resumes the live window.
 - Updated both app module cache-bust query strings so browsers fetch the new pin runtime.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (68 passed); `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; in-app browser local check pinned one profile card at 270px, showed jump-to-live, cleared on outside click, and cleared again through jump-to-live with `distanceFromBottom: 0`.
+
+## [2026-06-07] ui | Suppress other hover cards while pinned
+
+- Added a pinned-mode class to the chat feed so normal row-hover profile cards are disabled while one profile card is locked.
+- Kept the pinned card visible and interactive, then removed pinned mode when the lock clears.
+- Updated app and stylesheet cache-bust query strings so deployed browsers fetch the tightened selector.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (68 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; in-app browser local check pinned one profile, hovered a different row, kept exactly one visible profile card, then cleared on outside click.

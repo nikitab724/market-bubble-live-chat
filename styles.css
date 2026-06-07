@@ -552,9 +552,9 @@ h2 {
     transform 140ms ease;
 }
 
-.chat-message:hover .profile-card,
+.chat-feed:not(.has-profile-pin) .chat-message:hover .profile-card,
 .chat-message.is-profile-pinned .profile-card,
-.profile-card:hover {
+.chat-feed:not(.has-profile-pin) .profile-card:hover {
   display: block;
   opacity: 1;
   pointer-events: auto;

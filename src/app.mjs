@@ -173,6 +173,7 @@ function handleProfilePinClick(event) {
   state.inspectingProfile = true;
   state.followingChat = false;
   message.classList.add("is-profile-pinned");
+  elements.chatFeed.classList.add("has-profile-pin");
   renderer.positionProfileCard(message);
   renderer.updateJumpToLive();
 }
@@ -194,6 +195,7 @@ function clearPinnedProfileCard({ syncScroll = true } = {}) {
 
   state.pinnedProfileMessageId = "";
   state.inspectingProfile = false;
+  elements.chatFeed.classList.remove("has-profile-pin");
 
   if (syncScroll) {
     renderer.handleChatScroll();

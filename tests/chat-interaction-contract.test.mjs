@@ -78,7 +78,7 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.profile-card\s*\{[^}]*display: none/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*position: fixed[^}]*left: var\(--profile-card-left, 24px\)[^}]*top: var\(--profile-card-top, 24px\)/s);
     assert.match(styles, /\.profile-card\s*\{[^}]*overflow: auto/s);
-    assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
+    assert.match(styles, /\.chat-feed:not\(\.has-profile-pin\)\s+\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.chat-feed:not\(\.has-profile-pin\)\s+\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
   it("keeps profile hover cards from colliding with jump-to-live", () => {
@@ -106,12 +106,14 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("function clearPinnedProfileCard"), true);
     assert.equal(app.includes('elements.chatFeed.querySelector(".chat-message.is-profile-pinned")'), true);
     assert.equal(app.includes('message.classList.add("is-profile-pinned")'), true);
+    assert.equal(app.includes('elements.chatFeed.classList.add("has-profile-pin")'), true);
+    assert.equal(app.includes('elements.chatFeed.classList.remove("has-profile-pin")'), true);
     assert.equal(app.includes("state.pinnedProfileMessageId = message.dataset.messageId || \"\""), true);
     assert.equal(app.includes("if (state.pinnedProfileMessageId) return;"), true);
     assert.equal(app.includes("if (state.pinnedProfileMessageId) {"), true);
     assert.equal(app.includes("const shouldFollowChat = state.pinnedProfileMessageId ? false : state.followingChat || isChatNearBottom();"), true);
     assert.match(app, /elements\.jumpToLive\.addEventListener\("click", \(\) => \{[\s\S]*clearPinnedProfileCard\(\{ syncScroll: false \}\);[\s\S]*renderer\.renderPendingChat\(\);/);
-    assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
+    assert.match(styles, /\.chat-feed:not\(\.has-profile-pin\)\s+\.chat-message:hover\s+\.profile-card,\s*\.chat-message\.is-profile-pinned\s+\.profile-card,\s*\.chat-feed:not\(\.has-profile-pin\)\s+\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
   it("keeps profile hover cards compact beside twitch-sized chat", () => {
