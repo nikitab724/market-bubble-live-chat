@@ -8,24 +8,21 @@
     <link rel="stylesheet" href="../styles.css" />
   </head>
   <body>
+    <header class="broadcast-topbar" aria-label="Market Bubble live status">
+      <div class="brand-mark" aria-hidden="true">
+        <span>Market</span>
+        <span>Bubble</span>
+      </div>
+      <div class="broadcast-metrics">
+        <div class="viewer-counter" aria-label="Combined viewers">
+          <strong id="viewerCount">0</strong>
+          <span>Viewers</span>
+        </div>
+        <div id="sourceBreakdown" class="source-breakdown" aria-label="Viewer sources"></div>
+      </div>
+    </header>
     <main class="app-shell chat-shell">
       <section class="chat-view" aria-label="Combined live chat">
-        <header class="chat-header">
-          <div class="brand-mark chat-brand" aria-hidden="true">
-            <span>Market</span>
-            <span>Bubble</span>
-          </div>
-          <div class="chat-title">
-            <p>Market Bubble Shared Chat</p>
-            <h1>Twitch + Kick + X + MarketBubble.com</h1>
-          </div>
-          <div class="viewer-counter" aria-label="Combined viewers">
-            <strong id="viewerCount">0</strong>
-            <span>Viewers</span>
-          </div>
-          <div id="sourceBreakdown" class="source-breakdown" aria-label="Viewer sources"></div>
-        </header>
-
         <div id="chatFeed" class="chat-feed" role="log" aria-live="polite"></div>
         <button id="jumpToLive" class="jump-to-live" type="button" hidden>Jump to live</button>
       </section>

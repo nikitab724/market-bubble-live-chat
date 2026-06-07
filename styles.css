@@ -43,83 +43,41 @@ body {
   color: var(--text);
 }
 
-.broadcast-clock {
-  display: flex;
+.broadcast-topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
-  justify-content: space-between;
-  height: 70px;
-  padding: 0 36px;
+  height: 52px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--line-soft);
-  color: var(--muted);
-  font-family: var(--label-font);
-  font-size: 18px;
-  line-height: 1.05;
-  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.78);
+  overflow: hidden;
 }
 
-.broadcast-clock span {
-  position: relative;
-  display: block;
-  min-width: 180px;
-}
-
-.broadcast-clock span::before,
-.broadcast-clock span::after {
-  position: absolute;
-  top: 3px;
-  width: 2px;
-  height: 42px;
-  background: rgba(231, 228, 216, 0.38);
-  content: "";
-}
-
-.broadcast-clock span:first-child {
-  padding-left: 28px;
-}
-
-.broadcast-clock span:first-child::before {
-  left: 0;
-}
-
-.broadcast-clock span:first-child::after {
-  display: none;
-}
-
-.broadcast-clock span:last-child {
-  padding-right: 28px;
-  text-align: right;
-}
-
-.broadcast-clock span:last-child::before {
-  display: none;
-}
-
-.broadcast-clock span:last-child::after {
-  right: 0;
-}
-
-.broadcast-clock strong {
-  display: block;
-  margin-top: 5px;
-  color: var(--text);
-  font-size: 26px;
+.broadcast-metrics {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  justify-self: end;
+  width: min(100%, 920px);
 }
 
 .app-shell {
-  height: calc(100vh - 70px);
-  padding: 20px 30px 26px;
+  height: calc(100vh - 52px);
+  padding: 10px 12px 12px;
 }
 
 .viewer-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(460px, 520px);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  gap: 10px;
 }
 
 .chat-shell {
   display: block;
-  height: 100vh;
-  padding: 14px;
+  height: calc(100vh - 52px);
 }
 
 .stream-view,
@@ -133,54 +91,30 @@ body {
 }
 
 .stream-view {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: block;
   height: 100%;
 }
 
 .chat-view {
   position: relative;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr;
   width: 100%;
   height: 100%;
   overscroll-behavior: none;
 }
 
-.stream-header,
-.chat-header {
-  display: grid;
-  gap: 14px;
-  align-items: center;
-  min-height: 78px;
-  padding: 15px 18px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.74);
-}
-
-.stream-header {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.chat-header {
-  grid-template-columns: 98px minmax(0, 1fr) auto;
-}
-
 .brand-mark {
   display: grid;
   align-content: center;
-  width: 112px;
-  height: 52px;
-  padding: 6px 10px;
+  width: 86px;
+  height: 36px;
+  padding: 5px 8px;
   border: 1px solid rgba(231, 228, 216, 0.58);
   color: var(--text);
   font-family: var(--display-font);
-  font-size: 26px;
+  font-size: 19px;
   line-height: 0.82;
-}
-
-.chat-brand {
-  width: 98px;
 }
 
 .brand-mark span {
@@ -191,30 +125,6 @@ p,
 h1,
 h2 {
   margin-top: 0;
-}
-
-.chat-title h1 {
-  font-size: 22px;
-  white-space: normal;
-}
-
-.stream-title,
-.chat-title {
-  min-width: 0;
-}
-
-.stream-title p,
-.chat-title p {
-  margin-bottom: 3px;
-  overflow: hidden;
-  color: var(--muted);
-  font-family: var(--label-font);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
 }
 
 h1,
@@ -235,6 +145,7 @@ h2 {
 .video-frame {
   position: relative;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
   background: #0a0a0a;
 }
@@ -322,9 +233,9 @@ h2 {
 .viewer-counter {
   display: grid;
   place-items: center;
-  min-width: 98px;
-  min-height: 46px;
-  padding: 7px 8px;
+  min-width: 78px;
+  min-height: 36px;
+  padding: 5px 7px;
   border: 1px solid rgba(231, 228, 216, 0.64);
   background: var(--paper);
   color: var(--ink);
@@ -336,23 +247,22 @@ h2 {
 .viewer-counter strong {
   display: block;
   color: var(--ink);
-  font-size: 21px;
+  font-size: 17px;
   line-height: 0.9;
 }
 
 .viewer-counter span {
   display: block;
-  margin-top: 5px;
+  margin-top: 3px;
   color: rgba(8, 8, 8, 0.7);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 900;
 }
 
 .source-breakdown {
-  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(5, minmax(92px, 1fr));
+  gap: 5px;
   min-width: 0;
 }
 
@@ -363,10 +273,10 @@ h2 {
 .source-chip {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
   min-width: 0;
-  padding: 5px 7px;
+  padding: 4px 6px;
   border: 1px solid var(--line-soft);
   border-left: 2px solid var(--source-color);
   background: rgba(255, 255, 255, 0.022);
@@ -376,7 +286,7 @@ h2 {
 .source-chip span,
 .source-chip b {
   font-family: var(--label-font);
-  font-size: 11px;
+  font-size: 10px;
   font-style: normal;
   font-weight: 900;
   text-transform: uppercase;
@@ -389,7 +299,7 @@ h2 {
 .source-chip strong {
   min-width: 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -506,7 +416,7 @@ h2 {
 .chat-message {
   position: relative;
   display: block;
-  padding: 10px 12px;
+  padding: 7px 10px;
   border: 0;
   border-bottom: 1px solid var(--line-soft);
   border-left: 2px solid var(--source-color);
@@ -530,16 +440,16 @@ h2 {
 .message-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
 .platform-logo {
   display: grid;
-  flex: 0 0 22px;
+  flex: 0 0 18px;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border: 1px solid rgba(231, 228, 216, 0.18);
   background: rgba(255, 255, 255, 0.035);
   color: var(--source-color);
@@ -547,15 +457,15 @@ h2 {
 
 .platform-logo svg {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   fill: currentColor;
 }
 
 .platform-logo b {
   color: var(--source-color);
   font-family: var(--label-font);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 900;
   line-height: 1;
 }
@@ -563,7 +473,7 @@ h2 {
 .message-meta strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -573,31 +483,31 @@ h2 {
   margin-left: auto;
   color: var(--muted);
   font-family: var(--label-font);
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .platform-badge {
   flex: 0 0 auto;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border: 1px solid rgba(231, 228, 216, 0.18);
   background: rgba(255, 255, 255, 0.026);
   color: var(--source-color);
   font-family: var(--label-font);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .source-label {
-  flex: 0 1 150px;
+  flex: 0 1 116px;
   min-width: 44px;
   overflow: hidden;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border: 1px solid rgba(231, 228, 216, 0.18);
   background: rgba(255, 255, 255, 0.018);
   color: var(--text);
   font-family: var(--label-font);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -605,16 +515,16 @@ h2 {
 }
 
 .chat-message p {
-  margin: 4px 0 0 28px;
+  margin: 3px 0 0 23px;
   color: var(--text);
-  font-size: 15px;
-  line-height: 1.28;
+  font-size: 13px;
+  line-height: 1.24;
 }
 
 .chat-emote {
   display: inline-block;
   max-width: 112px;
-  height: 28px;
+  height: 24px;
   margin: -4px 1px;
   object-fit: contain;
   vertical-align: middle;
@@ -994,50 +904,44 @@ button:hover {
 }
 
 @media (max-width: 860px) {
-  .broadcast-clock {
-    height: 58px;
-    padding: 0 16px;
-    font-size: 13px;
+  .broadcast-topbar {
+    height: 62px;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 6px 10px;
   }
 
-  .broadcast-clock strong {
-    font-size: 19px;
-  }
-
-  .broadcast-clock span {
-    min-width: 128px;
+  .broadcast-metrics {
+    width: 100%;
   }
 
   .app-shell {
-    height: calc(100vh - 58px);
+    height: calc(100vh - 62px);
     padding: 10px;
   }
 
   .viewer-shell {
     grid-template-columns: 1fr;
     height: auto;
-    min-height: calc(100vh - 58px);
+    min-height: calc(100vh - 62px);
   }
 
   .stream-view {
-    min-height: 430px;
+    min-height: 360px;
   }
 
   .viewer-shell .chat-view {
-    min-height: 520px;
+    min-height: 460px;
   }
 
-  .chat-header {
-    grid-template-columns: 92px minmax(0, 1fr) auto;
-  }
-
+  .source-breakdown,
   .chat-shell .source-breakdown {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .brand-mark {
-    width: 92px;
-    font-size: 22px;
+    width: 78px;
+    height: 34px;
+    font-size: 17px;
   }
 
   h1,
@@ -1065,20 +969,27 @@ button:hover {
 }
 
 @media (max-width: 500px) {
+  .broadcast-topbar {
+    height: 94px;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    align-content: start;
+  }
+
+  .broadcast-metrics {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .app-shell,
   .chat-shell {
+    height: calc(100vh - 94px);
     padding: 8px;
   }
 
-  .chat-header {
-    grid-template-columns: 74px minmax(0, 1fr) auto;
-    min-height: 66px;
-    padding: 10px;
-  }
-
   .viewer-counter {
-    min-width: 76px;
-    min-height: 44px;
-    padding: 6px;
+    min-width: 70px;
+    min-height: 34px;
+    padding: 5px;
   }
 
   .viewer-counter strong {
@@ -1095,27 +1006,22 @@ button:hover {
   }
 
   .brand-mark {
-    width: 74px;
-    height: 46px;
-    font-size: 18px;
+    width: 76px;
+    height: 32px;
+    font-size: 16px;
   }
 
   h1 {
     font-size: 22px;
   }
 
-  .chat-title p,
-  .stream-title p {
-    font-size: 12px;
-  }
-
   .chat-message {
-    padding: 10px;
+    padding: 7px 8px;
   }
 
   .message-meta strong,
   .chat-message p {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .message-meta time {

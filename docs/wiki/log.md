@@ -108,3 +108,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Kept right-side alignment and the preferred 1px message-border attachment when there is room.
 - Updated the app module cache-bust query for the viewport-fitting hover-card runtime.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; Chrome local bottom-row hover check measured the card moving upward to fit with a `12px` viewport bottom gap, a `12px` right gutter, and chat still at `distanceFromBottom: 0`.
+
+## [2026-06-06] ui | Compact broadcast layout
+
+- Replaced the old clock/title header space with one compact top bar containing the Market Bubble logo, combined viewers, and per-source breakdown.
+- Removed internal stream/chat headers so the stream and chat panels fill the viewport area below the top bar.
+- Tightened chat row, platform logo, label, and source-chip sizing toward Twitch-like density.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs`; `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; Chrome local viewer check measured a 52px top bar, no internal stream/chat headers, stream and chat panels both 787px tall in an 861px viewport, and video filling 785px of the stream panel.

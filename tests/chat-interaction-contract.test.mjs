@@ -21,6 +21,9 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes("stream-view"), true);
     assert.equal(html.includes("video-frame"), true);
     assert.equal(html.includes("Market Bubble stream"), true);
+    assert.equal(html.includes("broadcast-topbar"), true);
+    assert.equal(html.includes("stream-header"), false);
+    assert.equal(html.includes("chat-header"), false);
     assert.equal(html.includes('id="streamPlayer"'), true);
     assert.equal(html.includes('class="chat-view"'), true);
     assert.equal(html.includes('id="chatFeed"'), true);
@@ -35,6 +38,8 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes("stream-view"), false);
     assert.equal(html.includes("video-frame"), false);
     assert.equal(html.includes("Market Bubble stream"), false);
+    assert.equal(html.includes("broadcast-topbar"), true);
+    assert.equal(html.includes("chat-header"), false);
     assert.equal(html.includes('class="chat-view"'), true);
     assert.equal(html.includes('id="chatFeed"'), true);
     assert.equal(html.includes('id="jumpToLive"'), true);
@@ -95,9 +100,9 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("kick:"), true);
     assert.equal(app.includes("x:"), true);
     assert.match(app, /renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*\n\s*<strong title/);
-    assert.match(styles, /\.platform-logo\s*\{[^}]*width: 22px[^}]*height: 22px/s);
-    assert.match(styles, /\.chat-message\s*\{[^}]*padding: 10px 12px/s);
-    assert.match(styles, /\.message-meta\s*\{[^}]*gap: 6px/s);
+    assert.match(styles, /\.platform-logo\s*\{[^}]*width: 18px[^}]*height: 18px/s);
+    assert.match(styles, /\.chat-message\s*\{[^}]*padding: 7px 10px/s);
+    assert.match(styles, /\.message-meta\s*\{[^}]*gap: 5px/s);
   });
 
   it("uses the Market Bubble broadcast treatment with platform color accents", () => {
@@ -105,8 +110,11 @@ describe("chat interaction contract", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
     const app = readAppRuntime();
 
-    assert.equal(html.includes("broadcast-clock"), true);
-    assert.equal(html.includes("MarketBubble.com"), true);
+    assert.equal(html.includes("broadcast-topbar"), true);
+    assert.equal(html.includes("broadcast-metrics"), true);
+    assert.equal(html.includes("broadcast-clock"), false);
+    assert.match(styles, /\.app-shell\s*\{[^}]*height: calc\(100vh - 52px\)[^}]*padding: 10px 12px 12px/s);
+    assert.match(styles, /\.viewer-shell\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(360px, 420px\)[^}]*gap: 10px/s);
     assert.equal(styles.includes("--bg:"), true);
     assert.equal(styles.includes("--display-font"), true);
     assert.equal(styles.includes("Bodoni 72"), true);
