@@ -13,7 +13,7 @@ Required env vars for live state:
 - `TWITCH_CLIENT_ID`
 - `TWITCH_CLIENT_SECRET`
 
-Twitch native IRC emotes come from IRC tags. Third-party emotes are fetched through `GET /api/twitch-emotes?channel=...` and cached from 7TV, BetterTTV, and FrankerFaceZ.
+Twitch native IRC emotes and username colors come from IRC tags. Third-party emotes are fetched through `GET /api/twitch-emotes?channel=...` and cached from 7TV, BetterTTV, and FrankerFaceZ.
 
 ## Kick
 
@@ -30,6 +30,8 @@ Required env vars for live state:
 
 The Kick webhook URL must be public and reachable by Kick. Localhost cannot receive real Kick webhooks without a tunnel.
 
+Kick chat username colors come from `sender.identity.username_color` when Kick includes identity data. Missing or invalid colors fall back to the shared deterministic chat palette.
+
 ## X
 
 The current working path is a Chrome extension bridge, not an official X API connector:
@@ -41,6 +43,8 @@ The current working path is a Chrome extension bridge, not an official X API con
 - The backend broadcasts those messages through `/api/chat-events`.
 
 X stream viewing on `/` uses `conversationId` from source config to load X widgets. Without `conversationId`, it falls back to an open-stream link.
+
+X chat messages do not currently include provider username colors in the bridge, so the shared deterministic fallback palette is used.
 
 The future server-side path is X API filtered stream or recent search using a `conversation_id:<id>` rule, if the X Live comments being targeted are exposed as Posts/replies. That would need X API credentials, rate-limit handling, reconnect logic, and a new backend connector.
 

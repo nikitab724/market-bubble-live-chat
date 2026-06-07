@@ -5,6 +5,23 @@ const PLATFORM_LABELS = {
   x: "X",
   room: "MarketBubble.com",
 };
+const DEFAULT_AUTHOR_COLORS = [
+  "#FF7F50",
+  "#1E90FF",
+  "#32CD32",
+  "#DAA520",
+  "#FF69B4",
+  "#BA55D3",
+  "#00CED1",
+  "#FF4500",
+  "#2E8B57",
+  "#D2691E",
+  "#5F9EA0",
+  "#9ACD32",
+  "#C9B978",
+  "#F08080",
+  "#87CEEB",
+];
 
 export function normalizeMessage(input) {
   const platform = normalizePlatform(input.platform);
@@ -29,6 +46,7 @@ export function normalizeMessage(input) {
     sourceHandle,
     sourceLabel,
     avatar: input.avatar || getInitial(author),
+    authorColor: normalizeAuthorColor(input.authorColor) || getFallbackAuthorColor(platform, handle || author),
     sentiment: input.sentiment || inferSentiment(body),
   };
 
@@ -165,6 +183,27 @@ function normalizeViewerCount(viewerCount) {
   }
 
   return Math.max(0, Math.round(count));
+}
+
+function normalizeAuthorColor(color) {
+  const normalized = String(color || "").trim();
+
+  if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+    return normalized.toUpperCase();
+  }
+
+  return "";
+}
+
+function getFallbackAuthorColor(platform, seed) {
+  const text = `${platform}:${String(seed || "").toLowerCase()}`;
+  let hash = 0;
+
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (hash * 31 + text.charCodeAt(index)) >>> 0;
+  }
+
+  return DEFAULT_AUTHOR_COLORS[hash % DEFAULT_AUTHOR_COLORS.length];
 }
 
 function normalizeEmote(emote) {

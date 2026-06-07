@@ -155,3 +155,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Removed per-message borders and reduced alternating row contrast to make the feed less boxy.
 - Tightened the vertical gap between username metadata and message text.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (69 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; in-app browser local check measured `0px` message-row borders, centered logo/source mark, and `0px` gap between username line and message text.
+
+## [2026-06-07] ui | Inline author names with chat colors
+
+- Rendered messages Twitch-style as colored `author: message` text instead of a separate username metadata line.
+- Preserved Twitch IRC username colors and Kick webhook `sender.identity.username_color` in the normalized message shape.
+- Added deterministic fallback username colors for X, native room, and provider messages without a valid color.
+- Verification: `node --test tests/chat-model.test.mjs tests/kick-webhook.test.mjs tests/twitch-connector.test.mjs tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (71 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `node --check src/chat-model.mjs`; `git diff --check`; in-app browser local check confirmed no separate metadata line, inline colored author text, and `author: message` ordering.

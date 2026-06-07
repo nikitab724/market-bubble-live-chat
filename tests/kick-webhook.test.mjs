@@ -20,6 +20,9 @@ describe("kick webhook", () => {
           username: "sender_name",
           channel_slug: "sender_channel",
           profile_picture: "https://kick-avatar.jpg",
+          identity: {
+            username_color: "#FF5733",
+          },
         },
         content: "Hello [emote:4148074:HYPERCLAP] [emote:37226:KEKW]",
         created_at: "2026-06-05T18:00:00Z",
@@ -49,6 +52,7 @@ describe("kick webhook", () => {
       sourceHandle: "marketbubble",
       sourceLabel: "Market Bubble",
       avatar: "S",
+      authorColor: "#FF5733",
       sentiment: "positive",
     });
   });

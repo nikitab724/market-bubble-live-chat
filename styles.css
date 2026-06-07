@@ -438,13 +438,6 @@ h2 {
   min-width: 0;
 }
 
-.message-meta {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-}
-
 .platform-mark {
   display: grid;
   flex: 0 0 52px;
@@ -480,22 +473,6 @@ h2 {
   line-height: 1;
 }
 
-.message-meta strong {
-  overflow: hidden;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.message-meta time {
-  margin-left: auto;
-  color: var(--muted);
-  font-family: var(--label-font);
-  font-size: 10px;
-}
-
 .source-label {
   width: 100%;
   max-width: 52px;
@@ -520,6 +497,24 @@ h2 {
   color: var(--text);
   font-size: 13px;
   line-height: 1.24;
+}
+
+.message-author {
+  color: var(--author-color, var(--text));
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.message-colon {
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.message-line time {
+  margin-left: 5px;
+  color: var(--muted);
+  font-family: var(--label-font);
+  font-size: 10px;
 }
 
 .chat-emote {

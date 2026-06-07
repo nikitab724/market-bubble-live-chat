@@ -152,14 +152,17 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("x:"), true);
     assert.equal(app.includes('class="platform-badge ${message.platform}"'), false);
     assert.match(app, /<div class="message-body">\s*<span class="platform-mark">\s*\$\{renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*<span class="source-label \$\{message\.platform\}"/);
-    assert.match(app, /<\/span>\s*<div class="message-content">\s*<div class="message-meta">\s*<strong title="\$\{escapeHtml\(message\.author\)\}">/);
+    assert.match(app, /<\/span>\s*<div class="message-content">\s*<p class="message-line">\s*<strong class="message-author" style="--author-color: \$\{escapeHtml\(message\.authorColor\)\};" title="\$\{escapeHtml\(message\.author\)\}">/);
+    assert.match(app, /<\/strong><span class="message-colon">:<\/span>\s*\$\{renderMessageBody\(message, getTwitchEmoteMap\(message\)\)\}/);
     assert.match(styles, /\.message-body\s*\{[^}]*display: flex[^}]*gap: 5px/s);
     assert.match(styles, /\.message-content\s*\{[^}]*flex: 1 1 auto/s);
     assert.match(styles, /\.platform-logo\s*\{[^}]*width: 18px[^}]*height: 18px/s);
     assert.match(styles, /\.platform-mark\s*\{[^}]*display: grid[^}]*justify-items: center/s);
     assert.match(styles, /\.chat-message\s*\{[^}]*padding: 7px 10px/s);
-    assert.match(styles, /\.message-meta\s*\{[^}]*gap: 5px/s);
     assert.match(styles, /\.source-label\s*\{[^}]*width: 100%[^}]*border: 0[^}]*background: transparent[^}]*text-align: center/s);
+    assert.match(styles, /\.message-line time\s*\{[^}]*font-size: 10px/s);
+    assert.match(styles, /\.message-author\s*\{[^}]*color: var\(--author-color, var\(--text\)\)/s);
+    assert.match(styles, /\.message-colon\s*\{[^}]*color: var\(--muted\)/s);
   });
 
   it("keeps chat rows tight and borderless", () => {

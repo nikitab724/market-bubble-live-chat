@@ -78,6 +78,7 @@ export function connectTwitchChat(channel, { onMessage, onStatus, source } = {})
         id: tags.id ? `twitch-${tags.id}` : undefined,
         platform: "twitch",
         author: displayName,
+        authorColor: tags.color || "",
         handle: login,
         body: trailing,
         timestamp: new Date(sentTs).toISOString(),

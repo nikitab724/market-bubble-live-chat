@@ -22,6 +22,7 @@ export function normalizeKickChatWebhook({ payload, sources }) {
     id: payload.message_id ? `kick-${payload.message_id}` : undefined,
     platform: "kick",
     author,
+    authorColor: sender.identity?.username_color || "",
     handle,
     body: normalizeKickContent(payload.content),
     timestamp: payload.created_at,

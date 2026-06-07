@@ -341,11 +341,11 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
             <span class="source-label ${message.platform}" title="${escapeHtml(meta.label)} / ${escapeHtml(message.sourceLabel)}">${escapeHtml(message.sourceLabel)}</span>
           </span>
           <div class="message-content">
-            <div class="message-meta">
-              <strong title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong>
+            <p class="message-line">
+              <strong class="message-author" style="--author-color: ${escapeHtml(message.authorColor)};" title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong><span class="message-colon">:</span>
+              ${renderMessageBody(message, getTwitchEmoteMap(message))}
               <time>${formatTime(message.timestamp)}</time>
-            </div>
-            <p>${renderMessageBody(message, getTwitchEmoteMap(message))}</p>
+            </p>
           </div>
         </div>
         <div class="profile-card" role="tooltip">
