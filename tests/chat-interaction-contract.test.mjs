@@ -81,6 +81,20 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
+  it("keeps profile hover cards compact beside twitch-sized chat", () => {
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.match(styles, /\.profile-card\s*\{[^}]*width: min\(270px, calc\(100vw - 28px\)\)[^}]*padding: 10px/s);
+    assert.match(styles, /\.profile-card\s*\{[^}]*box-shadow: 0 16px 42px rgba\(0, 0, 0, 0\.62\)/s);
+    assert.match(styles, /\.profile-card-header\s*\{[^}]*margin-bottom: 8px/s);
+    assert.match(styles, /\.profile-card-header strong\s*\{[^}]*font-size: 20px/s);
+    assert.match(styles, /\.profile-card-header span\s*\{[^}]*font-size: 11px/s);
+    assert.match(styles, /\.profile-card dl\s*\{[^}]*gap: 5px/s);
+    assert.match(styles, /\.profile-card dl div\s*\{[^}]*grid-template-columns: 68px minmax\(0, 1fr\)[^}]*gap: 6px/s);
+    assert.match(styles, /\.profile-card dt\s*\{[^}]*font-size: 11px/s);
+    assert.match(styles, /\.profile-card dd\s*\{[^}]*font-size: 11px/s);
+  });
+
   it("does not render user profile picture placeholders in chat rows", () => {
     const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");

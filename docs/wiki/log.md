@@ -115,3 +115,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Removed internal stream/chat headers so the stream and chat panels fill the viewport area below the top bar.
 - Tightened chat row, platform logo, label, and source-chip sizing toward Twitch-like density.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs`; `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; Chrome local viewer check measured a 52px top bar, no internal stream/chat headers, stream and chat panels both 787px tall in an 861px viewport, and video filling 785px of the stream panel.
+
+## [2026-06-06] ui | Shrink profile hover cards
+
+- Reduced the chat profile hover card width, max height, padding, shadow, heading size, handle size, and detail row spacing to match the compact Twitch-sized chat.
+- Added a contract test so the hover card does not drift back to the oversized treatment.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs`; `git diff --check`; in-app browser local check loaded the compact CSS at `270px` width.

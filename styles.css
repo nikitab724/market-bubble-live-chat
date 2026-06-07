@@ -536,14 +536,14 @@ h2 {
   left: var(--profile-card-left, 24px);
   top: var(--profile-card-top, 24px);
   z-index: 10;
-  width: min(330px, calc(100vw - 32px));
-  max-height: min(320px, var(--profile-card-max-height, calc(100vh - 48px)));
+  width: min(270px, calc(100vw - 28px));
+  max-height: min(260px, var(--profile-card-max-height, calc(100vh - 40px)));
   overflow: auto;
-  padding: 13px;
+  padding: 10px;
   border: 1px solid rgba(231, 228, 216, 0.46);
   border-radius: 0;
   background: #050505;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.68);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.62);
   opacity: 0;
   pointer-events: none;
   transform: translateY(-4px);
@@ -562,7 +562,7 @@ h2 {
 
 .profile-card-header {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .profile-card-header strong,
@@ -576,34 +576,34 @@ h2 {
 
 .profile-card-header strong {
   font-family: var(--display-font);
-  font-size: 25px;
+  font-size: 20px;
   line-height: 0.95;
 }
 
 .profile-card-header span {
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--muted);
   font-family: var(--label-font);
-  font-size: 14px;
+  font-size: 11px;
   text-transform: uppercase;
 }
 
 .profile-card dl {
   display: grid;
-  gap: 8px;
+  gap: 5px;
   margin: 0;
 }
 
 .profile-card dl div {
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 6px;
 }
 
 .profile-card dt {
   color: var(--muted);
   font-family: var(--label-font);
-  font-size: 13px;
+  font-size: 11px;
   text-transform: uppercase;
 }
 
@@ -612,7 +612,7 @@ h2 {
   margin: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: 13px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
