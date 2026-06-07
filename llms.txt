@@ -1,0 +1,32 @@
+# Market Bubble Live
+
+> Server-backed prototype for Market Bubble's hosted livestream page, combined chat overlay, admin source editor, and provider connectors.
+
+This file is a repo-local entry map. The persistent LLM-maintained wiki lives under `docs/`, with `docs/wiki/index.md` as the catalog and `docs/wiki/log.md` as the chronological maintenance record.
+
+## Docs
+
+- [Docs index](docs/README.md): Start here for the app map, doc update rules, and task-specific links.
+- [Wiki index](docs/wiki/index.md): Content catalog for the agent-maintained wiki.
+- [Wiki log](docs/wiki/log.md): Append-only timeline of ingests, queries, lint passes, and repo-changing runs.
+- [Architecture](docs/architecture.md): Runtime surfaces, server routes, shared state, and data flow.
+- [Connectors](docs/connectors.md): Twitch, Kick, X, and native MarketBubble.com connector responsibilities.
+- [X Live setup](docs/x-live-setup.md): Current X stream/chat setup, Chrome extension workflow, and future official API path.
+- [Deployment](docs/deployment.md): Firecrawl server, GitHub Actions, Docker, persistent data, and tunnel notes.
+- [Testing](docs/testing.md): Local verification commands and smoke checks.
+- [LLM maintenance](docs/llm-maintenance.md): How to keep these docs useful for future agents.
+
+## Source Map
+
+- [Server entry](server.mjs): HTTP server, API routes, admin auth, Kick webhook, X chat ingest, and static serving.
+- [Browser app](src/app.mjs): Thin hosted viewer/chat orchestrator.
+- [Stream renderer](src/viewer-stream.mjs): Twitch, Kick, X, and placeholder stream embeds.
+- [Chat runtime](src/chat-runtime.mjs): Public config loading, Twitch chat, SSE ingest, emotes, and live-state refresh.
+- [Chat renderer](src/chat-renderer.mjs): Viewer counts, source chips, chat DOM windowing, autoscroll, and profile cards.
+- [Admin UI](admin/admin.mjs): Source/profile editor and stream source selector.
+- [Chat overlay](chat/index.html): Chat-only browser source surface.
+- [X extension](extension/content.js): Chrome content script that watches X live chat DOM and posts messages to the backend.
+
+## Optional
+
+- [Superpowers specs](docs/superpowers/): Historical design and implementation planning notes.

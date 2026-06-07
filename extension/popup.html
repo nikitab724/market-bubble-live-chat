@@ -73,6 +73,7 @@
         margin-bottom: 6px;
       }
 
+      input,
       select {
         width: 100%;
         padding: 6px 8px;
@@ -84,7 +85,9 @@
         cursor: pointer;
       }
 
+      input { cursor: text; }
       select:focus { outline: 1px solid #17a7ff; }
+      input:focus { outline: 1px solid #17a7ff; }
 
       .actions {
         padding: 10px 14px;
@@ -127,6 +130,11 @@
       <div class="status-row">
         <div class="dot" id="dot"></div>
         <div class="status-text" id="statusText">Checking…</div>
+      </div>
+
+      <div class="section">
+        <label for="backendUrlInput">Backend URL</label>
+        <input id="backendUrlInput" type="url" spellcheck="false" />
       </div>
 
       <div class="section">

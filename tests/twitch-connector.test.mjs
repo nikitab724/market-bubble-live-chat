@@ -34,4 +34,10 @@ describe("twitch connector", () => {
 
     assert.equal(connector.includes("tags.id ? `twitch-${tags.id}` : undefined"), true);
   });
+
+  it("passes Twitch IRC username color tags into normalized messages", () => {
+    const connector = readFileSync(new URL("../src/twitch-connector.mjs", import.meta.url), "utf8");
+
+    assert.equal(connector.includes('authorColor: tags.color || ""'), true);
+  });
 });

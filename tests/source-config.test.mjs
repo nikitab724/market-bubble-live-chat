@@ -11,7 +11,7 @@ describe("source config", () => {
   it("normalizes editable source rows for all supported platforms", () => {
     const sources = normalizeSources([
       { platform: "twitch", sourceHandle: "MarketBubble", viewerCount: "3000" },
-      { platform: "kick", sourceHandle: "marketbubble", sourceName: "Market Bubble", viewerCount: 1200 },
+      { platform: "kick", sourceHandle: "marketbubble", sourceName: "Market Bubble", showStream: true, viewerCount: 1200 },
       {
         platform: "x",
         sourceName: "Banks",
@@ -32,6 +32,7 @@ describe("source config", () => {
         conversationId: source.conversationId,
         viewerCount: source.viewerCount,
         enabled: source.enabled,
+        showStream: source.showStream,
       })),
       [
         {
@@ -43,6 +44,7 @@ describe("source config", () => {
           conversationId: "",
           viewerCount: 3000,
           enabled: true,
+          showStream: false,
         },
         {
           sourceId: "kick-marketbubble",
@@ -53,6 +55,7 @@ describe("source config", () => {
           conversationId: "",
           viewerCount: 1200,
           enabled: true,
+          showStream: true,
         },
         {
           sourceId: "x-banks",
@@ -63,6 +66,7 @@ describe("source config", () => {
           conversationId: "2062574325970973093",
           viewerCount: 8000,
           enabled: true,
+          showStream: false,
         },
         {
           sourceId: "room-marketbubble",
@@ -73,6 +77,7 @@ describe("source config", () => {
           conversationId: "",
           viewerCount: 500,
           enabled: true,
+          showStream: false,
         },
       ],
     );
@@ -94,9 +99,12 @@ describe("source config", () => {
       normalizeSources([
         {
           platform: "x",
+          profileId: "banks",
+          profileName: "Banks",
           sourceName: "Banks",
           sourceHandle: "Banks",
           conversationId: "2062574325970973093",
+          showStream: true,
           accessToken: "secret-token",
         },
       ]),
@@ -107,18 +115,39 @@ describe("source config", () => {
         {
           enabled: true,
           platform: "x",
+          profileId: "banks",
+          profileName: "Banks",
           sourceHandle: "banks",
           sourceId: "x-banks",
           sourceLabel: "Banks",
           sourceName: "Banks",
           sourceUrl: "https://x.com/banks",
+          conversationId: "2062574325970973093",
+          showStream: true,
           viewerCount: 0,
         },
       ],
     });
   });
 
-  it("keeps admin profile metadata private to source editing", () => {
+  it("keeps one enabled livestream source selected", () => {
+    const sources = normalizeSources([
+      { platform: "kick", sourceHandle: "marketbubble", showStream: true },
+      { platform: "twitch", sourceHandle: "marketbubble", showStream: true },
+      { platform: "x", enabled: false, sourceHandle: "banks", showStream: true },
+    ]);
+
+    assert.deepEqual(
+      sources.map((source) => ({ platform: source.platform, showStream: source.showStream })),
+      [
+        { platform: "kick", showStream: true },
+        { platform: "twitch", showStream: false },
+        { platform: "x", showStream: false },
+      ],
+    );
+  });
+
+  it("projects profile metadata for public source hover cards", () => {
     const [source] = normalizeSources([
       {
         platform: "kick",
@@ -131,8 +160,8 @@ describe("source config", () => {
 
     assert.equal(source.profileId, "market-bubble");
     assert.equal(source.profileName, "Market Bubble");
-    assert.equal(toPublicConfig([source]).sources[0].profileId, undefined);
-    assert.equal(toPublicConfig([source]).sources[0].profileName, undefined);
+    assert.equal(toPublicConfig([source]).sources[0].profileId, "market-bubble");
+    assert.equal(toPublicConfig([source]).sources[0].profileName, "Market Bubble");
   });
 
   it("keeps the default config focused on the requested platforms", () => {

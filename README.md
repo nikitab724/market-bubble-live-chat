@@ -2,6 +2,8 @@
 
 A server-backed prototype for the Market Bubble hosted stream and shared chat.
 
+For the repo map and setup details, start with [`llms.txt`](llms.txt) or [`docs/README.md`](docs/README.md).
+
 It simulates two surfaces powered by the same Twitch, Kick, X, and MarketBubble.com feed:
 
 - `/` is the hosted viewer page with a stream view, combined viewer count, source breakdown, and combined chat.
@@ -12,14 +14,17 @@ The demo treats each stream source separately, including Market Bubble on Twitch
 
 ## Run
 
-Start the app:
+Install dependencies, build the browser assets, then start the app:
 
 ```bash
+npm ci
+npm run build
+
 TWITCH_CLIENT_ID='your-twitch-client-id' \
 TWITCH_CLIENT_SECRET='your-twitch-client-secret' \
 KICK_CLIENT_ID='your-kick-client-id' \
 KICK_CLIENT_SECRET='your-kick-client-secret' \
-node server.mjs
+npm start
 ```
 
 Then open:
@@ -42,7 +47,8 @@ For now, admin is open when `ADMIN_PASSWORD_HASH` is unset. To turn password pro
 - Kick stream status and viewer count are loaded server-side through Kick's public API when `KICK_CLIENT_ID` and `KICK_CLIENT_SECRET` are set. Keep `KICK_REDIRECT_URI` set to the app callback URL for later OAuth/webhook setup.
 - Viewer counts are not edited in admin. They come from live provider APIs when those connectors are configured.
 - Kick chat is received at `POST /api/webhooks/kick`, verified with Kick's webhook signature, normalized into the shared chat shape, then broadcast to open browsers through `GET /api/chat-events`.
-- X comments should be connected server-side through X API filtered stream or recent search using `conversation_id` rules. This needs X API credentials.
+- X comments currently use the Chrome extension bridge in `extension/`, which watches an X live page and posts chat into `POST /api/x-chat`.
+- A future server-side X connector can use X API filtered stream or recent search with `conversation_id` rules if the target X Live comments are exposed as Posts/replies. This needs X API credentials, rate-limit/reconnect handling, and real-broadcast validation.
 - MarketBubble.com native chat is represented as a source boundary for a future first-party chat endpoint.
 
 ## Kick Chat Webhook
@@ -68,5 +74,6 @@ That should immediately add a Kick message to `/` and `/chat/` through the same 
 ## Test
 
 ```bash
-node --test tests/*.test.mjs
+npm test
+npm run build
 ```

@@ -18,6 +18,7 @@ describe("admin profile model", () => {
         sourceHandle: "xqc",
         sourceLabel: "Xtwin",
         sourceName: "Xtwin",
+        showStream: true,
       },
       {
         enabled: true,
@@ -43,8 +44,10 @@ describe("admin profile model", () => {
     assert.equal(profiles[0].name, "xQc");
     assert.equal(profiles[0].sources.twitch.handle, "xqc");
     assert.equal(profiles[0].sources.twitch.label, "Xtwin");
+    assert.equal(profiles[0].sources.twitch.showStream, true);
     assert.equal(profiles[0].sources.kick.handle, "xqc");
     assert.equal(profiles[0].sources.kick.label, "Xbob");
+    assert.equal(profiles[0].sources.kick.showStream, false);
     assert.equal(profiles[1].id, "banks");
     assert.equal(profiles[1].sources.x.conversationId, "2062574325970973093");
   });
@@ -56,7 +59,7 @@ describe("admin profile model", () => {
         name: "Market Bubble",
         sources: {
           twitch: { enabled: true, handle: "marketbubble", label: "Twitch Desk" },
-          kick: { enabled: false, handle: "marketbubble", label: "Kick Desk" },
+          kick: { enabled: false, handle: "marketbubble", label: "Kick Desk", showStream: true },
           x: { enabled: true, handle: "MarketBubble", label: "X Desk", conversationId: "123" },
           room: { enabled: true, handle: "", label: "Site Chat" },
         },
@@ -73,6 +76,7 @@ describe("admin profile model", () => {
         sourceLabel: source.sourceLabel,
         sourceName: source.sourceName,
         conversationId: source.conversationId,
+        showStream: source.showStream,
       })),
       [
         {
@@ -84,6 +88,7 @@ describe("admin profile model", () => {
           sourceLabel: "Twitch Desk",
           sourceName: "Twitch Desk",
           conversationId: "",
+          showStream: false,
         },
         {
           enabled: false,
@@ -94,6 +99,7 @@ describe("admin profile model", () => {
           sourceLabel: "Kick Desk",
           sourceName: "Kick Desk",
           conversationId: "",
+          showStream: true,
         },
         {
           enabled: true,
@@ -104,6 +110,7 @@ describe("admin profile model", () => {
           sourceLabel: "X Desk",
           sourceName: "X Desk",
           conversationId: "123",
+          showStream: false,
         },
       ],
     );
@@ -118,5 +125,6 @@ describe("admin profile model", () => {
     assert.deepEqual(Object.keys(profile.sources), ["twitch", "kick", "x", "room"]);
     assert.equal(profile.sources.twitch.enabled, false);
     assert.equal(profile.sources.twitch.handle, "");
+    assert.equal(profile.sources.twitch.showStream, false);
   });
 });

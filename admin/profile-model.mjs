@@ -31,6 +31,7 @@ export function buildProfilesFromSources(sources) {
       enabled: source.enabled !== false,
       handle: String(source.sourceHandle || ""),
       label: String(source.sourceLabel || source.sourceName || ""),
+      showStream: source.showStream === true,
     };
   }
 
@@ -55,6 +56,7 @@ export function buildSourcesFromProfiles(profiles) {
           platform,
           profileId,
           profileName,
+          showStream: source.showStream === true,
           sourceHandle,
           sourceLabel,
           sourceName: sourceLabel,
@@ -84,6 +86,7 @@ export function createEmptySourceSlots() {
         enabled: false,
         handle: "",
         label: "",
+        showStream: false,
       },
     ]),
   );

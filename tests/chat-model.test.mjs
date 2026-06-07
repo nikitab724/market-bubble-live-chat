@@ -17,6 +17,7 @@ describe("chat model", () => {
       handle: "chartlad",
       body: "banks is cooking",
       timestamp: "2026-06-05T03:00:00.000Z",
+      authorColor: "#C9B978",
       sourceUrl: "https://twitch.tv/marketbubble",
       sourceId: "twitch-marketbubble",
       sourceName: "Market Bubble",
@@ -36,8 +37,38 @@ describe("chat model", () => {
       sourceHandle: "marketbubble",
       sourceLabel: "Market Bubble",
       avatar: "C",
+      authorColor: "#C9B978",
       sentiment: "positive",
     });
+  });
+
+  it("preserves provider username colors and generates stable fallbacks", () => {
+    const colored = normalizeMessage({
+      platform: "twitch",
+      author: "ChartLad",
+      handle: "chartlad",
+      body: "hello",
+      timestamp: "2026-06-05T03:00:00.000Z",
+      authorColor: "#1E90FF",
+    });
+    const fallbackOne = normalizeMessage({
+      platform: "x",
+      author: "MacroMax",
+      handle: "macromax",
+      body: "hello",
+      timestamp: "2026-06-05T03:00:00.000Z",
+    });
+    const fallbackTwo = normalizeMessage({
+      platform: "x",
+      author: "MacroMax",
+      handle: "macromax",
+      body: "again",
+      timestamp: "2026-06-05T03:01:00.000Z",
+    });
+
+    assert.equal(colored.authorColor, "#1E90FF");
+    assert.match(fallbackOne.authorColor, /^#[0-9A-F]{6}$/);
+    assert.equal(fallbackOne.authorColor, fallbackTwo.authorColor);
   });
 
   it("merges messages oldest first so new chat renders at the bottom", () => {

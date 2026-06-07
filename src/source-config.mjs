@@ -9,18 +9,25 @@ const PLATFORM_LABELS = {
 export const DEFAULT_SOURCES = normalizeSources([
   {
     platform: "twitch",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "Market Bubble",
     sourceHandle: "marketbubble",
+    showStream: true,
     viewerCount: 3184,
   },
   {
     platform: "kick",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "Market Bubble",
     sourceHandle: "marketbubble",
     viewerCount: 1260,
   },
   {
     platform: "x",
+    profileId: "banks",
+    profileName: "Banks",
     sourceName: "Banks",
     sourceHandle: "Banks",
     conversationId: "2062574325970973093",
@@ -28,6 +35,8 @@ export const DEFAULT_SOURCES = normalizeSources([
   },
   {
     platform: "x",
+    profileId: "z",
+    profileName: "Z",
     sourceName: "Z",
     sourceHandle: "z",
     conversationId: "",
@@ -35,6 +44,8 @@ export const DEFAULT_SOURCES = normalizeSources([
   },
   {
     platform: "room",
+    profileId: "marketbubble",
+    profileName: "Market Bubble",
     sourceName: "MarketBubble.com",
     sourceHandle: "marketbubble",
     viewerCount: 518,
@@ -46,7 +57,7 @@ export function normalizeSources(inputSources) {
     throw new Error("Sources must be an array");
   }
 
-  return inputSources.map(normalizeSource);
+  return keepOneStreamSelection(inputSources.map(normalizeSource));
 }
 
 export function toPublicConfig(sources) {
@@ -56,11 +67,15 @@ export function toPublicConfig(sources) {
       .map((source) => ({
         enabled: source.enabled,
         platform: source.platform,
+        ...(source.profileId ? { profileId: source.profileId } : {}),
+        ...(source.profileName ? { profileName: source.profileName } : {}),
         sourceHandle: source.sourceHandle,
         sourceId: source.sourceId,
         sourceLabel: source.sourceLabel,
         sourceName: source.sourceName,
         sourceUrl: source.sourceUrl,
+        conversationId: source.conversationId,
+        showStream: source.showStream,
         viewerCount: source.viewerCount,
       })),
   };
@@ -90,6 +105,7 @@ export function normalizeSource(input) {
     platform,
     ...(profileId ? { profileId } : {}),
     ...(profileName ? { profileName } : {}),
+    showStream: input.showStream === true,
     sourceHandle,
     sourceId: String(input.sourceId || buildSourceId(platform, getSourceIdName(platform, sourceHandle, sourceLabel))).trim(),
     sourceLabel,
@@ -98,6 +114,16 @@ export function normalizeSource(input) {
     viewerCount: normalizeViewerCount(input.viewerCount),
     conversationId,
   };
+}
+
+function keepOneStreamSelection(sources) {
+  let selected = false;
+
+  return sources.map((source) => {
+    const showStream = selected === false && source.enabled && source.showStream === true;
+    if (showStream) selected = true;
+    return { ...source, showStream };
+  });
 }
 
 function buildSourceId(platform, sourceName) {

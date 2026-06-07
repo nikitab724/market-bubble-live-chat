@@ -5,3 +5,5 @@
 .playwright-cli
 output
 tests
+node_modules
+dist

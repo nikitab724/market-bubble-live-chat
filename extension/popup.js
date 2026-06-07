@@ -9,9 +9,35 @@ const FALLBACK_X_SOURCES = [
   { sourceHandle: "z", sourceLabel: "Z" },
 ];
 
-async function getXSources() {
+const DEFAULT_BACKEND_BASE_URL = "https://marketbubble.192-210-192-116.sslip.io";
+const BACKEND_BASE_URL_STORAGE_KEY = "marketBubbleBackendBaseUrl";
+
+async function getBackendBaseUrl() {
+  const stored = await chrome.storage.local.get({
+    [BACKEND_BASE_URL_STORAGE_KEY]: DEFAULT_BACKEND_BASE_URL,
+  });
+
+  return normalizeBackendBaseUrl(stored[BACKEND_BASE_URL_STORAGE_KEY]);
+}
+
+async function saveBackendBaseUrl(value) {
+  const backendBaseUrl = normalizeBackendBaseUrl(value);
+  await chrome.storage.local.set({ [BACKEND_BASE_URL_STORAGE_KEY]: backendBaseUrl });
+  return backendBaseUrl;
+}
+
+function buildBackendUrl(path, backendBaseUrl) {
+  return `${normalizeBackendBaseUrl(backendBaseUrl)}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function normalizeBackendBaseUrl(value) {
+  const url = String(value || DEFAULT_BACKEND_BASE_URL).trim().replace(/\/+$/, "");
+  return url || DEFAULT_BACKEND_BASE_URL;
+}
+
+async function getXSources(backendBaseUrl) {
   try {
-    const r = await fetch("https://marketbubble.192-210-192-116.sslip.io/api/public-config");
+    const r = await fetch(buildBackendUrl("/api/public-config", backendBaseUrl));
     const data = await r.json();
     const sources = (data.sources || []).filter((s) => s.platform === "x");
     if (sources.length > 0) return sources;
@@ -51,9 +77,13 @@ async function init() {
   const dot = document.querySelector("#dot");
   const statusText = document.querySelector("#statusText");
   const sourceSelect = document.querySelector("#sourceSelect");
+  const backendUrlInput = document.querySelector("#backendUrlInput");
+
+  const backendBaseUrl = await getBackendBaseUrl();
+  backendUrlInput.value = backendBaseUrl;
 
   // Load X sources from backend
-  const sources = await getXSources();
+  const sources = await getXSources(backendBaseUrl);
   for (const source of sources) {
     const opt = document.createElement("option");
     opt.value = source.sourceHandle;
@@ -80,6 +110,7 @@ async function init() {
   });
 
   document.querySelector("#applyBtn").addEventListener("click", async () => {
+    await saveBackendBaseUrl(backendUrlInput.value);
     const handle = sourceSelect.value;
     if (handle) {
       await sendToContent(tab, { type: "set-source", sourceHandle: handle });
