@@ -5,6 +5,7 @@ import {
 import { createChatRenderer } from "./chat-renderer.mjs";
 import {
   loadPublicConfig,
+  loadTwitchBadges,
   loadTwitchEmotes,
   refreshLiveState,
   startBackendChatEvents,
@@ -46,6 +47,7 @@ function createLiveApp({ document, window }) {
     pinnedProfileMessageId: "",
     queueRender,
     sources: [],
+    twitchBadges: {},
     twitchEmotes: {},
     twitchStatuses: {},
   };
@@ -61,6 +63,7 @@ function createLiveApp({ document, window }) {
   const renderer = createChatRenderer({
     elements,
     getAuthorProfile,
+    getTwitchBadgeMap,
     getTwitchEmoteMap,
     state,
     window,
@@ -87,6 +90,7 @@ function createLiveApp({ document, window }) {
     setMessages(isDemoChatEnabled() ? seedDemoMessages({ sources: connectedSources, buildSourceMessage }) : []);
     renderer.render();
     initStreamPlayer({ document, sources: connectedSources, window });
+    loadTwitchBadges({ sources: connectedSources, state, queueRender });
     loadTwitchEmotes({ sources: connectedSources, state, queueRender });
     startTwitchConnectors({ sources: connectedSources, state, addMessage, queueRender });
     startBackendChatEvents({ window, addBackendMessage });
@@ -143,6 +147,10 @@ function createLiveApp({ document, window }) {
   function bindEvents() {
     elements.chatFeed.addEventListener("pointerover", (event) => {
       if (state.pinnedProfileMessageId) return;
+      if (isBadgeHoverTarget(event)) {
+        state.inspectingProfile = false;
+        return;
+      }
 
       const message = event.target.closest(".chat-message");
       if (message) {
@@ -153,6 +161,10 @@ function createLiveApp({ document, window }) {
 
     elements.chatFeed.addEventListener("pointermove", (event) => {
       if (state.pinnedProfileMessageId) return;
+      if (isBadgeHoverTarget(event)) {
+        state.inspectingProfile = false;
+        return;
+      }
 
       const message = event.target.closest(".chat-message");
       if (message) {
@@ -181,6 +193,10 @@ function createLiveApp({ document, window }) {
   function handleProfilePinClick(event) {
     if (event.target.closest(".profile-card a")) {
       event.stopPropagation();
+      return;
+    }
+
+    if (isBadgeHoverTarget(event)) {
       return;
     }
 
@@ -221,6 +237,11 @@ function createLiveApp({ document, window }) {
     if (syncScroll) {
       renderer.handleChatScroll();
     }
+  }
+
+  function isBadgeHoverTarget(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    return Boolean(target && target.closest(".chat-badge"));
   }
 
   function setMessages(messages) {
@@ -321,6 +342,14 @@ function createLiveApp({ document, window }) {
     }
 
     return state.twitchEmotes[message.sourceId] || {};
+  }
+
+  function getTwitchBadgeMap(message) {
+    if (message.platform !== "twitch") {
+      return {};
+    }
+
+    return state.twitchBadges[message.sourceId] || {};
   }
 
   function queueRender() {

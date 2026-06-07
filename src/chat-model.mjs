@@ -54,6 +54,13 @@ export function normalizeMessage(input) {
     message.emotes = input.emotes.map(normalizeEmote).filter(Boolean);
   }
 
+  if (Array.isArray(input.badges) && input.badges.length > 0) {
+    const badges = input.badges.map(normalizeBadge).filter(Boolean);
+    if (badges.length > 0) {
+      message.badges = badges;
+    }
+  }
+
   return message;
 }
 
@@ -227,6 +234,38 @@ function normalizeEmote(emote) {
   };
 }
 
+function normalizeBadge(badge) {
+  const id = String(badge.id || badge.type || "").trim();
+  const version = String(badge.version || badge.idVersion || "").trim();
+  const label = String(badge.label || badge.text || toTitleCase(id)).trim();
+  const imageUrl = String(badge.imageUrl || badge.url || "").trim();
+  const count = Number(badge.count || 0);
+  const title = String(
+    badge.title || [label, Number.isFinite(count) && count > 0 ? Math.round(count) : ""].filter(Boolean).join(" · "),
+  ).trim();
+
+  if (!id || !label) {
+    return null;
+  }
+
+  const normalized = {
+    id,
+    label,
+    title: title || label,
+    version,
+  };
+
+  if (imageUrl) {
+    normalized.imageUrl = imageUrl;
+  }
+
+  if (Number.isFinite(count) && count > 0) {
+    normalized.count = Math.round(count);
+  }
+
+  return normalized;
+}
+
 function toIsoTimestamp(timestamp) {
   const date = timestamp ? new Date(timestamp) : new Date();
 
@@ -235,6 +274,13 @@ function toIsoTimestamp(timestamp) {
   }
 
   return date.toISOString();
+}
+
+function toTitleCase(value) {
+  return String(value || "")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function buildSourceId(platform, sourceName) {

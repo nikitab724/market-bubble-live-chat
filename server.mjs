@@ -111,6 +111,15 @@ export function createAppServer(options = {}) {
         return sendJson(response, 200, await twitchEmoteClient.getEmotes(channel));
       }
 
+      if (url.pathname === "/api/twitch-badges" && request.method === "GET") {
+        const channel = url.searchParams.get("channel") || "";
+        if (!channel) {
+          return sendJson(response, 400, { error: "channel is required" });
+        }
+
+        return sendJson(response, 200, await twitchClient.getChatBadges(channel));
+      }
+
       if (url.pathname === "/api/chat-events" && request.method === "GET") {
         return chatHub.connect(response);
       }

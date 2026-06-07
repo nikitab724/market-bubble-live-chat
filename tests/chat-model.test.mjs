@@ -119,6 +119,24 @@ describe("chat model", () => {
     ]);
   });
 
+  it("preserves compact chat badge metadata on messages", () => {
+    const message = normalizeMessage({
+      platform: "kick",
+      author: "RiskOn",
+      body: "badge check",
+      timestamp: "2026-06-05T03:00:00.000Z",
+      badges: [
+        { id: "moderator", label: "Moderator", title: "Moderator" },
+        { count: 5, id: "sub_gifter", label: "Sub Gifter", title: "Sub Gifter · 5" },
+      ],
+    });
+
+    assert.deepEqual(message.badges, [
+      { id: "moderator", label: "Moderator", title: "Moderator", version: "" },
+      { count: 5, id: "sub_gifter", label: "Sub Gifter", title: "Sub Gifter · 5", version: "" },
+    ]);
+  });
+
   it("counts active chatters and messages by platform", () => {
     const messages = mergeMessages([
       { platform: "twitch", author: "A", body: "one", timestamp: "2026-06-05T03:00:00.000Z" },

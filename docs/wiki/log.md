@@ -183,3 +183,17 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Kept timing available through the existing profile hover card `Last seen` detail.
 - Updated app and stylesheet cache-bust query strings so deployed browsers fetch the timestamp-free row markup.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (71 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; in-app browser local check confirmed no visible row time element or clock text while the profile hover card still showed `Last seen` and a timestamp.
+
+## [2026-06-07] connectors | Render Twitch and Kick chat badges
+
+- Added shared normalized chat badge metadata, Twitch IRC badge parsing, and Kick webhook identity badge parsing.
+- Added `GET /api/twitch-badges?channel=...` to cache Twitch global/channel badge images from Helix so Twitch badges render as images when available.
+- Rendered compact inline badges before chat authors; Kick badges render as text chips from type/text/count metadata.
+- Verification: `node --test tests/chat-model.test.mjs tests/twitch-connector.test.mjs tests/kick-webhook.test.mjs tests/twitch-api.test.mjs tests/chat-interaction-contract.test.mjs`; `node --test tests/server-contract.test.mjs`; `npm test` (79 passed); `npm run build`; `node --check src/chat-model.mjs src/twitch-connector.mjs src/kick-webhook.mjs src/twitch-api.mjs src/chat-runtime.mjs src/app.mjs src/chat-renderer.mjs server.mjs`; in-app browser smoke loaded `/?demoChat=1&layout=mini`, found chat/stream mounted, badge CSS present, and no browser errors.
+
+## [2026-06-07] ui | Badge-only hover tooltips
+
+- Wrapped inline chat badges with badge-specific hover targets so Twitch image badges and Kick text chips can show their badge title directly.
+- Suppressed the user profile hover card while the pointer is on a badge, including badge clicks, so badge inspection does not accidentally pin/open profile details.
+- Kept badge hover on the normal cursor instead of the browser help/question-mark cursor.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (80 passed); `npm run build`; `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`.

@@ -210,8 +210,12 @@ describe("chat interaction contract", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("renderPlatformLogo"), true);
+    assert.equal(app.includes("renderBadges(message)"), true);
     assert.equal(app.includes('class="platform-logo ${escapeHtml(platform)}"'), true);
     assert.equal(app.includes('class="platform-mark"'), true);
+    assert.equal(app.includes('class="chat-badges"'), true);
+    assert.equal(app.includes('class="chat-badge-image"'), true);
+    assert.equal(app.includes('class="chat-badge-text ${escapeHtml(message.platform)}"'), true);
     assert.equal(app.includes('class="message-content"'), true);
     assert.equal(app.includes('aria-label="${escapeHtml(label)}"'), true);
     assert.equal(app.includes("twitch:"), true);
@@ -219,12 +223,15 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("x:"), true);
     assert.equal(app.includes('class="platform-badge ${message.platform}"'), false);
     assert.match(app, /<div class="message-body">\s*<span class="platform-mark">\s*\$\{renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*<span class="source-label \$\{message\.platform\}"/);
-    assert.match(app, /<\/span>\s*<div class="message-content">\s*<p class="message-line">\s*<strong class="message-author" style="--author-color: \$\{escapeHtml\(message\.authorColor\)\};" title="\$\{escapeHtml\(message\.author\)\}">/);
+    assert.match(app, /<\/span>\s*<div class="message-content">\s*<p class="message-line">\s*\$\{renderBadges\(message\)\}\s*<strong class="message-author" style="--author-color: \$\{escapeHtml\(message\.authorColor\)\};" title="\$\{escapeHtml\(message\.author\)\}">/);
     assert.match(app, /<\/strong><span class="message-colon">:<\/span>\s*\$\{renderMessageBody\(message, getTwitchEmoteMap\(message\)\)\}/);
     assert.equal(app.includes("<time>${formatTime(message.timestamp)}</time>"), false);
     assert.equal(app.includes("<dt>Last seen</dt>"), false);
     assert.match(styles, /\.message-body\s*\{[^}]*display: flex[^}]*gap: 5px/s);
     assert.match(styles, /\.message-content\s*\{[^}]*flex: 1 1 auto/s);
+    assert.match(styles, /\.chat-badges\s*\{[^}]*display: inline-flex[^}]*gap: 2px/s);
+    assert.match(styles, /\.chat-badge-image,\s*\.chat-badge-text\s*\{[^}]*width: 16px[^}]*height: 16px/s);
+    assert.match(styles, /\.chat-badge-text\s*\{[^}]*font-size: 7px/s);
     assert.match(styles, /\.platform-logo\s*\{[^}]*width: 18px[^}]*height: 18px/s);
     assert.match(styles, /\.platform-mark\s*\{[^}]*display: grid[^}]*justify-items: center/s);
     assert.match(styles, /\.chat-message\s*\{[^}]*padding: 7px 10px/s);
@@ -232,6 +239,20 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".message-line time"), false);
     assert.match(styles, /\.message-author\s*\{[^}]*color: var\(--author-color, var\(--text\)\)/s);
     assert.match(styles, /\.message-colon\s*\{[^}]*color: var\(--muted\)/s);
+  });
+
+  it("shows badge tooltips without triggering profile hover cards", () => {
+    const app = readAppRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes('target.closest(".chat-badge")'), true);
+    assert.equal(app.includes('data-badge-title="${escapeHtml(getBadgeTooltip(badge))}"'), true);
+    assert.equal(app.includes('class="chat-badge"'), true);
+    assert.match(styles, /\.chat-badge\s*\{[^}]*position: relative[^}]*cursor: default/s);
+    assert.equal(styles.includes("cursor: help"), false);
+    assert.match(styles, /\.chat-badge::after\s*\{[^}]*content: attr\(data-badge-title\)[^}]*background: #000/s);
+    assert.match(styles, /\.chat-badge:hover::after\s*\{[^}]*opacity: 1/s);
+    assert.match(styles, /\.chat-feed:not\(\.has-profile-pin\)\s+\.chat-message:has\(\.chat-badge:hover\)\s+\.profile-card\s*\{[^}]*display: none/s);
   });
 
   it("keeps chat rows tight and borderless", () => {
@@ -478,15 +499,22 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("buildAuthorProfile(state.messages, message)"), false);
   });
 
-  it("loads and renders Twitch emotes", () => {
+  it("loads and renders Twitch emotes and badges", () => {
     const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("/api/twitch-emotes"), true);
+    assert.equal(app.includes("/api/twitch-badges"), true);
     assert.equal(app.includes("loadTwitchEmotes"), true);
+    assert.equal(app.includes("loadTwitchBadges"), true);
+    assert.equal(app.includes("state.twitchEmotes"), true);
+    assert.equal(app.includes("state.twitchBadges"), true);
+    assert.equal(app.includes("getTwitchEmoteMap"), true);
+    assert.equal(app.includes("getTwitchBadgeMap"), true);
     assert.equal(app.includes("renderMessageBody"), true);
     assert.equal(app.includes("escapeHtml(message.body)"), false);
     assert.equal(styles.includes(".chat-emote"), true);
+    assert.equal(styles.includes(".chat-badge"), true);
   });
 
   it("does not expose manual viewer count editing or fake viewer movement", () => {

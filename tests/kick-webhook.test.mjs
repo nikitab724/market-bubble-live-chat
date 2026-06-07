@@ -21,6 +21,11 @@ describe("kick webhook", () => {
           channel_slug: "sender_channel",
           profile_picture: "https://kick-avatar.jpg",
           identity: {
+            badges: [
+              { text: "Moderator", type: "moderator" },
+              { count: 5, text: "Sub Gifter", type: "sub_gifter" },
+              { count: 3, text: "Subscriber", type: "subscriber" },
+            ],
             username_color: "#FF5733",
           },
         },
@@ -53,6 +58,11 @@ describe("kick webhook", () => {
       sourceLabel: "Market Bubble",
       avatar: "S",
       authorColor: "#FF5733",
+      badges: [
+        { id: "moderator", label: "Moderator", title: "Moderator", version: "" },
+        { count: 5, id: "sub_gifter", label: "Sub Gifter", title: "Sub Gifter · 5", version: "" },
+        { count: 3, id: "subscriber", label: "Subscriber", title: "Subscriber · 3", version: "" },
+      ],
       sentiment: "positive",
     });
   });

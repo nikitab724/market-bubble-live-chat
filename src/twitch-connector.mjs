@@ -79,6 +79,7 @@ export function connectTwitchChat(channel, { onMessage, onStatus, source } = {})
         platform: "twitch",
         author: displayName,
         authorColor: tags.color || "",
+        badges: parseTwitchBadgeTag(tags.badges),
         handle: login,
         body: trailing,
         timestamp: new Date(sentTs).toISOString(),
@@ -107,6 +108,31 @@ export function connectTwitchChat(channel, { onMessage, onStatus, source } = {})
   };
 }
 
+export function parseTwitchBadgeTag(badgeTag = "") {
+  if (!badgeTag) return [];
+
+  return badgeTag
+    .split(",")
+    .map((entry) => {
+      const [id, version = ""] = entry.split("/");
+      const cleanId = String(id || "").trim();
+      const cleanVersion = String(version || "").trim();
+      const label = toBadgeLabel(cleanId);
+
+      if (!cleanId || !label) {
+        return null;
+      }
+
+      return {
+        id: cleanId,
+        label,
+        title: [label, cleanVersion && cleanVersion !== "1" ? cleanVersion : ""].filter(Boolean).join(" · "),
+        version: cleanVersion,
+      };
+    })
+    .filter(Boolean);
+}
+
 export function parseTwitchEmoteTag(body, emoteTag = "") {
   if (!emoteTag) return [];
 
@@ -129,6 +155,13 @@ export function parseTwitchEmoteTag(body, emoteTag = "") {
       });
     })
     .filter((emote) => emote.id && Number.isInteger(emote.start) && Number.isInteger(emote.end));
+}
+
+function toBadgeLabel(id) {
+  return String(id || "")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function parseLine(line) {

@@ -140,6 +140,90 @@ describe("twitch api client", () => {
 
     assert.equal(await client.getUserId("StableRonaldo"), "123");
   });
+
+  it("fetches global and channel Twitch chat badges as a keyed image map", async () => {
+    const calls = [];
+    const client = createTwitchApiClient({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      fetchImpl: async (url, options = {}) => {
+        calls.push(String(url));
+
+        if (String(url).includes("/oauth2/token")) {
+          return jsonResponse({ access_token: "app-token", expires_in: 3600 });
+        }
+
+        assert.equal(options.headers["Client-Id"], "client-id");
+        assert.equal(options.headers.Authorization, "Bearer app-token");
+
+        if (String(url) === "https://api.twitch.tv/helix/users?login=marketbubble") {
+          return jsonResponse({ data: [{ id: "456", login: "marketbubble" }] });
+        }
+
+        if (String(url) === "https://api.twitch.tv/helix/chat/badges/global") {
+          return jsonResponse({
+            data: [
+              {
+                set_id: "moderator",
+                versions: [
+                  {
+                    id: "1",
+                    image_url_1x: "https://static-cdn.jtvnw.net/badges/mod-1.png",
+                    image_url_2x: "https://static-cdn.jtvnw.net/badges/mod-2.png",
+                    title: "Moderator",
+                  },
+                ],
+              },
+            ],
+          });
+        }
+
+        assert.equal(String(url), "https://api.twitch.tv/helix/chat/badges?broadcaster_id=456");
+        return jsonResponse({
+          data: [
+            {
+              set_id: "subscriber",
+              versions: [
+                {
+                  id: "12",
+                  image_url_1x: "https://static-cdn.jtvnw.net/badges/sub-1.png",
+                  image_url_2x: "https://static-cdn.jtvnw.net/badges/sub-2.png",
+                  title: "12-Month Subscriber",
+                },
+              ],
+            },
+          ],
+        });
+      },
+    });
+
+    assert.deepEqual(await client.getChatBadges("MarketBubble"), {
+      badges: {
+        "moderator/1": {
+          id: "moderator",
+          imageUrl: "https://static-cdn.jtvnw.net/badges/mod-2.png",
+          label: "Moderator",
+          title: "Moderator",
+          version: "1",
+        },
+        "subscriber/12": {
+          id: "subscriber",
+          imageUrl: "https://static-cdn.jtvnw.net/badges/sub-2.png",
+          label: "Subscriber",
+          title: "12-Month Subscriber",
+          version: "12",
+        },
+      },
+      channel: "MarketBubble",
+      providers: { twitch: { status: "connected" } },
+    });
+    assert.deepEqual(calls, [
+      "https://id.twitch.tv/oauth2/token",
+      "https://api.twitch.tv/helix/users?login=marketbubble",
+      "https://api.twitch.tv/helix/chat/badges/global",
+      "https://api.twitch.tv/helix/chat/badges?broadcaster_id=456",
+    ]);
+  });
 });
 
 function jsonResponse(body, status = 200) {

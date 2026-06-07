@@ -5,7 +5,14 @@ import { PLATFORM_ORDER, escapeHtml, platformMeta } from "./platforms.mjs";
 const AUTO_SCROLL_THRESHOLD_PX = 120;
 const CHAT_RENDER_WINDOW_SIZE = 500;
 
-export function createChatRenderer({ window, elements, state, getAuthorProfile, getTwitchEmoteMap }) {
+export function createChatRenderer({
+  window,
+  elements,
+  state,
+  getAuthorProfile,
+  getTwitchBadgeMap = () => ({}),
+  getTwitchEmoteMap,
+}) {
   let renderedViewerSummaryKey = "";
   let renderedMessageIds = [];
   let queuedProfileCardFrame = 0;
@@ -500,6 +507,7 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
           </span>
           <div class="message-content">
             <p class="message-line">
+              ${renderBadges(message)}
               <strong class="message-author" style="--author-color: ${escapeHtml(message.authorColor)};" title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong><span class="message-colon">:</span>
               ${renderMessageBody(message, getTwitchEmoteMap(message))}
             </p>
@@ -527,6 +535,67 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     `;
   }
 
+  function renderBadges(message) {
+    const badges = (message.badges || []).map((badge) => resolveBadge(message, badge)).filter(Boolean);
+    if (badges.length === 0) return "";
+
+    return `
+      <span class="chat-badges" aria-label="Chat badges">
+        ${badges.map((badge) => renderBadge(message, badge)).join("")}
+      </span>
+    `;
+  }
+
+  function resolveBadge(message, badge) {
+    if (!badge?.id) return null;
+
+    if (message.platform !== "twitch") {
+      return badge;
+    }
+
+    return {
+      ...badge,
+      ...(getTwitchBadgeMap(message)[`${badge.id}/${badge.version}`] || {}),
+    };
+  }
+
+  function renderBadge(message, badge) {
+    const title = badge.title || badge.label || badge.id;
+    const tooltip = getBadgeTooltip(badge);
+
+    if (badge.imageUrl) {
+      return `<span class="chat-badge" data-badge-title="${escapeHtml(getBadgeTooltip(badge))}" title="${escapeHtml(tooltip)}"><img class="chat-badge-image" src="${escapeHtml(badge.imageUrl)}" alt="${escapeHtml(badge.label || badge.id)}" title="${escapeHtml(title)}" loading="lazy" decoding="async" /></span>`;
+    }
+
+    return `<span class="chat-badge" data-badge-title="${escapeHtml(getBadgeTooltip(badge))}" title="${escapeHtml(tooltip)}"><span class="chat-badge-text ${escapeHtml(message.platform)}" title="${escapeHtml(title)}">${escapeHtml(getBadgeText(badge))}</span></span>`;
+  }
+
+  function getBadgeTooltip(badge) {
+    const title = badge.title || badge.label || badge.id;
+    const version = badge.version && !String(title).includes(String(badge.version))
+      ? ` / ${badge.version}`
+      : "";
+    return `${title}${version}`;
+  }
+
+  function getBadgeText(badge) {
+    const id = String(badge.id || "").toLowerCase();
+    if (id === "broadcaster") return "BC";
+    if (id === "moderator") return "MOD";
+    if (id === "subscriber") return "SUB";
+    if (id === "sub_gifter") return badge.count ? `G${badge.count}` : "GFT";
+    if (id === "vip") return "VIP";
+    if (id === "og") return "OG";
+    if (id === "verified") return "OK";
+
+    return String(badge.label || badge.id || "")
+      .split(/\s+/)
+      .map((part) => part[0] || "")
+      .join("")
+      .slice(0, 3)
+      .toUpperCase();
+  }
+
   function updateInspectingState() {
     if (state.pinnedProfileMessageId) {
       state.inspectingProfile = true;
@@ -534,8 +603,9 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
     }
 
     const wasInspectingProfile = state.inspectingProfile;
-    state.inspectingProfile = elements.chatFeed.matches(":hover")
-      || Boolean(elements.chatFeed.querySelector(".profile-card:hover"));
+    const isBadgeHovered = Boolean(elements.chatFeed.querySelector(".chat-badge:hover"));
+    state.inspectingProfile = !isBadgeHovered && (elements.chatFeed.matches(":hover")
+      || Boolean(elements.chatFeed.querySelector(".profile-card:hover")));
 
     if (wasInspectingProfile && !state.inspectingProfile && state.pendingChatRender) {
       state.queueRender();

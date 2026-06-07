@@ -13,7 +13,7 @@ Required env vars for live state:
 - `TWITCH_CLIENT_ID`
 - `TWITCH_CLIENT_SECRET`
 
-Twitch native IRC emotes and username colors come from IRC tags. Third-party emotes are fetched through `GET /api/twitch-emotes?channel=...` and cached from 7TV, BetterTTV, and FrankerFaceZ.
+Twitch native IRC emotes, username colors, and per-message badge ids come from IRC tags. Third-party emotes are fetched through `GET /api/twitch-emotes?channel=...` and cached from 7TV, BetterTTV, and FrankerFaceZ. Badge images are fetched through `GET /api/twitch-badges?channel=...`, which combines Twitch global and channel badge sets from Helix.
 
 ## Kick
 
@@ -30,7 +30,7 @@ Required env vars for live state:
 
 The Kick webhook URL must be public and reachable by Kick. Localhost cannot receive real Kick webhooks without a tunnel.
 
-Kick chat username colors come from `sender.identity.username_color` when Kick includes identity data. Missing or invalid colors fall back to the shared deterministic chat palette.
+Kick chat username colors come from `sender.identity.username_color` when Kick includes identity data. Kick chat badges come from `sender.identity.badges` and render as compact text chips because the webhook payload includes badge type/text/count, not image URLs. Missing or invalid colors fall back to the shared deterministic chat palette.
 
 ## X
 

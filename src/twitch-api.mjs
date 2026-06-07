@@ -1,6 +1,8 @@
 const DEFAULT_TOKEN_URL = "https://id.twitch.tv/oauth2/token";
 const DEFAULT_STREAMS_URL = "https://api.twitch.tv/helix/streams";
 const DEFAULT_USERS_URL = "https://api.twitch.tv/helix/users";
+const DEFAULT_GLOBAL_BADGES_URL = "https://api.twitch.tv/helix/chat/badges/global";
+const DEFAULT_CHANNEL_BADGES_URL = "https://api.twitch.tv/helix/chat/badges";
 const TOKEN_EXPIRY_MARGIN_MS = 60_000;
 
 export function createTwitchApiClient(options = {}) {
@@ -11,6 +13,8 @@ export function createTwitchApiClient(options = {}) {
   const tokenUrl = options.tokenUrl || DEFAULT_TOKEN_URL;
   const streamsUrl = options.streamsUrl || DEFAULT_STREAMS_URL;
   const usersUrl = options.usersUrl || DEFAULT_USERS_URL;
+  const globalBadgesUrl = options.globalBadgesUrl || DEFAULT_GLOBAL_BADGES_URL;
+  const channelBadgesUrl = options.channelBadgesUrl || DEFAULT_CHANNEL_BADGES_URL;
 
   let cachedToken = "";
   let tokenExpiresAt = 0;
@@ -49,22 +53,45 @@ export function createTwitchApiClient(options = {}) {
         return "";
       }
 
-      const token = await getAppAccessToken();
-      const url = new URL(usersUrl);
-      url.searchParams.set("login", String(login || "").toLowerCase().trim());
-      const response = await fetchImpl(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Client-Id": clientId,
-        },
-      });
+      return getUserIdByLogin(login);
+    },
 
-      if (!response.ok) {
-        throw new Error(`Twitch users request failed with ${response.status}`);
+    async getChatBadges(channel) {
+      const channelName = String(channel || "").trim();
+
+      if (!clientId || !clientSecret) {
+        return { badges: {}, channel: channelName, providers: { twitch: { status: "not_configured" } } };
       }
 
-      const payload = await response.json();
-      return payload.data?.[0]?.id || "";
+      try {
+        const token = await getAppAccessToken();
+        const broadcasterId = await getUserIdByLogin(channelName);
+        if (!broadcasterId) {
+          return { badges: {}, channel: channelName, providers: { twitch: { status: "no_channel" } } };
+        }
+
+        const [globalBadges, channelBadges] = await Promise.all([
+          getBadges(globalBadgesUrl, token),
+          getBadges(withBroadcasterId(channelBadgesUrl, broadcasterId), token),
+        ]);
+
+        return {
+          badges: buildBadgeMap([...globalBadges, ...channelBadges]),
+          channel: channelName,
+          providers: { twitch: { status: "connected" } },
+        };
+      } catch (error) {
+        return {
+          badges: {},
+          channel: channelName,
+          providers: {
+            twitch: {
+              message: error.message || "Twitch badges request failed",
+              status: "error",
+            },
+          },
+        };
+      }
     },
   };
 
@@ -96,6 +123,25 @@ export function createTwitchApiClient(options = {}) {
     cachedToken = payload.access_token;
     tokenExpiresAt = now() + Number(payload.expires_in || 0) * 1000 - TOKEN_EXPIRY_MARGIN_MS;
     return cachedToken;
+  }
+
+  async function getUserIdByLogin(login) {
+    const token = await getAppAccessToken();
+    const url = new URL(usersUrl);
+    url.searchParams.set("login", String(login || "").toLowerCase().trim());
+    const response = await fetchImpl(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Client-Id": clientId,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Twitch users request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    return payload.data?.[0]?.id || "";
   }
 
   async function getStreams(twitchSources, token) {
@@ -149,6 +195,59 @@ export function createTwitchApiClient(options = {}) {
       };
     });
   }
+
+  async function getBadges(url, token) {
+    const response = await fetchImpl(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Client-Id": clientId,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Twitch badges request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    return payload.data || [];
+  }
+}
+
+function withBroadcasterId(baseUrl, broadcasterId) {
+  const url = new URL(baseUrl);
+  url.searchParams.set("broadcaster_id", broadcasterId);
+  return url;
+}
+
+function buildBadgeMap(badgeSets) {
+  const badges = {};
+
+  for (const badgeSet of badgeSets) {
+    const id = String(badgeSet.set_id || "").trim();
+    if (!id) continue;
+
+    for (const version of badgeSet.versions || []) {
+      const versionId = String(version.id || "").trim();
+      if (!versionId) continue;
+
+      badges[`${id}/${versionId}`] = {
+        id,
+        imageUrl: version.image_url_2x || version.image_url_1x || "",
+        label: toBadgeLabel(id),
+        title: version.title || toBadgeLabel(id),
+        version: versionId,
+      };
+    }
+  }
+
+  return badges;
+}
+
+function toBadgeLabel(id) {
+  return String(id || "")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function getTwitchSources(sources) {

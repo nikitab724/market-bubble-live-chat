@@ -23,6 +23,7 @@ export function normalizeKickChatWebhook({ payload, sources }) {
     platform: "kick",
     author,
     authorColor: sender.identity?.username_color || "",
+    badges: normalizeKickBadges(sender.identity?.badges),
     handle,
     body: normalizeKickContent(payload.content),
     timestamp: payload.created_at,
@@ -59,6 +60,27 @@ export function isKickChatEvent(headers) {
   return getHeader(headers, "kick-event-type") === "chat.message.sent";
 }
 
+function normalizeKickBadges(badges) {
+  return (Array.isArray(badges) ? badges : [])
+    .map((badge) => {
+      const id = String(badge.type || "").trim();
+      const label = String(badge.text || toBadgeLabel(id)).trim();
+      const count = Number(badge.count || 0);
+
+      if (!id || !label) {
+        return null;
+      }
+
+      return {
+        count: Number.isFinite(count) && count > 0 ? Math.round(count) : 0,
+        id,
+        label,
+        title: [label, Number.isFinite(count) && count > 0 ? Math.round(count) : ""].filter(Boolean).join(" · "),
+      };
+    })
+    .filter(Boolean);
+}
+
 function findKickSource(payload, sources) {
   const broadcasterSlug = String(payload.broadcaster?.channel_slug || "")
     .replace(/^@/, "")
@@ -77,6 +99,13 @@ function findKickSource(payload, sources) {
     sourceLabel: payload.broadcaster?.username || "Market Bubble",
     sourceName: payload.broadcaster?.username || "Market Bubble",
   };
+}
+
+function toBadgeLabel(id) {
+  return String(id || "")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function normalizeKickContent(content) {

@@ -56,6 +56,27 @@ export async function loadTwitchEmotes({ fetchImpl = fetch, sources, state, queu
   );
 }
 
+export async function loadTwitchBadges({ fetchImpl = fetch, sources, state, queueRender }) {
+  const twitchSources = sources.filter((source) => source.platform === "twitch");
+
+  await Promise.all(
+    twitchSources.map(async (source) => {
+      try {
+        const response = await fetchImpl(`/api/twitch-badges?channel=${encodeURIComponent(source.sourceHandle)}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        state.twitchBadges[source.sourceId] = payload.badges || {};
+        queueRender();
+      } catch {
+        // Text badges still render if Twitch badge art cannot be loaded.
+      }
+    }),
+  );
+}
+
 export function startBackendChatEvents({ window, addBackendMessage }) {
   if (!("EventSource" in window)) return null;
 

@@ -84,6 +84,21 @@ describe("server contract", () => {
             })),
           };
         },
+        async getChatBadges(channel) {
+          return {
+            badges: {
+              "moderator/1": {
+                id: "moderator",
+                imageUrl: "https://static-cdn.jtvnw.net/badges/mod-2.png",
+                label: "Moderator",
+                title: "Moderator",
+                version: "1",
+              },
+            },
+            channel,
+            providers: { twitch: { status: "connected" } },
+          };
+        },
       },
       twitchEmoteClient: {
         async getEmotes(channel) {
@@ -157,6 +172,11 @@ describe("server contract", () => {
       assert.equal(twitchEmotes.status, 200);
       assert.equal(twitchEmotes.json.channel, "MarketBubble");
       assert.equal(twitchEmotes.json.emotes.KEKW.provider, "bttv");
+
+      const twitchBadges = await request(server, "GET", "/api/twitch-badges?channel=MarketBubble");
+      assert.equal(twitchBadges.status, 200);
+      assert.equal(twitchBadges.json.channel, "MarketBubble");
+      assert.equal(twitchBadges.json.badges["moderator/1"].imageUrl, "https://static-cdn.jtvnw.net/badges/mod-2.png");
 
       const webhook = await request(
         server,
