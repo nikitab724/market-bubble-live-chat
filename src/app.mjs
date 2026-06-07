@@ -149,6 +149,7 @@ function bindEvents() {
 
   elements.jumpToLive.addEventListener("click", () => {
     state.followingChat = true;
+    state.inspectingProfile = false;
     renderer.renderPendingChat();
   });
 }

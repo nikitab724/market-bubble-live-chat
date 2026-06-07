@@ -121,3 +121,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Reduced the chat profile hover card width, max height, padding, shadow, heading size, handle size, and detail row spacing to match the compact Twitch-sized chat.
 - Added a contract test so the hover card does not drift back to the oversized treatment.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs`; `git diff --check`; in-app browser local check loaded the compact CSS at `270px` width.
+
+## [2026-06-07] ui | Keep profile cards clear of live button
+
+- Profile hover cards now use the visible jump-to-live button as their lower boundary, keeping the profile card accessible while the live button remains available.
+- Clicking jump-to-live clears profile inspection before rendering the pending live chat window.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (67 passed); `node --check src/app.mjs src/chat-renderer.mjs`; `git diff --check`; in-app browser local check scrolled up chat, showed jump-to-live, clicked it, and returned to `distanceFromBottom: 0` with the button hidden.

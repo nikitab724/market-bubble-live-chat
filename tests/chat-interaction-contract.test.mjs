@@ -81,6 +81,19 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.chat-message:hover\s+\.profile-card,\s*\.profile-card:hover\s*\{[^}]*display: block/s);
   });
 
+  it("keeps profile hover cards from colliding with jump-to-live", () => {
+    const app = readAppRuntime();
+
+    assert.equal(app.includes("function getProfileCardAvailableBottom()"), true);
+    assert.equal(app.includes("if (elements.jumpToLive.hidden)"), true);
+    assert.equal(app.includes("const jumpRect = elements.jumpToLive.getBoundingClientRect();"), true);
+    assert.equal(app.includes("return Math.max(gutter, jumpRect.top - gutter);"), true);
+    assert.equal(app.includes("const availableBottom = getProfileCardAvailableBottom();"), true);
+    assert.equal(app.includes("availableBottom - cardHeight"), true);
+    assert.equal(app.includes("const maxHeight = Math.max(96, availableBottom - top);"), true);
+    assert.match(app, /elements\.jumpToLive\.addEventListener\("click", \(\) => \{[\s\S]*state\.inspectingProfile = false;[\s\S]*renderer\.renderPendingChat\(\);/);
+  });
+
   it("keeps profile hover cards compact beside twitch-sized chat", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 

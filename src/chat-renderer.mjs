@@ -235,23 +235,34 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
       const anchorRect = anchor.getBoundingClientRect();
       const messageRect = messageRow.getBoundingClientRect();
       const cardRect = profileCard.getBoundingClientRect();
-      const cardWidth = cardRect.width || Math.min(330, window.innerWidth - gutter * 2);
+      const cardWidth = cardRect.width || Math.min(270, window.innerWidth - gutter * 2);
+      const availableBottom = getProfileCardAvailableBottom();
       const cardHeight = Math.min(
-        profileCard.scrollHeight || cardRect.height || 320,
-        320,
-        window.innerHeight - gutter * 2,
+        profileCard.scrollHeight || cardRect.height || 260,
+        260,
+        availableBottom - gutter,
       );
       const preferredLeft = messageRect.right - cardWidth - gutter;
       const minimumLeft = Math.min(anchorRect.left, messageRect.right - cardWidth);
       const left = clampToViewport(preferredLeft, minimumLeft, window.innerWidth - cardWidth - gutter);
       const preferredTop = messageRect.bottom - 1;
-      const top = clampToViewport(preferredTop, gutter, window.innerHeight - cardHeight - gutter);
-      const maxHeight = Math.max(96, window.innerHeight - top - gutter);
+      const top = clampToViewport(preferredTop, gutter, availableBottom - cardHeight);
+      const maxHeight = Math.max(96, availableBottom - top);
 
       profileCard.style.setProperty("--profile-card-left", `${Math.round(left)}px`);
       profileCard.style.setProperty("--profile-card-top", `${Math.round(top)}px`);
       profileCard.style.setProperty("--profile-card-max-height", `${Math.round(maxHeight)}px`);
     });
+  }
+
+  function getProfileCardAvailableBottom() {
+    const gutter = 12;
+    if (elements.jumpToLive.hidden) {
+      return window.innerHeight - gutter;
+    }
+
+    const jumpRect = elements.jumpToLive.getBoundingClientRect();
+    return Math.max(gutter, jumpRect.top - gutter);
   }
 
   function isChatNearBottom() {
