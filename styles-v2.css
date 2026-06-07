@@ -151,10 +151,11 @@ a { color: inherit; text-decoration: none; }
 /* Individual chat message */
 .v2-chat-msg {
   display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 0 6px;
+  grid-template-columns: 44px 28px 1fr;
+  gap: 0 5px;
   padding: 3px 10px 3px 0;
   min-width: 0;
+  align-items: start;
 }
 
 .v2-chat-msg-time {
@@ -162,10 +163,33 @@ a { color: inherit; text-decoration: none; }
   font-size: 10px;
   color: var(--muted);
   text-align: right;
-  padding-top: 1px;
+  padding-top: 3px;
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* Source channel icon badge */
+.v2-chat-channel-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--label-font);
+  font-size: 11px;
+  font-weight: 900;
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 1px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.v2-chat-channel-icon.twitch { background: var(--twitch); }
+.v2-chat-channel-icon.kick   { background: var(--kick); color: #000; }
+.v2-chat-channel-icon.x      { background: var(--x); }
+.v2-chat-channel-icon.room   { background: var(--native); color: #000; }
 
 .v2-chat-msg-right {
   min-width: 0;

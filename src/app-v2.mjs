@@ -475,9 +475,13 @@ function renderChatMessage(message) {
     ? (state.twitchEmotes[message.sourceId] || {})
     : {};
 
+  const initial = (message.sourceLabel || message.sourceName || message.platform)
+    .charAt(0).toUpperCase();
+
   return `
     <div class="v2-chat-msg">
       <span class="v2-chat-msg-time">${formatTime(message.timestamp)}</span>
+      <div class="v2-chat-channel-icon ${message.platform}" title="${escapeHtml(message.sourceLabel || message.sourceName)}">${escapeHtml(initial)}</div>
       <div class="v2-chat-msg-right">
         <div class="v2-chat-msg-author ${message.platform}" title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</div>
         <div class="v2-chat-msg-body">${renderMessageBody(message, emoteMap)}</div>
