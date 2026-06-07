@@ -471,7 +471,7 @@ function canAppendMessages(messageIds) {
 
 const PLATFORM_ICONS = {
   twitch: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>`,
-  kick: `<img src="/assets/kick-logo.png" alt="Kick" style="width:100%;height:100%;object-fit:contain;display:block;" />`,
+  kick: `<img src="/assets/kick-logo.png" alt="Kick" style="width:160%;height:160%;object-fit:cover;object-position:center;display:block;margin:-30%;" />`,
   x: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`,
   room: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>`,
 };
