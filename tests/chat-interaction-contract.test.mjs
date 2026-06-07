@@ -154,13 +154,15 @@ describe("chat interaction contract", () => {
     assert.match(app, /<div class="message-body">\s*<span class="platform-mark">\s*\$\{renderPlatformLogo\(message\.platform,\s*`\$\{meta\.label\} logo`\)\}\s*<span class="source-label \$\{message\.platform\}"/);
     assert.match(app, /<\/span>\s*<div class="message-content">\s*<p class="message-line">\s*<strong class="message-author" style="--author-color: \$\{escapeHtml\(message\.authorColor\)\};" title="\$\{escapeHtml\(message\.author\)\}">/);
     assert.match(app, /<\/strong><span class="message-colon">:<\/span>\s*\$\{renderMessageBody\(message, getTwitchEmoteMap\(message\)\)\}/);
+    assert.equal(app.includes("<time>${formatTime(message.timestamp)}</time>"), false);
+    assert.equal(app.includes("<dt>Last seen</dt>"), true);
     assert.match(styles, /\.message-body\s*\{[^}]*display: flex[^}]*gap: 5px/s);
     assert.match(styles, /\.message-content\s*\{[^}]*flex: 1 1 auto/s);
     assert.match(styles, /\.platform-logo\s*\{[^}]*width: 18px[^}]*height: 18px/s);
     assert.match(styles, /\.platform-mark\s*\{[^}]*display: grid[^}]*justify-items: center/s);
     assert.match(styles, /\.chat-message\s*\{[^}]*padding: 7px 10px/s);
     assert.match(styles, /\.source-label\s*\{[^}]*width: 100%[^}]*border: 0[^}]*background: transparent[^}]*text-align: center/s);
-    assert.match(styles, /\.message-line time\s*\{[^}]*font-size: 10px/s);
+    assert.equal(styles.includes(".message-line time"), false);
     assert.match(styles, /\.message-author\s*\{[^}]*color: var\(--author-color, var\(--text\)\)/s);
     assert.match(styles, /\.message-colon\s*\{[^}]*color: var\(--muted\)/s);
   });

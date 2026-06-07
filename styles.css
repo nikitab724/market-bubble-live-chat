@@ -510,13 +510,6 @@ h2 {
   margin-right: 4px;
 }
 
-.message-line time {
-  margin-left: 5px;
-  color: var(--muted);
-  font-family: var(--label-font);
-  font-size: 10px;
-}
-
 .chat-emote {
   display: inline-block;
   max-width: 112px;

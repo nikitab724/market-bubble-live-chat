@@ -344,7 +344,6 @@ export function createChatRenderer({ window, elements, state, getAuthorProfile, 
             <p class="message-line">
               <strong class="message-author" style="--author-color: ${escapeHtml(message.authorColor)};" title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</strong><span class="message-colon">:</span>
               ${renderMessageBody(message, getTwitchEmoteMap(message))}
-              <time>${formatTime(message.timestamp)}</time>
             </p>
           </div>
         </div>

@@ -162,3 +162,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Preserved Twitch IRC username colors and Kick webhook `sender.identity.username_color` in the normalized message shape.
 - Added deterministic fallback username colors for X, native room, and provider messages without a valid color.
 - Verification: `node --test tests/chat-model.test.mjs tests/kick-webhook.test.mjs tests/twitch-connector.test.mjs tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (71 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `node --check src/chat-model.mjs`; `git diff --check`; in-app browser local check confirmed no separate metadata line, inline colored author text, and `author: message` ordering.
+
+## [2026-06-07] ui | Hide row timestamps
+
+- Removed the visible sent-time from inline chat message rows.
+- Kept timing available through the existing profile hover card `Last seen` detail.
+- Updated app and stylesheet cache-bust query strings so deployed browsers fetch the timestamp-free row markup.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --test tests/*.test.mjs` (71 passed); `node --check src/app.mjs`; `node --check src/chat-renderer.mjs`; `git diff --check`; in-app browser local check confirmed no visible row time element or clock text while the profile hover card still showed `Last seen` and a timestamp.
