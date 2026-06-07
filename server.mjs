@@ -41,6 +41,11 @@ const CONTENT_TYPES = {
 const PUBLIC_ASSETS = new Map([
   ["/", "index.html"],
   ["/index.html", "index.html"],
+  ["/v2", "v2/index.html"],
+  ["/v2/", "v2/index.html"],
+  ["/v2/index.html", "v2/index.html"],
+  ["/styles-v2.css", "styles-v2.css"],
+  ["/src/app-v2.mjs", "src/app-v2.mjs"],
   ["/chat", "chat/index.html"],
   ["/chat/", "chat/index.html"],
   ["/chat/index.html", "chat/index.html"],

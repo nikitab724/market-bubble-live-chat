@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Market Bubble Live</title>
+    <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="10" fill="%23090b0f"/><text x="32" y="40" text-anchor="middle" font-family="Arial" font-size="22" font-weight="900" fill="%2317a7ff">MB</text></svg>' />
+    <link rel="stylesheet" href="/styles-v2.css" />
+  </head>
+  <body>
+
+    <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
+    <header class="v2-topbar">
+      <div class="v2-tagline" aria-label="Market Bubble tagline">
+        <span>Make Money</span>
+        <span>Command Attention</span>
+        <span>Leverage AI</span>
+      </div>
+
+      <nav class="v2-nav" aria-label="Site navigation">
+        <a href="/">Home</a>
+        <span aria-hidden="true">•</span>
+        <a href="#">Market</a>
+        <span aria-hidden="true">•</span>
+        <a href="#">Content</a>
+        <span aria-hidden="true">•</span>
+        <a href="#">Leaderboard</a>
+      </nav>
+
+      <div class="v2-wordmark" aria-label="Market Bubble">
+        <div class="v2-wordmark-bubble" aria-hidden="true">
+          <svg viewBox="0 0 48 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4 L44 4 L44 36 L28 36 L24 48 L20 36 L4 36 Z" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+        <div class="v2-wordmark-text">
+          <span>Market</span>
+          <span>Bubble</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Main 3-column grid ─────────────────────────────────────────────── -->
+    <main class="v2-main">
+
+      <!-- Left: Chat feed -->
+      <section class="v2-chat-panel" aria-label="Live chat">
+        <div id="chatFeed" class="v2-chat-feed" role="log" aria-live="polite">
+          <div class="v2-chat-stack"></div>
+        </div>
+        <button id="jumpToLive" class="v2-jump-to-live" type="button" hidden>Jump to live</button>
+      </section>
+
+      <!-- Center: Stream player -->
+      <section class="v2-stream-panel" aria-label="Live stream">
+        <div class="v2-stream-header">
+          <div class="v2-streamer-meta">
+            <div class="v2-streamer-avatar" id="streamerAvatar" aria-hidden="true"></div>
+            <div class="v2-streamer-info">
+              <div class="v2-streamer-name" id="streamerName">Market Bubble</div>
+              <div class="v2-stream-title" id="streamTitle">Live Stream</div>
+            </div>
+          </div>
+          <div class="v2-stream-actions">
+            <a id="followBtn" class="v2-btn v2-btn-follow" href="#" target="_blank" rel="noreferrer">
+              Follow
+            </a>
+            <a id="subscribeBtn" class="v2-btn v2-btn-subscribe" href="#" target="_blank" rel="noreferrer">
+              ☆ Subscribe
+            </a>
+            <span id="liveBadge" class="v2-live-badge" data-state="offline">Offline</span>
+          </div>
+        </div>
+        <div class="v2-player-frame">
+          <div id="twitchPlayer" class="v2-twitch-player"></div>
+        </div>
+      </section>
+
+      <!-- Right: Stats panel -->
+      <section class="v2-stats-panel" aria-label="Stream stats">
+        <div id="streamTabs" class="v2-tabs" role="tablist" aria-label="Stream selector"></div>
+
+        <div class="v2-stat-grid">
+          <div class="v2-stat-tile">
+            <div class="v2-stat-label">Total viewers</div>
+            <div class="v2-stat-value" id="statTotalViewers">—</div>
+          </div>
+          <div class="v2-stat-tile">
+            <div class="v2-stat-label">Active chatters</div>
+            <div class="v2-stat-value" id="statActiveChatters">—</div>
+          </div>
+          <div class="v2-stat-tile">
+            <div class="v2-stat-label">Total messages</div>
+            <div class="v2-stat-value" id="statTotalMessages">—</div>
+          </div>
+          <div class="v2-stat-tile">
+            <div class="v2-stat-label">Messages / min</div>
+            <div class="v2-stat-value" id="statMsgPerMin">—</div>
+          </div>
+        </div>
+
+        <div id="platformBreakdown" class="v2-platform-breakdown" aria-label="Per-platform breakdown"></div>
+      </section>
+
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <footer class="v2-footer">
+      <span class="v2-footer-quote">"Invest in Yourself"</span>
+      <span class="v2-footer-schedule">Live • Thursdays • 1PM PST</span>
+      <span class="v2-footer-sponsor">Presented by Polymarket</span>
+    </footer>
+
+    <script type="module" src="/src/app-v2.mjs"></script>
+  </body>
+</html>
