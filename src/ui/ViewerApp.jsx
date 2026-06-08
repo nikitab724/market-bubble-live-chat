@@ -74,28 +74,12 @@ export function ViewerApp({ surface = "viewer" }) {
     <div className={`live-surface live-layout-${effectiveLayout}`} data-layout={effectiveLayout} data-surface={surface}>
       <header className="broadcast-topbar" aria-label="Market Bubble live status">
         <div className="brand-mark">
-          <img src={marketBubbleLogoUrl} alt="Market Bubble" />
+          <img src={marketBubbleLogoUrl} alt="" />
+          <span className="brand-text">
+            <span>Market</span>
+            <span>Bubble</span>
+          </span>
         </div>
-        {showStream && (
-          <button
-            aria-label={effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
-            aria-keyshortcuts="F"
-            aria-pressed={effectiveLayout === "mini"}
-            className="layout-toggle"
-            onClick={toggleLayoutWithTransition}
-            title={effectiveLayout === "mini" ? "Use full layout (F)" : "Use mini layout (F)"}
-            type="button"
-          >
-            <span
-              aria-hidden="true"
-              className="layout-toggle-icon"
-              data-layout-action={effectiveLayout === "mini" ? "expand" : "minimize"}
-            />
-            <span className="layout-toggle-label">
-              {effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
-            </span>
-          </button>
-        )}
         <div className="broadcast-metrics">
           <div className="viewer-counter" aria-label="Combined viewers">
             <strong id="viewerCount">0</strong>
@@ -109,8 +93,25 @@ export function ViewerApp({ surface = "viewer" }) {
         {showStream && (
           <section className="stream-view" aria-label="Market Bubble stream">
             <div className="video-frame">
+              <button
+                aria-label={effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+                aria-keyshortcuts="F"
+                aria-pressed={effectiveLayout === "mini"}
+                className="layout-toggle"
+                onClick={toggleLayoutWithTransition}
+                title={effectiveLayout === "mini" ? "Use full layout (F)" : "Use mini layout (F)"}
+                type="button"
+              >
+                <span
+                  aria-hidden="true"
+                  className="layout-toggle-icon"
+                  data-layout-action={effectiveLayout === "mini" ? "expand" : "minimize"}
+                />
+                <span className="layout-toggle-label">
+                  {effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+                </span>
+              </button>
               <div id="streamPlayer" className="stream-player" />
-              <p className="stream-quote">if no one sees the vision, go alone</p>
             </div>
           </section>
         )}
@@ -122,6 +123,8 @@ export function ViewerApp({ surface = "viewer" }) {
           </button>
         </section>
       </main>
+
+      {showStream && <p className="surface-quote">if no one sees the vision, go alone</p>}
     </div>
   );
 }

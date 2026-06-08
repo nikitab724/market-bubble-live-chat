@@ -267,6 +267,42 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 
 ## [2026-06-08] ui | Add Banks quote overlay
 
-- Added the “if no one sees the vision, go alone” quote as a bottom-left overlay inside the main stream frame.
-- Styled the quote with the Market Bubble display font, uppercase treatment, and dark shadowing so it stays readable over video.
-- Verification: red/green `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`; in-app browser check for `/?layout=full&demoChat=1` confirmed the quote is visible, 34px from the stream frame's left/bottom edges, before the chat column, with no console errors.
+- Added the “if no one sees the vision, go alone” quote as a small bottom-left note on the main viewer surface, outside the stream embed.
+- Styled the quote with the Market Bubble display font as a single horizontal uppercase line and reserved a narrow bottom gutter so it sits below the stream in full layout.
+- Verification: red/green `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`; in-app browser check for `/?layout=full&demoChat=1` confirmed the quote is outside `.video-frame`/`.stream-view`, below the stream, 14px from viewport left, 10px from viewport bottom, 11.52px, horizontal, with no console errors.
+
+## [2026-06-08] ui | Refine logo text lockup
+
+- Kept the official Market Bubble icon, enlarged the top-left brand lockup, and restored visible Market Bubble text beside it.
+- Replaced the liquid threshold attempt with a reduced-motion-safe text write-in on page refresh.
+- Verification: `git diff --check`; `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`; in-app browser checks on `/?layout=full&demoChat=1` confirmed the desktop lockup renders at 141x56 with a 44px logo, `brand-text-write-in` resolves from clipped to visible, mobile 390px does not spill or overlap, and no console errors were logged.
+
+## [2026-06-08] ui | Move stream layout toggle overlay
+
+- Moved the full/mini layout toggle from the top bar into the stream frame's top-left overlay position.
+- Changed the full-layout minimize icon from a flat line to inward-facing corner arrows that pair with the mini-layout outward expand icon.
+- Verification: red/green `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`; `git diff --check`; in-app browser smoke on `/?layout=full&demoChat=1` confirmed the control sits 12px from the stream frame top-left, no top-bar duplicate exists, click toggles to the outward expand icon, and no console errors were logged.
+
+## [2026-06-08] ui | Dock stream layout toggle into border
+
+- Changed the stream layout toggle from an inset floating overlay to a flush top-left border tab on the stream frame.
+- Kept the inward minimize corners and outward expand corners while removing the tab's top/left border so it reads as part of the frame edge.
+- Verification: red/green `node --test --test-name-pattern "docks the layout toggle" tests/chat-interaction-contract.test.mjs`; `node --test tests/chat-interaction-contract.test.mjs`; `npm run build`; `npm test` (86 passed); `git diff --check`; in-app browser smoke on `/?layout=full&demoChat=1` confirmed the tab offset is 0/0 from the stream frame, no top-bar duplicate exists, and no console errors were logged.
+
+## [2026-06-08] ui | Reference-driven broadcast polish
+
+- Restyled the viewer and admin surfaces around the public Market Bubble reference: light paper page, rounded black stage, quiet pill metrics, and restrained translucent stream/chat/admin panels.
+- Enlarged and stabilized the top-left logo/text lockup, softened chat row density, and converted the sub-500px source metrics into a compact horizontally-scrollable strip so mobile fits without clipping.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`; `git diff --check`; in-app browser checks on `/?demoChat=1` at 1280x720 and 390x844 plus `/admin` confirmed no overlaps, no page overflow, and no console errors.
+
+## [2026-06-08] ui | Restore all-black broadcast surface
+
+- Removed the light paper page treatment and restored the viewer/admin base surfaces to black-on-black.
+- Kept the larger logo/text lockup and compact mobile metric strip, but changed the viewer counter and metrics bar back to dark/translucent instead of pale pills.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm run build`; `git diff --check`; in-app browser checks on `/?demoChat=1` at 1280x720 and 390x844 plus `/admin` confirmed black backgrounds, no overlaps, no page overflow, and no console errors.
+
+## [2026-06-08] ui | Center top metric numbers
+
+- Removed the visible top metrics capsule so the viewer/source stats sit directly on the black surface.
+- Reworked source stats into two-line blocks with each count centered under its source label on desktop and mobile.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm run build`; `git diff --check`; in-app browser checks on `/?demoChat=1` at 1280x720 and 390x844 confirmed no metric pill, centered counts, no overflow, and no console errors.
