@@ -95,6 +95,56 @@ describe("server contract", () => {
     }
   });
 
+  it("ensures Kick chat subscriptions from existing public config", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-kick-public-subscribe-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [{
+          broadcasterUserId: 676,
+          platform: "kick",
+          sourceName: "xQc",
+          sourceHandle: "xqc",
+        }],
+      }),
+    );
+
+    const subscriptionSources = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      kickClient: {
+        async getLiveState() {
+          return { providers: { kick: { status: "connected" } }, sources: [] };
+        },
+        async resolveBroadcasterUserId() {
+          throw new Error("public config should not resolve broadcaster ids");
+        },
+        async ensureChatEventSubscriptions(sources) {
+          subscriptionSources.push(sources);
+          return { created: [], existing: [{ broadcasterUserId: 676, sourceHandle: "xqc" }], skipped: [] };
+        },
+      },
+    });
+    await listen(server);
+
+    try {
+      const publicConfig = await request(server, "GET", "/api/public-config");
+
+      assert.equal(publicConfig.status, 200);
+      assert.equal(publicConfig.json.sources[0].sourceHandle, "xqc");
+      assert.equal(subscriptionSources.length, 1);
+      assert.equal(subscriptionSources[0][0].platform, "kick");
+      assert.equal(subscriptionSources[0][0].sourceHandle, "xqc");
+      assert.equal(subscriptionSources[0][0].broadcasterUserId, 676);
+    } finally {
+      await close(server);
+    }
+  });
+
   it("protects admin APIs with a server-side session cookie", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-admin-"));
     const configPath = join(tempDir, "sources.json");

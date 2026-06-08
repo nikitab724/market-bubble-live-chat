@@ -90,17 +90,23 @@ export function createAppServer(options = {}) {
   const twitchClient = options.twitchClient || createTwitchApiClient();
   const twitchEmoteClient = options.twitchEmoteClient || createTwitchEmoteClient({ twitchClient });
   const sessions = new Map();
+  let ensuredKickSubscriptionKey = "";
+  let kickSubscriptionEnsurePromise = null;
 
   return createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://localhost");
 
       if (url.pathname === "/api/public-config" && request.method === "GET") {
-        return sendJson(response, 200, toPublicConfig(await readSources(configPath)));
+        const sources = await readSources(configPath);
+        await ensureKickChatSubscriptionsOnce(sources);
+        return sendJson(response, 200, toPublicConfig(sources));
       }
 
       if (url.pathname === "/api/live-state" && request.method === "GET") {
-        return sendJson(response, 200, await getLiveState(await readSources(configPath), [twitchClient, kickClient]));
+        const sources = await readSources(configPath);
+        await ensureKickChatSubscriptionsOnce(sources);
+        return sendJson(response, 200, await getLiveState(sources, [twitchClient, kickClient]));
       }
 
       if (url.pathname === "/api/twitch-emotes" && request.method === "GET") {
@@ -234,6 +240,7 @@ export function createAppServer(options = {}) {
             kickClient,
           );
           await ensureKickChatSubscriptions(sources, kickClient);
+          ensuredKickSubscriptionKey = getKickSubscriptionKey(sources);
           await writeSources(configPath, sources);
           return sendJson(response, 200, { sources });
         }
@@ -248,6 +255,29 @@ export function createAppServer(options = {}) {
       return sendJson(response, 500, { error: error.message || "Server error" });
     }
   });
+
+  async function ensureKickChatSubscriptionsOnce(sources) {
+    const subscriptionKey = getKickSubscriptionKey(sources);
+
+    if (!subscriptionKey || subscriptionKey === ensuredKickSubscriptionKey) {
+      return;
+    }
+
+    if (!kickSubscriptionEnsurePromise) {
+      kickSubscriptionEnsurePromise = ensureKickChatSubscriptions(sources, kickClient)
+        .then(() => {
+          ensuredKickSubscriptionKey = subscriptionKey;
+        })
+        .catch((error) => {
+          console.warn(`[kick] chat subscription ensure failed: ${error.message || error}`);
+        })
+        .finally(() => {
+          kickSubscriptionEnsurePromise = null;
+        });
+    }
+
+    await kickSubscriptionEnsurePromise;
+  }
 }
 
 async function getLiveState(sources, clients) {
@@ -360,6 +390,14 @@ async function ensureKickChatSubscriptions(sources, kickClient) {
   }
 
   return kickClient.ensureChatEventSubscriptions(sources);
+}
+
+function getKickSubscriptionKey(sources) {
+  return (Array.isArray(sources) ? sources : [])
+    .filter((source) => source.platform === "kick" && source.broadcasterUserId)
+    .map((source) => `${source.sourceId || source.sourceHandle}:${source.broadcasterUserId}`)
+    .sort()
+    .join("|");
 }
 
 export async function readSources(configPath = DEFAULT_CONFIG_PATH) {

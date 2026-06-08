@@ -22,7 +22,7 @@ Kick has three pieces:
 - Video embed: browser iframe in `src/app.mjs`.
 - Live state/viewer count: server-side Kick API calls in `src/kick-api.mjs`.
 - Chat: signed webhooks into `POST /api/webhooks/kick`, normalized by `src/kick-webhook.mjs`.
-- Admin setup: when `/api/admin/sources` saves Kick rows, the backend resolves each Kick handle through the Kick Channels API, persists `broadcasterUserId`, and ensures a `chat.message.sent` webhook subscription exists for each Kick broadcaster.
+- Admin setup: when `/api/admin/sources` saves Kick rows, the backend resolves each Kick handle through the Kick Channels API, persists `broadcasterUserId`, and ensures a `chat.message.sent` webhook subscription exists for each Kick broadcaster. Existing configs with saved broadcaster IDs are also checked once when the public app loads config or live state.
 
 Required env vars for live state:
 

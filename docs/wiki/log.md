@@ -348,5 +348,6 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 ## [2026-06-08] fix | Subscribe Kick chat webhooks on admin save
 
 - Added Kick event subscription support for configured broadcasters so admin saves create missing `chat.message.sent` webhook subscriptions after resolving `broadcasterUserId`.
-- Wired the admin source save route to ensure Kick chat subscriptions before persisting sources, and documented the webhook/subscription setup requirement.
-- Verification: `node --test tests/kick-api.test.mjs`; `node --test tests/server-contract.test.mjs --test-name-pattern "resolves Kick"`; `npm test` (89 passed); `npm run build`; local SSE/browser smoke confirmed `/api/dev/kick-chat` renders a Kick row with no console errors.
+- Wired the admin source save route and existing public config loads to ensure Kick chat subscriptions, with a cache so normal polling does not repeat successful subscription checks.
+- Documented the webhook/subscription setup requirement.
+- Verification: `node --test tests/kick-api.test.mjs`; `node --test tests/server-contract.test.mjs --test-name-pattern "existing public config|resolves Kick"`; `npm test` (90 passed); `npm run build`; local SSE smoke confirmed `/api/dev/kick-chat` broadcasts a normalized Kick chat event.
