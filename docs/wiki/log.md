@@ -246,3 +246,27 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Removed the per-digit odometer DOM, digit-roll keyframes, and decorative rolling state from viewer counts.
 - Kept the exponential catch-up value updates and tabular number styling so counts remain responsive without extra visual work.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check src/chat-renderer.mjs`; `npm test` (83 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-08] connector | Resolve Kick broadcaster ids in admin
+
+- Added Kick handle-to-broadcaster id resolution through the Kick Channels API and persisted `broadcasterUserId` on Kick admin source saves.
+- Added a read-only Kick broadcaster user id field to the admin profile editor so operators can confirm which Kick channel was resolved.
+- Updated source config/admin model/server contract tests for the new Kick data shape.
+- Verification: `node --test tests/kick-api.test.mjs`; `node --test tests/source-config.test.mjs tests/admin-profile-model.test.mjs`; `node --test tests/server-contract.test.mjs`; `npm test` (85 passed); `npm run build`; `node --check src/kick-api.mjs`; `node --check admin/admin.mjs`; `node --check server.mjs`.
+
+## [2026-06-08] fix | Restore admin page scrolling
+
+- Added an `admin-root` document class and scoped CSS override so the admin page can scroll while the viewer/chat surfaces keep their locked anti-bounce body behavior.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `node --check admin/admin.mjs`; `npm run build`; browser check confirmed `/admin/` scrolls after rebuild; `npm test` (86 passed); `git diff --check`.
+
+## [2026-06-08] ui | Use official Market Bubble logo asset
+
+- Replaced the typed Market Bubble wordmark and native `MB` chat badge with the official Market Bubble logo image from the public site favicon asset.
+- Updated viewer/chat/admin favicons and the server static asset allowlist for the new logo file.
+- Verification: `node --check src/chat-renderer.mjs`; `node --check server.mjs`; `git diff --check`; `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`; browser smoke confirmed the topbar logo loaded at 36px with no console errors and `/assets/market-bubble-logo.jpg` served as a JPEG.
+
+## [2026-06-08] ui | Add Banks quote overlay
+
+- Added the “if no one sees the vision, go alone” quote as a bottom-left overlay inside the main stream frame.
+- Styled the quote with the Market Bubble display font, uppercase treatment, and dark shadowing so it stays readable over video.
+- Verification: red/green `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`; in-app browser check for `/?layout=full&demoChat=1` confirmed the quote is visible, 34px from the stream frame's left/bottom edges, before the chat column, with no console errors.

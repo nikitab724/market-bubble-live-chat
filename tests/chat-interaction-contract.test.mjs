@@ -64,6 +64,17 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.includes('id="sourceBreakdown"'), true);
   });
 
+  it("renders the Banks quote as a bottom-left stream overlay", () => {
+    const viewer = readViewerRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(viewer.includes('className="stream-quote"'), true);
+    assert.equal(viewer.includes("if no one sees the vision, go alone"), true);
+    assert.match(styles, /\.stream-quote\s*\{[^}]*position: absolute[^}]*left: clamp\(18px, 3vw, 34px\)[^}]*bottom: clamp\(18px, 3vw, 34px\)/s);
+    assert.match(styles, /\.stream-quote\s*\{[^}]*font-family: var\(--display-font\)[^}]*text-transform: uppercase/s);
+    assert.match(styles, /\.stream-quote\s*\{[^}]*pointer-events: none/s);
+  });
+
   it("uses the same React entry on both chat surfaces", () => {
     const viewer = readFileSync(new URL("../index.html", import.meta.url), "utf8");
     const chat = readFileSync(new URL("../chat/index.html", import.meta.url), "utf8");
@@ -600,6 +611,7 @@ describe("chat interaction contract", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(html.includes("Profile Manager"), true);
+    assert.equal(html.includes('class="admin-root"'), true);
     assert.equal(html.includes('id="addProfileButton"'), true);
     assert.equal(html.includes('id="profileCards"'), true);
     assert.equal(admin.includes("buildProfilesFromSources"), true);
@@ -613,5 +625,7 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".profile-stream-field"), true);
     assert.equal(styles.includes(".profile-editor-body[hidden]"), true);
     assert.equal(styles.includes(".profile-toggle-icon"), true);
+    assert.match(styles, /\.admin-root\s*\{[^}]*height: auto[^}]*overflow-y: auto/s);
+    assert.match(styles, /\.admin-root\s+body,\s*body\.admin-body\s*\{[^}]*position: static[^}]*overflow-y: auto/s);
   });
 });

@@ -30,6 +30,7 @@ Important fields:
 - `profileId` and `profileName`: optional grouping fields used by admin profiles.
 - `platform`: provider key.
 - `sourceName`, `sourceLabel`, `sourceHandle`, `sourceUrl`: display and provider identity.
+- `broadcasterUserId`: Kick broadcaster id resolved from the Kick handle during admin save, used for event subscription setup.
 - `conversationId`: X post/broadcast/conversation id used for X embed and future API rules.
 - `enabled`: controls whether a source appears in public config.
 - `showStream`: marks the one source used by the hosted stream player.

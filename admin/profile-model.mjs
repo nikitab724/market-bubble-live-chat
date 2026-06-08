@@ -27,6 +27,7 @@ export function buildProfilesFromSources(sources) {
     const profile = profilesById.get(profileId);
     if (source.profileName) profile.name = normalizeProfileName(source.profileName);
     profile.sources[platform] = {
+      broadcasterUserId: platform === "kick" ? String(source.broadcasterUserId || "") : "",
       conversationId: String(source.conversationId || ""),
       enabled: source.enabled !== false,
       handle: String(source.sourceHandle || ""),
@@ -51,6 +52,9 @@ export function buildSourcesFromProfiles(profiles) {
 
         const sourceLabel = String(source.label || profileName).trim() || profileName;
         return {
+          ...(platform === "kick" && source.broadcasterUserId ? {
+            broadcasterUserId: String(source.broadcasterUserId).trim(),
+          } : {}),
           conversationId: platform === "x" ? String(source.conversationId || "").trim() : "",
           enabled: source.enabled === true,
           platform,
@@ -82,6 +86,7 @@ export function createEmptySourceSlots() {
     profilePlatforms.map(({ id }) => [
       id,
       {
+        broadcasterUserId: "",
         conversationId: "",
         enabled: false,
         handle: "",

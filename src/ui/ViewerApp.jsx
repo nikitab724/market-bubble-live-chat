@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 
+import marketBubbleLogoUrl from "../../assets/market-bubble-logo.jpg";
+
 const LAYOUT_STORAGE_KEY = "market-bubble-viewer-layout";
 const layoutModes = new Set(["full", "mini"]);
 
@@ -71,9 +73,8 @@ export function ViewerApp({ surface = "viewer" }) {
   return (
     <div className={`live-surface live-layout-${effectiveLayout}`} data-layout={effectiveLayout} data-surface={surface}>
       <header className="broadcast-topbar" aria-label="Market Bubble live status">
-        <div className="brand-mark" aria-hidden="true">
-          <span>Market</span>
-          <span>Bubble</span>
+        <div className="brand-mark">
+          <img src={marketBubbleLogoUrl} alt="Market Bubble" />
         </div>
         {showStream && (
           <button
@@ -109,6 +110,7 @@ export function ViewerApp({ surface = "viewer" }) {
           <section className="stream-view" aria-label="Market Bubble stream">
             <div className="video-frame">
               <div id="streamPlayer" className="stream-player" />
+              <p className="stream-quote">if no one sees the vision, go alone</p>
             </div>
           </section>
         )}

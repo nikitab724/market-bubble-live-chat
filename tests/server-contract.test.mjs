@@ -46,6 +46,46 @@ describe("server contract", () => {
     }
   });
 
+  it("resolves Kick broadcaster user ids when admin sources are saved", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-kick-resolve-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(configPath, JSON.stringify({ sources: [] }));
+
+    const resolvedHandles = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      kickClient: {
+        async getLiveState() {
+          return { providers: { kick: { status: "connected" } }, sources: [] };
+        },
+        async resolveBroadcasterUserId(handle) {
+          resolvedHandles.push(handle);
+          return 676;
+        },
+      },
+    });
+    await listen(server);
+
+    try {
+      const update = await request(server, "PUT", "/api/admin/sources", {
+        sources: [{ platform: "kick", sourceName: "xQc", sourceHandle: "XQC" }],
+      });
+
+      assert.equal(update.status, 200);
+      assert.equal(update.json.sources[0].sourceHandle, "xqc");
+      assert.equal(update.json.sources[0].broadcasterUserId, 676);
+      assert.deepEqual(resolvedHandles, ["xqc"]);
+
+      const saved = JSON.parse(await readFile(configPath, "utf8"));
+      assert.equal(saved.sources[0].broadcasterUserId, 676);
+    } finally {
+      await close(server);
+    }
+  });
+
   it("protects admin APIs with a server-side session cookie", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-admin-"));
     const configPath = join(tempDir, "sources.json");

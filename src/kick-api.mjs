@@ -41,6 +41,17 @@ export function createKickApiClient(options = {}) {
         };
       }
     },
+
+    async resolveBroadcasterUserId(handle) {
+      const channel = await getChannelBySlug(normalizeSlug(handle));
+      const broadcasterUserId = normalizeBroadcasterUserId(channel?.broadcaster_user_id);
+
+      if (!broadcasterUserId) {
+        throw new Error(`Kick broadcaster not found for @${normalizeSlug(handle)}`);
+      }
+
+      return broadcasterUserId;
+    },
   };
 
   async function getAppAccessToken() {
@@ -77,19 +88,7 @@ export function createKickApiClient(options = {}) {
     const channelsBySlug = new Map();
 
     for (const slug of getUniqueSlugs(kickSources)) {
-      const url = new URL(channelsUrl);
-      url.searchParams.set("slug", slug);
-
-      const response = await fetchImpl(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Kick channels request failed with ${response.status}`);
-      }
-
-      const payload = await response.json();
-      const channel = (payload.data || []).find((item) => String(item.slug || "").toLowerCase() === slug);
+      const channel = await getChannelBySlug(slug, token);
       if (channel) {
         channelsBySlug.set(slug, channel);
       }
@@ -111,7 +110,7 @@ export function createKickApiClient(options = {}) {
       }
 
       return {
-        broadcasterUserId: channel.broadcaster_user_id,
+        broadcasterUserId: normalizeBroadcasterUserId(channel.broadcaster_user_id),
         gameName: channel.category?.name || "",
         isLive: stream.is_live === true,
         platform: "kick",
@@ -125,17 +124,48 @@ export function createKickApiClient(options = {}) {
       };
     });
   }
+
+  async function getChannelBySlug(slug, token = "") {
+    if (!clientId || !clientSecret) {
+      throw new Error("Kick credentials are not configured");
+    }
+
+    const accessToken = token || await getAppAccessToken();
+    const url = new URL(channelsUrl);
+    url.searchParams.set("slug", slug);
+
+    const response = await fetchImpl(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Kick channels request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    return (payload.data || []).find((item) => String(item.slug || "").toLowerCase() === slug) || null;
+  }
 }
 
 function getKickSources(sources) {
   return (Array.isArray(sources) ? sources : [])
     .filter((source) => source.platform === "kick")
     .map((source) => ({
-      sourceHandle: String(source.sourceHandle || "").toLowerCase(),
+      sourceHandle: normalizeSlug(source.sourceHandle),
       sourceId: source.sourceId || `kick-${source.sourceHandle}`,
       sourceLabel: source.sourceLabel || source.sourceName || source.sourceHandle,
     }))
     .filter((source) => source.sourceHandle);
+}
+
+function normalizeSlug(value) {
+  return String(value || "").replace(/^@/, "").toLowerCase().trim();
+}
+
+function normalizeBroadcasterUserId(value) {
+  const id = Number(value || 0);
+  if (!Number.isFinite(id) || id <= 0) return 0;
+  return Math.round(id);
 }
 
 function getUniqueSlugs(sources) {

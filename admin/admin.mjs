@@ -178,8 +178,13 @@ function createSocialRow(source, platform) {
     heading,
     createTextField(platform.handleLabel, "handle", source?.handle),
     createTextField("Display label", "label", source?.label),
-    createStreamField(source?.showStream),
   );
+
+  if (platform.id === "kick") {
+    row.append(createReadonlyField("Broadcaster user id", "broadcasterUserId", source?.broadcasterUserId));
+  }
+
+  row.append(createStreamField(source?.showStream));
 
   if (platform.id === "x") {
     row.append(createTextField("Conversation id", "conversationId", source?.conversationId));
@@ -237,6 +242,18 @@ function createTextField(labelText, name, value) {
   input.name = name;
   input.type = "text";
   input.value = value || "";
+  field.append(input);
+  return field;
+}
+
+function createReadonlyField(labelText, name, value) {
+  const field = createField(labelText, "profile-field profile-readonly-field");
+  const input = document.createElement("input");
+  input.name = name;
+  input.readOnly = true;
+  input.type = "text";
+  input.value = value || "";
+  input.placeholder = "Save to resolve";
   field.append(input);
   return field;
 }
@@ -307,6 +324,7 @@ function collectSocialSource(card, platform) {
   const row = card.querySelector(`[data-platform="${platform}"]`);
 
   return {
+    broadcasterUserId: row.querySelector('[name="broadcasterUserId"]')?.value || "",
     conversationId: row.querySelector('[name="conversationId"]')?.value || "",
     enabled: row.querySelector('[name="enabled"]').checked,
     handle: row.querySelector('[name="handle"]').value,

@@ -22,6 +22,7 @@ Kick has three pieces:
 - Video embed: browser iframe in `src/app.mjs`.
 - Live state/viewer count: server-side Kick API calls in `src/kick-api.mjs`.
 - Chat: signed webhooks into `POST /api/webhooks/kick`, normalized by `src/kick-webhook.mjs`.
+- Admin setup: when `/api/admin/sources` saves Kick rows, the backend resolves each Kick handle through the Kick Channels API and persists `broadcasterUserId` for webhook event subscription setup.
 
 Required env vars for live state:
 
@@ -31,6 +32,8 @@ Required env vars for live state:
 The Kick webhook URL must be public and reachable by Kick. Localhost cannot receive real Kick webhooks without a tunnel.
 
 Kick chat username colors come from `sender.identity.username_color` when Kick includes identity data. Kick chat badges come from `sender.identity.badges` and render as compact text chips because the webhook payload includes badge type/text/count, not image URLs. Missing or invalid colors fall back to the shared deterministic chat palette.
+
+Operators should type only the Kick handle in admin. The read-only broadcaster user id field is filled after save when `KICK_CLIENT_ID` and `KICK_CLIENT_SECRET` can resolve the channel.
 
 ## X
 

@@ -56,6 +56,7 @@ const PUBLIC_ASSETS = new Map([
   ["/styles-v2.css", "styles-v2.css"],
   ["/src/app-v2.mjs", "src/app-v2.mjs"],
   ["/assets/kick-logo.png", "assets/kick-logo.png"],
+  ["/assets/market-bubble-logo.jpg", "assets/market-bubble-logo.jpg"],
   ["/chat", "chat/index.html"],
   ["/chat/", "chat/index.html"],
   ["/chat/index.html", "chat/index.html"],
@@ -228,7 +229,10 @@ export function createAppServer(options = {}) {
 
         if (request.method === "PUT") {
           const body = await readJsonBody(request);
-          const sources = normalizeSources(stripEditableViewerCounts(body.sources || []));
+          const sources = await resolveKickBroadcasterUserIds(
+            normalizeSources(stripEditableViewerCounts(body.sources || [])),
+            kickClient,
+          );
           await writeSources(configPath, sources);
           return sendJson(response, 200, { sources });
         }
@@ -315,6 +319,34 @@ function normalizeXChatMessage(body, sources) {
 
 function stripEditableViewerCounts(sources) {
   return (Array.isArray(sources) ? sources : []).map(({ viewerCount, ...source }) => source);
+}
+
+async function resolveKickBroadcasterUserIds(sources, kickClient) {
+  if (!sources.some((source) => source.platform === "kick")) {
+    return sources;
+  }
+
+  if (typeof kickClient.resolveBroadcasterUserId !== "function") {
+    throw new Error("Kick broadcaster resolver is not configured");
+  }
+
+  return Promise.all(
+    sources.map(async (source) => {
+      if (source.platform !== "kick") {
+        return source;
+      }
+
+      const broadcasterUserId = Number(await kickClient.resolveBroadcasterUserId(source.sourceHandle));
+      if (!Number.isFinite(broadcasterUserId) || broadcasterUserId <= 0) {
+        throw new Error(`Kick broadcaster not found for @${source.sourceHandle}`);
+      }
+
+      return {
+        ...source,
+        broadcasterUserId: Math.round(broadcasterUserId),
+      };
+    }),
+  );
 }
 
 export async function readSources(configPath = DEFAULT_CONFIG_PATH) {

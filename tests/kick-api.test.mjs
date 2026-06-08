@@ -89,6 +89,38 @@ describe("kick api client", () => {
     assert.equal(calls.length, 2);
   });
 
+  it("resolves a Kick broadcaster user id from a channel handle", async () => {
+    const calls = [];
+    const client = createKickApiClient({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      fetchImpl: async (url, options = {}) => {
+        calls.push({ url: String(url), options });
+
+        if (String(url).includes("/oauth/token")) {
+          return jsonResponse({ access_token: "app-token", expires_in: 3600 });
+        }
+
+        assert.equal(options.headers.Authorization, "Bearer app-token");
+        assert.equal(String(url), "https://api.kick.com/public/v1/channels?slug=xqc");
+        return jsonResponse({
+          data: [
+            {
+              broadcaster_user_id: 676,
+              slug: "xqc",
+              stream: null,
+            },
+          ],
+        });
+      },
+    });
+
+    const broadcasterUserId = await client.resolveBroadcasterUserId("XQC");
+
+    assert.equal(broadcasterUserId, 676);
+    assert.equal(calls.length, 2);
+  });
+
   it("returns offline Kick sources when the channel has no stream", async () => {
     const client = createKickApiClient({
       clientId: "client-id",

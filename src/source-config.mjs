@@ -101,6 +101,9 @@ export function normalizeSource(input) {
   const profileName = String(input.profileName || "").trim();
 
   return {
+    ...(platform === "kick" && normalizeBroadcasterUserId(input.broadcasterUserId)
+      ? { broadcasterUserId: normalizeBroadcasterUserId(input.broadcasterUserId) }
+      : {}),
     enabled: input.enabled !== false,
     platform,
     ...(profileId ? { profileId } : {}),
@@ -157,4 +160,14 @@ function normalizeViewerCount(viewerCount) {
   }
 
   return Math.max(0, Math.round(count));
+}
+
+function normalizeBroadcasterUserId(value) {
+  const id = Number(value || 0);
+
+  if (!Number.isFinite(id) || id <= 0) {
+    return 0;
+  }
+
+  return Math.round(id);
 }

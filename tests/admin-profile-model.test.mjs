@@ -25,6 +25,7 @@ describe("admin profile model", () => {
         platform: "kick",
         profileId: "xqc",
         profileName: "xQc",
+        broadcasterUserId: 676,
         sourceHandle: "xqc",
         sourceLabel: "Xbob",
         sourceName: "Xbob",
@@ -47,6 +48,7 @@ describe("admin profile model", () => {
     assert.equal(profiles[0].sources.twitch.showStream, true);
     assert.equal(profiles[0].sources.kick.handle, "xqc");
     assert.equal(profiles[0].sources.kick.label, "Xbob");
+    assert.equal(profiles[0].sources.kick.broadcasterUserId, "676");
     assert.equal(profiles[0].sources.kick.showStream, false);
     assert.equal(profiles[1].id, "banks");
     assert.equal(profiles[1].sources.x.conversationId, "2062574325970973093");
@@ -59,7 +61,13 @@ describe("admin profile model", () => {
         name: "Market Bubble",
         sources: {
           twitch: { enabled: true, handle: "marketbubble", label: "Twitch Desk" },
-          kick: { enabled: false, handle: "marketbubble", label: "Kick Desk", showStream: true },
+          kick: {
+            broadcasterUserId: "676",
+            enabled: false,
+            handle: "marketbubble",
+            label: "Kick Desk",
+            showStream: true,
+          },
           x: { enabled: true, handle: "MarketBubble", label: "X Desk", conversationId: "123" },
           room: { enabled: true, handle: "", label: "Site Chat" },
         },
@@ -75,6 +83,7 @@ describe("admin profile model", () => {
         sourceHandle: source.sourceHandle,
         sourceLabel: source.sourceLabel,
         sourceName: source.sourceName,
+        broadcasterUserId: source.broadcasterUserId,
         conversationId: source.conversationId,
         showStream: source.showStream,
       })),
@@ -87,6 +96,7 @@ describe("admin profile model", () => {
           sourceHandle: "marketbubble",
           sourceLabel: "Twitch Desk",
           sourceName: "Twitch Desk",
+          broadcasterUserId: undefined,
           conversationId: "",
           showStream: false,
         },
@@ -98,6 +108,7 @@ describe("admin profile model", () => {
           sourceHandle: "marketbubble",
           sourceLabel: "Kick Desk",
           sourceName: "Kick Desk",
+          broadcasterUserId: "676",
           conversationId: "",
           showStream: true,
         },
@@ -109,6 +120,7 @@ describe("admin profile model", () => {
           sourceHandle: "MarketBubble",
           sourceLabel: "X Desk",
           sourceName: "X Desk",
+          broadcasterUserId: undefined,
           conversationId: "123",
           showStream: false,
         },

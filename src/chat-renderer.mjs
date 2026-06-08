@@ -779,7 +779,7 @@ function renderPlatformLogo(platform, label) {
         <path d="M4 3h5.1l4 5.7L18 3h2.1l-6 7 6.6 11H15.6l-4.4-6.5L5.8 21H3.7l6.5-7.7L4 3z" />
       </svg>
     `,
-    room: "<b>MB</b>",
+    room: '<img src="/assets/market-bubble-logo.jpg" alt="" />',
   };
 
   return `
