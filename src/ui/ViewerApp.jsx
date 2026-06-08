@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 
-import marketBubbleLogoUrl from "../../assets/market-bubble-logo.jpg";
-
 const LAYOUT_STORAGE_KEY = "market-bubble-viewer-layout";
 const layoutModes = new Set(["full", "mini"]);
 
@@ -73,12 +71,18 @@ export function ViewerApp({ surface = "viewer" }) {
   return (
     <div className={`live-surface live-layout-${effectiveLayout}`} data-layout={effectiveLayout} data-surface={surface}>
       <header className="broadcast-topbar" aria-label="Market Bubble live status">
-        <div className="brand-mark">
-          <img src={marketBubbleLogoUrl} alt="" />
-          <span className="brand-text">
-            <span>Market</span>
-            <span>Bubble</span>
-          </span>
+        <div className="brand-mark" aria-label="Market Bubble">
+          <svg
+            className="brand-wordmark"
+            viewBox="0 0 360 64"
+            role="img"
+            aria-hidden="true"
+            preserveAspectRatio="xMinYMid meet"
+          >
+            <text className="brand-wordmark-text" x="2" y="46">
+              Market Bubble
+            </text>
+          </svg>
         </div>
         <div className="broadcast-metrics">
           <div className="viewer-counter" aria-label="Combined viewers">
@@ -92,25 +96,25 @@ export function ViewerApp({ surface = "viewer" }) {
       <main className={`app-shell ${showStream ? "viewer-shell" : "chat-shell"}`} data-surface={surface}>
         {showStream && (
           <section className="stream-view" aria-label="Market Bubble stream">
+            <button
+              aria-label={effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+              aria-keyshortcuts="F"
+              aria-pressed={effectiveLayout === "mini"}
+              className="layout-toggle"
+              onClick={toggleLayoutWithTransition}
+              title={effectiveLayout === "mini" ? "Use full layout (F)" : "Use mini layout (F)"}
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                className="layout-toggle-icon"
+                data-layout-action={effectiveLayout === "mini" ? "expand" : "minimize"}
+              />
+              <span className="layout-toggle-label">
+                {effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+              </span>
+            </button>
             <div className="video-frame">
-              <button
-                aria-label={effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
-                aria-keyshortcuts="F"
-                aria-pressed={effectiveLayout === "mini"}
-                className="layout-toggle"
-                onClick={toggleLayoutWithTransition}
-                title={effectiveLayout === "mini" ? "Use full layout (F)" : "Use mini layout (F)"}
-                type="button"
-              >
-                <span
-                  aria-hidden="true"
-                  className="layout-toggle-icon"
-                  data-layout-action={effectiveLayout === "mini" ? "expand" : "minimize"}
-                />
-                <span className="layout-toggle-label">
-                  {effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
-                </span>
-              </button>
               <div id="streamPlayer" className="stream-player" />
             </div>
           </section>
@@ -124,7 +128,22 @@ export function ViewerApp({ surface = "viewer" }) {
         </section>
       </main>
 
-      {showStream && <p className="surface-quote">if no one sees the vision, go alone</p>}
+      {showStream && (
+        <footer className="surface-corners" aria-hidden="false">
+          <p className="corner-quote">
+            <span className="corner-quote-mark">&ldquo;</span>
+            If no one sees the vision, go alone
+            <span className="corner-quote-mark">&rdquo;</span>
+          </p>
+          <p className="corner-schedule">
+            <span>Live</span>
+            <span className="corner-dot" />
+            <span>Thursdays</span>
+            <span className="corner-dot" />
+            <span>1PM PST</span>
+          </p>
+        </footer>
+      )}
     </div>
   );
 }

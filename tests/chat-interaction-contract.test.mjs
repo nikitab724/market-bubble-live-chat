@@ -67,16 +67,18 @@ describe("chat interaction contract", () => {
   it("renders the Banks quote as a small bottom-left surface note", () => {
     const viewer = readViewerRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-    const quoteIndex = viewer.indexOf('className="surface-quote"');
+    const quoteIndex = viewer.indexOf('className="surface-corners"');
 
+    assert.equal(viewer.includes('className="surface-quote"'), false);
     assert.equal(viewer.includes('className="stream-quote"'), false);
     assert.equal(quoteIndex > viewer.indexOf("</main>"), true);
-    assert.equal(viewer.includes("if no one sees the vision, go alone"), true);
-    assert.match(styles, /\.surface-quote\s*\{[^}]*position: absolute[^}]*left: 38px[^}]*bottom: 22px/s);
-    assert.match(styles, /\.surface-quote\s*\{[^}]*font-size: clamp\(10px, 0\.78vw, 12px\)[^}]*line-height: 1/s);
-    assert.match(styles, /\.surface-quote\s*\{[^}]*white-space: nowrap[^}]*text-transform: uppercase/s);
-    assert.match(styles, /\.surface-quote\s*\{[^}]*pointer-events: none/s);
-    assert.match(styles, /\.live-surface::before\s*\{[^}]*inset: 0[^}]*border-radius: 0/s);
+    assert.equal(viewer.includes("If no one sees the vision, go alone"), true);
+    assert.equal(viewer.includes('className="corner-schedule"'), true);
+    assert.equal(viewer.includes("Thursdays"), true);
+    assert.equal(viewer.includes("1PM PST"), true);
+    assert.match(styles, /\.surface-corners\s*\{[^}]*position: absolute[^}]*bottom: 0[^}]*pointer-events: none/s);
+    assert.match(styles, /\.corner-quote\s*\{[^}]*font-size: clamp\(14px, 1\.35vw, 19px\)[^}]*animation: corner-rise/s);
+    assert.match(styles, /\.corner-schedule\s*\{[^}]*font-family: var\(--label-font\)[^}]*text-transform: uppercase/s);
   });
 
   it("uses the same React entry on both chat surfaces", () => {
@@ -110,19 +112,23 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.includes("FULL"), false);
     assert.equal(viewer.includes("MIN"), false);
     assert.equal(viewer.includes("showStream &&"), true);
-    assert.match(styles, /\.live-surface\s*\{[^}]*width: 100%[^}]*height: 100%/s);
-    assert.match(styles, /\.live-layout-mini\s*\{[^}]*background: var\(--bg\)/s);
+    assert.match(styles, /\.live-surface\s*\{[^}]*width: 100%[^}]*height: 100%[^}]*overscroll-behavior: none/s);
+    assert.match(styles, /\.live-layout-mini\s*\{[^}]*background: #050505/s);
     assert.match(styles, /::view-transition-old\(mb-stream\),\s*::view-transition-new\(mb-stream\)\s*\{[^}]*animation-duration: 420ms/s);
     assert.match(styles, /\.stream-view\s*\{[^}]*view-transition-name: mb-stream/s);
     assert.match(styles, /\.chat-view\s*\{[^}]*view-transition-name: mb-chat/s);
     assert.match(styles, /\.broadcast-topbar\s*\{[^}]*view-transition-name: mb-topbar/s);
     assert.match(styles, /\.layout-toggle-icon\s*\{[^}]*display: block/s);
-    assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*top: 50%[^}]*width: 230px[^}]*background: transparent[^}]*box-shadow: none[^}]*animation: none/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*width: 40px[^}]*height: 40px[^}]*border-radius: 999px/s);
+    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle,\s*\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*opacity: 1/s);
+    assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*top: 50%[^}]*width: 220px[^}]*background: transparent[^}]*box-shadow: none[^}]*animation: none/s);
     assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(520px, 1fr\) minmax\(270px, 320px\)/s);
-    assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 28px/s);
+    assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 32px/s);
     assert.match(styles, /\.live-layout-mini\s+\.chat-view\s*\{[^}]*background: transparent[^}]*box-shadow: none/s);
+    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*width: 40px[^}]*height: 40px[^}]*border-radius: 999px/s);
     assert.match(styles, /\.live-layout-mini\s+\.source-popover\s*\{[^}]*right: auto[^}]*left: calc\(100% - 1px\)[^}]*top: 50%[^}]*transform: translateY\(-50%\)/s);
     assert.match(styles, /\.live-layout-mini\s+\.source-chip:hover\s+\.source-popover\s*\{[^}]*transform: translateY\(-50%\)/s);
+    assert.equal(styles.includes(".live-layout-mini .brand-mark,\n.live-layout-mini .layout-toggle"), false);
     assert.equal(styles.includes(".chat-shell .layout-toggle"), false);
   });
 
@@ -267,14 +273,14 @@ describe("chat interaction contract", () => {
     assert.match(app, /<\/strong><span class="message-colon">:<\/span>\s*\$\{renderMessageBody\(message, getTwitchEmoteMap\(message\)\)\}/);
     assert.equal(app.includes("<time>${formatTime(message.timestamp)}</time>"), false);
     assert.equal(app.includes("<dt>Last seen</dt>"), false);
-    assert.match(styles, /\.message-body\s*\{[^}]*display: flex[^}]*gap: 7px/s);
+    assert.match(styles, /\.message-body\s*\{[^}]*display: flex[^}]*gap: 5px/s);
     assert.match(styles, /\.message-content\s*\{[^}]*flex: 1 1 auto/s);
     assert.match(styles, /\.chat-badges\s*\{[^}]*display: inline-flex[^}]*gap: 2px/s);
     assert.match(styles, /\.chat-badge-image,\s*\.chat-badge-text\s*\{[^}]*width: 16px[^}]*height: 16px/s);
     assert.match(styles, /\.chat-badge-text\s*\{[^}]*font-size: 7px/s);
-    assert.match(styles, /\.platform-logo\s*\{[^}]*width: 16px[^}]*height: 16px/s);
+    assert.match(styles, /\.platform-logo\s*\{[^}]*width: 18px[^}]*height: 18px/s);
     assert.match(styles, /\.platform-mark\s*\{[^}]*display: grid[^}]*justify-items: center/s);
-    assert.match(styles, /\.chat-message\s*\{[^}]*padding: 8px 9px/s);
+    assert.match(styles, /\.chat-message\s*\{[^}]*padding: 7px 10px 7px 13px/s);
     assert.match(styles, /\.source-label\s*\{[^}]*width: 100%[^}]*border: 0[^}]*background: transparent[^}]*text-align: center/s);
     assert.equal(styles.includes(".message-line time"), false);
     assert.match(styles, /\.message-author\s*\{[^}]*color: var\(--author-color, var\(--text\)\)/s);
@@ -318,20 +324,20 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes('data-surface="viewer"'), true);
     assert.equal(viewer.includes("broadcast-topbar"), true);
     assert.equal(viewer.includes("broadcast-metrics"), true);
-    assert.equal(viewer.includes('className="brand-text"'), true);
-    assert.equal(viewer.includes("<span>Market</span>"), true);
-    assert.equal(viewer.includes("<span>Bubble</span>"), true);
+    assert.equal(viewer.includes('className="brand-wordmark"'), true);
+    assert.equal(viewer.includes('className="brand-wordmark-text"'), true);
+    assert.equal(viewer.includes("Market Bubble"), true);
     assert.equal(html.includes("broadcast-clock"), false);
-    assert.match(styles, /\.live-surface\s*\{[^}]*background: var\(--bg\)[^}]*isolation: isolate/s);
-    assert.match(styles, /\.live-surface::before\s*\{[^}]*inset: 0[^}]*border-radius: 0[^}]*var\(--bg\)/s);
-    assert.match(styles, /\.broadcast-topbar\s*\{[^}]*padding: 22px 38px 8px[^}]*background: transparent/s);
-    assert.match(styles, /\.broadcast-metrics\s*\{[^}]*padding: 0[^}]*border: 0[^}]*border-radius: 0[^}]*background: transparent[^}]*box-shadow: none/s);
-    assert.match(styles, /\.app-shell\s*\{[^}]*min-height: 0[^}]*padding: 4px 28px 42px/s);
-    assert.match(styles, /\.viewer-shell\s*\{[^}]*grid-template-columns: minmax\(560px, 1fr\) minmax\(310px, 360px\)[^}]*gap: 18px/s);
-    assert.match(styles, /\.brand-mark\s*\{[^}]*display: inline-flex[^}]*gap: 16px[^}]*height: 58px/s);
-    assert.match(styles, /\.brand-mark img\s*\{[^}]*flex: 0 0 50px[^}]*width: 50px[^}]*height: 50px/s);
-    assert.match(styles, /\.brand-text\s*\{[^}]*font-size: 34px[^}]*animation: brand-text-write-in 760ms/s);
-    assert.match(styles, /@keyframes brand-text-write-in/);
+    assert.match(styles, /\.live-surface\s*\{[^}]*position: relative[^}]*overflow: hidden/s);
+    assert.equal(styles.includes(".live-surface::before"), false);
+    assert.match(styles, /\.broadcast-topbar\s*\{[^}]*height: 52px[^}]*padding: 8px 14px 7px[^}]*background: linear-gradient/s);
+    assert.match(styles, /\.broadcast-metrics\s*\{[^}]*grid-template-columns: auto minmax\(0, 1fr\)[^}]*gap: 7px/s);
+    assert.match(styles, /\.app-shell\s*\{[^}]*height: calc\(100vh - 52px\)[^}]*padding: 10px 12px 56px/s);
+    assert.match(styles, /\.viewer-shell\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(360px, 420px\)[^}]*gap: 10px/s);
+    assert.match(styles, /\.brand-mark\s*\{[^}]*display: flex[^}]*height: 36px/s);
+    assert.match(styles, /\.brand-wordmark\s*\{[^}]*height: 26px/s);
+    assert.match(styles, /\.brand-wordmark-text\s*\{[^}]*font-size: 44px/s);
+    assert.match(styles, /@keyframes wordmark-write/);
     assert.equal(styles.includes("brand-liquid-in"), false);
     assert.equal(viewer.includes("brand-threshold-filter"), false);
     assert.equal(styles.includes("--bg:"), true);
@@ -340,13 +346,13 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes("--twitch:"), true);
     assert.equal(styles.includes("--kick:"), true);
     assert.equal(styles.includes("--x:"), true);
-    assert.match(styles, /\.viewer-counter\s*\{[^}]*justify-items: center[^}]*border: 0[^}]*border-radius: 0[^}]*background: transparent[^}]*color: var\(--text\)/s);
+    assert.match(styles, /\.viewer-counter\s*\{[^}]*display: flex[^}]*justify-content: center[^}]*border: 0[^}]*border-radius: 0[^}]*background: transparent[^}]*color: var\(--text\)/s);
     assert.match(styles, /\.source-chip\s*\{[^}]*border: 0[^}]*background: transparent[^}]*box-shadow: none/s);
-    assert.match(styles, /\.source-chip\s*>\s*b\s*\{[^}]*grid-column: 1 \/ -1[^}]*justify-self: center[^}]*min-width: 100%[^}]*text-align: center/s);
+    assert.match(styles, /\.source-chip\s*>\s*b\s*\{[^}]*color: var\(--text\)[^}]*font-size: 10px/s);
     assert.match(styles, /\.source-popover\s*\{[^}]*position: absolute[^}]*right: 0[^}]*top: calc\(100% - 1px\)/s);
     assert.match(styles, /\.source-popover\s*\{[^}]*width: min\(248px, calc\(100vw - 24px\)\)/s);
     assert.match(styles, /\.source-popover\s*\{[^}]*max-height: calc\(100vh - 66px\)[^}]*overflow: auto/s);
-    assert.match(styles, /\.source-popover\s*\{[^}]*background: rgba\(17, 17, 17, 0\.98\)/s);
+    assert.match(styles, /\.source-popover\s*\{[^}]*background: #111/s);
     assert.match(styles, /\.source-popover\s*\{[^}]*visibility: hidden/s);
     assert.equal(styles.includes(".source-chip::before"), false);
     assert.equal(styles.includes(".source-popover::before"), false);
@@ -490,6 +496,8 @@ describe("chat interaction contract", () => {
     assert.match(app, /if \(event\.cancelable\) \{[\s\S]*event\.preventDefault\(\);[\s\S]*\}/);
     assert.match(styles, /html\s*\{[^}]*height: 100%[^}]*overflow: hidden[^}]*overscroll-behavior: none/s);
     assert.match(styles, /body\s*\{[^}]*position: fixed[^}]*inset: 0[^}]*overflow: hidden[^}]*overscroll-behavior: none/s);
+    assert.match(styles, /\.live-surface\s*\{[^}]*overscroll-behavior: none/s);
+    assert.match(styles, /\.stream-view\s*\{[^}]*overscroll-behavior: none/s);
     assert.match(styles, /\.chat-view\s*\{[^}]*overscroll-behavior: none/s);
     assert.match(styles, /\.chat-feed\s*\{[^}]*overflow-y: hidden[^}]*touch-action: none/s);
   });
@@ -558,17 +566,24 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes("@keyframes count-roll"), false);
   });
 
-  it("places the layout toggle inside the stream frame with inward minimize corners", () => {
+  it("docks the layout toggle into the stream border with stable hover and inward minimize corners", () => {
     const viewer = readViewerRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+    const streamViewIndex = viewer.indexOf('className="stream-view"');
     const videoFrameIndex = viewer.indexOf('className="video-frame"');
     const toggleIndex = viewer.indexOf('className="layout-toggle"');
     const chatViewIndex = viewer.indexOf('className="chat-view"');
 
+    assert.equal(streamViewIndex > -1, true);
     assert.equal(videoFrameIndex > -1, true);
-    assert.equal(toggleIndex > videoFrameIndex && toggleIndex < chatViewIndex, true);
-    assert.match(styles, /\.video-frame\s+\.layout-toggle\s*\{[^}]*position: absolute[^}]*top: 14px[^}]*left: 14px/s);
-    assert.match(styles, /\.video-frame\s+\.layout-toggle\s*\{[^}]*background: rgba\(8, 8, 8, 0\.72\)[^}]*box-shadow: 0 10px 28px rgba\(0, 0, 0, 0\.38\)/s);
+    assert.equal(toggleIndex > streamViewIndex && toggleIndex < videoFrameIndex, true);
+    assert.equal(toggleIndex < chatViewIndex, true);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*position: absolute[^}]*top: -1px[^}]*left: -1px[^}]*right: auto/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*width: 40px[^}]*height: 40px[^}]*border-radius: 999px/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*opacity: 0\.46/s);
+    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle,\s*\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*opacity: 1/s);
+    assert.match(styles, /\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*border-color: rgba\(228, 228, 228, 0\.54\)[^}]*background: rgba\(228, 228, 228, 0\.12\)/s);
+    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*top: 18px[^}]*left: 18px[^}]*right: auto[^}]*width: 40px[^}]*height: 40px/s);
     assert.match(styles, /\.layout-toggle-icon\[data-layout-action="minimize"\]::before\s*\{[^}]*top: 0[^}]*left: 0[^}]*border-top: 2px solid[^}]*border-left: 2px solid/s);
     assert.match(styles, /\.layout-toggle-icon\[data-layout-action="minimize"\]::after\s*\{[^}]*right: 0[^}]*bottom: 0[^}]*border-right: 2px solid[^}]*border-bottom: 2px solid/s);
     assert.match(styles, /\.layout-toggle-icon\[data-layout-action="expand"\]::before\s*\{[^}]*border-top: 2px solid/s);
