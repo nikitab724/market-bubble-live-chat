@@ -47,7 +47,8 @@ Common env vars:
 - `KICK_CLIENT_SECRET`
 - `KICK_REDIRECT_URI`
 - `CHAT_DB_PATH` (optional, defaults to `/app/data/chat-events.sqlite` in Docker)
-- `CHAT_RETENTION_DAYS` (optional, defaults to `7`)
+- `CHAT_RETENTION_HOURS` (optional, defaults to `2`)
+- `CHAT_RETENTION_DAYS` (optional compatibility fallback when `CHAT_RETENTION_HOURS` is unset)
 - `CHAT_REPLAY_LIMIT` (optional, defaults to `1000`)
 
 ## Build Step
@@ -70,6 +71,8 @@ Chat events are stored in SQLite before they are sent over `/api/chat-events`. T
 ```
 
 The deploy script already mounts `/opt/market-bubble-live/data` to `/app/data`, so the chat event log survives container rebuilds and restarts without a separate DB service. Keep that data mount in place for reliable reconnect replay.
+
+By default, chat event rows older than 2 hours are deleted when the store opens, before replay, and after new writes. This keeps the persistent SQLite file bounded while still covering browser refreshes, reconnects, and short server restarts.
 
 SQLite sidecar files such as `chat-events.sqlite-wal` and `chat-events.sqlite-shm` are expected.
 

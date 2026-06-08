@@ -31,7 +31,7 @@ const DEFAULT_PORT = 4178;
 let devChatMessageSequence = 0;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const DEFAULT_CHAT_REPLAY_LIMIT = 1000;
-const DEFAULT_CHAT_RETENTION_DAYS = 7;
+const DEFAULT_CHAT_RETENTION_HOURS = 2;
 
 const CONTENT_TYPES = {
   ".avif": "image/avif",
@@ -94,7 +94,7 @@ export function createAppServer(options = {}) {
     ? createSqliteChatEventStore({
       dbPath: process.env.CHAT_DB_PATH || join(rootDir, "data", "chat-events.sqlite"),
       replayLimit: chatReplayLimit,
-      retentionDays: getPositiveNumber(process.env.CHAT_RETENTION_DAYS, DEFAULT_CHAT_RETENTION_DAYS),
+      retentionHours: getChatRetentionHours(process.env),
     })
     : options.chatEventStore;
   const chatHub = options.chatHub || createChatEventHub({
@@ -318,6 +318,20 @@ export function createAppServer(options = {}) {
 function getPositiveNumber(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+export function getChatRetentionHours(env = process.env) {
+  const hours = getPositiveNumber(env.CHAT_RETENTION_HOURS, 0);
+  if (hours) {
+    return hours;
+  }
+
+  const days = getPositiveNumber(env.CHAT_RETENTION_DAYS, 0);
+  if (days) {
+    return days * 24;
+  }
+
+  return DEFAULT_CHAT_RETENTION_HOURS;
 }
 
 async function getLiveState(sources, clients) {

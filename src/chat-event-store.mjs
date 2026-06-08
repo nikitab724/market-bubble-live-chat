@@ -4,16 +4,19 @@ import { dirname } from "node:path";
 import Database from "better-sqlite3";
 
 const DEFAULT_REPLAY_LIMIT = 1000;
-const DEFAULT_RETENTION_DAYS = 7;
+const DEFAULT_RETENTION_HOURS = 2;
+const MS_PER_HOUR = 60 * 60 * 1000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export function createMemoryChatEventStore({
   now = Date.now,
   replayLimit = DEFAULT_REPLAY_LIMIT,
-  retentionDays = DEFAULT_RETENTION_DAYS,
+  retentionDays,
+  retentionHours,
 } = {}) {
   const events = [];
   let nextId = 1;
+  const retentionMs = getRetentionMilliseconds({ retentionDays, retentionHours });
 
   return {
     append(eventName, payload) {
@@ -33,6 +36,8 @@ export function createMemoryChatEventStore({
 
     getEventsAfter(lastEventId, options = {}) {
       const limit = normalizeLimit(options.limit, replayLimit);
+      prune();
+
       return events
         .filter((event) => event.id > Number(lastEventId || 0))
         .slice(-limit)
@@ -41,12 +46,14 @@ export function createMemoryChatEventStore({
 
     getRecentEvents(options = {}) {
       const limit = normalizeLimit(options.limit, replayLimit);
+      prune();
+
       return events.slice(-limit).map(toPublicEvent);
     },
   };
 
   function prune() {
-    const cutoff = getRetentionCutoff(now(), retentionDays);
+    const cutoff = getRetentionCutoff(now(), retentionMs);
     if (!cutoff) return;
 
     while (events.length > 0 && events[0].createdAt < cutoff) {
@@ -59,7 +66,8 @@ export function createSqliteChatEventStore({
   dbPath,
   now = Date.now,
   replayLimit = DEFAULT_REPLAY_LIMIT,
-  retentionDays = DEFAULT_RETENTION_DAYS,
+  retentionDays,
+  retentionHours,
 } = {}) {
   if (!dbPath) {
     throw new Error("Chat event DB path is required");
@@ -105,6 +113,8 @@ export function createSqliteChatEventStore({
     ORDER BY id ASC
   `);
   const deleteOld = db.prepare("DELETE FROM chat_events WHERE created_at < ?");
+  const retentionMs = getRetentionMilliseconds({ retentionDays, retentionHours });
+  prune(now());
 
   return {
     append(eventName, payload) {
@@ -125,17 +135,21 @@ export function createSqliteChatEventStore({
 
     getEventsAfter(lastEventId, options = {}) {
       const limit = normalizeLimit(options.limit, replayLimit);
+      prune(now());
+
       return selectAfter.all(Number(lastEventId || 0), limit).map(rowToEvent);
     },
 
     getRecentEvents(options = {}) {
       const limit = normalizeLimit(options.limit, replayLimit);
+      prune(now());
+
       return selectRecent.all(limit).map(rowToEvent);
     },
   };
 
   function prune(timestamp) {
-    const cutoff = getRetentionCutoff(timestamp, retentionDays);
+    const cutoff = getRetentionCutoff(timestamp, retentionMs);
     if (cutoff) {
       deleteOld.run(cutoff);
     }
@@ -167,11 +181,24 @@ function normalizeLimit(value, fallback) {
   return Math.max(1, Math.round(limit));
 }
 
-function getRetentionCutoff(timestamp, retentionDays) {
-  const days = Number(retentionDays);
-  if (!Number.isFinite(days) || days <= 0) {
+function getRetentionCutoff(timestamp, retentionMs) {
+  if (!retentionMs) {
     return 0;
   }
 
-  return timestamp - days * MS_PER_DAY;
+  return timestamp - retentionMs;
+}
+
+function getRetentionMilliseconds({ retentionDays, retentionHours } = {}) {
+  const hours = Number(retentionHours);
+  if (Number.isFinite(hours) && hours > 0) {
+    return hours * MS_PER_HOUR;
+  }
+
+  const days = Number(retentionDays);
+  if (Number.isFinite(days) && days > 0) {
+    return days * MS_PER_DAY;
+  }
+
+  return DEFAULT_RETENTION_HOURS * MS_PER_HOUR;
 }

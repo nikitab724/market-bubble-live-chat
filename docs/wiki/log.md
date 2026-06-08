@@ -384,3 +384,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Filtering hides or restores rows by `sourceId` in the rendered chat window while keeping full message history and provider ingest intact.
 - Added the requested shadcn-style `ThemeToggle` component and `lucide-react` dependency without replacing the existing count-animation demo.
 - Verification: red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "chat filter"`; red/green `node --test tests/theme-toggle-component.test.mjs`; `node --check src/app.mjs src/chat-renderer.mjs`; `npx tsc --noEmit`; `npm test` (104 passed); `npm run build`; in-app browser smoke on `/?demoChat=1&layout=full` toggled the Twitch/Xtwin filter off and back on, hiding/restoring its rows with no console errors.
+
+## [2026-06-08] db | Limit chat event retention to two hours
+
+- Changed the SQLite chat event retention default from 7 days to 2 hours through `CHAT_RETENTION_HOURS`.
+- Kept `CHAT_RETENTION_DAYS` as a compatibility fallback when hours are unset, and pruned old rows when the store opens, before replay queries, and after writes.
+- Verification: red/green `node --test tests/chat-event-store.test.mjs`; red/green `node --test tests/server-contract.test.mjs --test-name-pattern "two-hour chat retention"`; `node --test tests/chat-event-store.test.mjs tests/server-contract.test.mjs` (12 passed); `npm test` (106 passed); `npm run build`; `git diff --check`.

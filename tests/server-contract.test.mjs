@@ -6,9 +6,15 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { hashPassword } from "../src/admin-auth.mjs";
-import { createAppServer } from "../server.mjs";
+import { createAppServer, getChatRetentionHours } from "../server.mjs";
 
 describe("server contract", () => {
+  it("uses two-hour chat retention by default with env overrides", () => {
+    assert.equal(getChatRetentionHours({}), 2);
+    assert.equal(getChatRetentionHours({ CHAT_RETENTION_HOURS: "4" }), 4);
+    assert.equal(getChatRetentionHours({ CHAT_RETENTION_DAYS: "1" }), 24);
+  });
+
   it("opens admin source editing when no admin password hash is configured", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-open-admin-"));
     const configPath = join(tempDir, "sources.json");

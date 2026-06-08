@@ -29,10 +29,10 @@ The database stores:
 
 Retention defaults:
 
-- `CHAT_RETENTION_DAYS=7`
+- `CHAT_RETENTION_HOURS=2`
 - `CHAT_REPLAY_LIMIT=1000`
 
-Retention cleanup runs after writes and removes old rows. Replay queries still cap by `CHAT_REPLAY_LIMIT` so a browser does not receive unlimited history on connection.
+Retention cleanup runs when the store opens, after writes, and before replay queries, removing old rows. `CHAT_RETENTION_DAYS` remains a compatibility fallback when `CHAT_RETENTION_HOURS` is unset. Replay queries still cap by `CHAT_REPLAY_LIMIT` so a browser does not receive unlimited history on connection.
 
 ## Tradeoffs
 

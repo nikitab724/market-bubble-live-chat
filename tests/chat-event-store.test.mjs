@@ -82,6 +82,24 @@ describe("chat event store", () => {
       store.close();
     }
   });
+
+  it("removes events older than the retention hours before replaying", async () => {
+    let now = Date.parse("2026-06-08T12:00:00.000Z");
+    const store = await createTempStore({
+      now: () => now,
+      retentionHours: 2,
+      replayLimit: 10,
+    });
+
+    try {
+      store.append("chat", { body: "old" });
+      now += 2 * 60 * 60 * 1000 + 1;
+
+      assert.deepEqual(store.getRecentEvents(), []);
+    } finally {
+      store.close();
+    }
+  });
 });
 
 async function createTempStore(options = {}) {

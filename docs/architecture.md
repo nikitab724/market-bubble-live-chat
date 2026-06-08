@@ -43,7 +43,7 @@ Twitch, Kick, and X chat arrive at the backend and are broadcast to browsers thr
 
 The SSE hub writes each broadcast to the SQLite chat event log before sending it to browsers. The SQLite row id becomes the SSE event id, so event ids and replay survive server restarts. New browser connections receive the current stored replay window, and reconnects with `Last-Event-ID` receive only events after that id. The stream also sends heartbeat comments so intermediaries are less likely to close an idle chat connection.
 
-The default database path is `data/chat-events.sqlite`, which is inside the production persistent data mount. Operators can override it with `CHAT_DB_PATH`. Chat event retention defaults to 7 days through `CHAT_RETENTION_DAYS`, and replay responses are capped by `CHAT_REPLAY_LIMIT` which defaults to 1000 events.
+The default database path is `data/chat-events.sqlite`, which is inside the production persistent data mount. Operators can override it with `CHAT_DB_PATH`. Chat event retention defaults to 2 hours through `CHAT_RETENTION_HOURS`, with `CHAT_RETENTION_DAYS` kept as a compatibility fallback. Replay responses are capped by `CHAT_REPLAY_LIMIT`, which defaults to 1000 events.
 
 Every chat message is normalized into the shared chat shape before rendering:
 
