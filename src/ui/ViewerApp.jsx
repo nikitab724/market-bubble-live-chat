@@ -110,7 +110,6 @@ export function ViewerApp({ surface = "viewer" }) {
           <section className="stream-view" aria-label="Market Bubble stream">
             <div className="video-frame">
               <div id="streamPlayer" className="stream-player" />
-              <p className="stream-quote">if no one sees the vision, go alone</p>
             </div>
           </section>
         )}
@@ -122,6 +121,23 @@ export function ViewerApp({ surface = "viewer" }) {
           </button>
         </section>
       </main>
+
+      {showStream && (
+        <footer className="surface-corners" aria-hidden="false">
+          <p className="corner-quote">
+            <span className="corner-quote-mark">&ldquo;</span>
+            If no one sees the vision, go alone
+            <span className="corner-quote-mark">&rdquo;</span>
+          </p>
+          <p className="corner-schedule">
+            <span>Live</span>
+            <span className="corner-dot" />
+            <span>Thursdays</span>
+            <span className="corner-dot" />
+            <span>1PM PST</span>
+          </p>
+        </footer>
+      )}
     </div>
   );
 }
