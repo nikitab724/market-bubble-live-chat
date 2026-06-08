@@ -1,5 +1,8 @@
 const DEFAULT_TOKEN_URL = "https://id.kick.com/oauth/token";
 const DEFAULT_CHANNELS_URL = "https://api.kick.com/public/v1/channels";
+const DEFAULT_EVENT_SUBSCRIPTIONS_URL = "https://api.kick.com/public/v1/events/subscriptions";
+const KICK_CHAT_EVENT_NAME = "chat.message.sent";
+const KICK_CHAT_EVENT_VERSION = 1;
 const TOKEN_EXPIRY_MARGIN_MS = 60_000;
 
 export function createKickApiClient(options = {}) {
@@ -9,6 +12,7 @@ export function createKickApiClient(options = {}) {
   const now = options.now || Date.now;
   const tokenUrl = options.tokenUrl || DEFAULT_TOKEN_URL;
   const channelsUrl = options.channelsUrl || DEFAULT_CHANNELS_URL;
+  const eventSubscriptionsUrl = options.eventSubscriptionsUrl || DEFAULT_EVENT_SUBSCRIPTIONS_URL;
 
   let cachedToken = "";
   let tokenExpiresAt = 0;
@@ -51,6 +55,43 @@ export function createKickApiClient(options = {}) {
       }
 
       return broadcasterUserId;
+    },
+
+    async ensureChatEventSubscriptions(sources) {
+      const kickSources = getKickSubscriptionSources(sources);
+      const result = { created: [], existing: [], skipped: [] };
+
+      if (kickSources.length === 0) {
+        return result;
+      }
+
+      const token = await getAppAccessToken();
+      const existingSubscriptions = await getEventSubscriptions(token);
+      const existingChatBroadcasters = new Set(
+        existingSubscriptions
+          .filter((subscription) => subscription.event === KICK_CHAT_EVENT_NAME)
+          .map((subscription) => normalizeBroadcasterUserId(subscription.broadcaster_user_id))
+          .filter(Boolean),
+      );
+
+      for (const source of kickSources) {
+        if (existingChatBroadcasters.has(source.broadcasterUserId)) {
+          result.existing.push({
+            broadcasterUserId: source.broadcasterUserId,
+            sourceHandle: source.sourceHandle,
+          });
+          continue;
+        }
+
+        const subscription = await createChatEventSubscription(source, token);
+        result.created.push({
+          broadcasterUserId: source.broadcasterUserId,
+          sourceHandle: source.sourceHandle,
+          subscriptionId: subscription.subscription_id || "",
+        });
+      }
+
+      return result;
     },
   };
 
@@ -145,6 +186,49 @@ export function createKickApiClient(options = {}) {
     const payload = await response.json();
     return (payload.data || []).find((item) => String(item.slug || "").toLowerCase() === slug) || null;
   }
+
+  async function getEventSubscriptions(token) {
+    const response = await fetchImpl(eventSubscriptionsUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Kick event subscriptions request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    return Array.isArray(payload.data) ? payload.data : [];
+  }
+
+  async function createChatEventSubscription(source, token) {
+    const response = await fetchImpl(eventSubscriptionsUrl, {
+      body: JSON.stringify({
+        broadcaster_user_id: source.broadcasterUserId,
+        events: [{ name: KICK_CHAT_EVENT_NAME, version: KICK_CHAT_EVENT_VERSION }],
+        method: "webhook",
+      }),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Kick chat subscription request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const subscription = (payload.data || []).find(
+      (item) => item.name === KICK_CHAT_EVENT_NAME && Number(item.version) === KICK_CHAT_EVENT_VERSION,
+    );
+
+    if (!subscription || subscription.error) {
+      throw new Error(subscription?.error || "Kick chat subscription response did not include a subscription");
+    }
+
+    return subscription;
+  }
 }
 
 function getKickSources(sources) {
@@ -156,6 +240,16 @@ function getKickSources(sources) {
       sourceLabel: source.sourceLabel || source.sourceName || source.sourceHandle,
     }))
     .filter((source) => source.sourceHandle);
+}
+
+function getKickSubscriptionSources(sources) {
+  return (Array.isArray(sources) ? sources : [])
+    .filter((source) => source.platform === "kick")
+    .map((source) => ({
+      broadcasterUserId: normalizeBroadcasterUserId(source.broadcasterUserId),
+      sourceHandle: normalizeSlug(source.sourceHandle),
+    }))
+    .filter((source) => source.broadcasterUserId && source.sourceHandle);
 }
 
 function normalizeSlug(value) {

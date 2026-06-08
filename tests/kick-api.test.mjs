@@ -121,6 +121,56 @@ describe("kick api client", () => {
     assert.equal(calls.length, 2);
   });
 
+  it("subscribes Kick broadcasters to chat message webhooks", async () => {
+    const calls = [];
+    const client = createKickApiClient({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      fetchImpl: async (url, options = {}) => {
+        calls.push({ body: options.body, method: options.method || "GET", url: String(url), options });
+
+        if (String(url).includes("/oauth/token")) {
+          return jsonResponse({ access_token: "app-token", expires_in: 3600 });
+        }
+
+        assert.equal(options.headers.Authorization, "Bearer app-token");
+
+        if (options.method === "POST") {
+          assert.equal(String(url), "https://api.kick.com/public/v1/events/subscriptions");
+          assert.deepEqual(JSON.parse(options.body), {
+            broadcaster_user_id: 676,
+            events: [{ name: "chat.message.sent", version: 1 }],
+            method: "webhook",
+          });
+          return jsonResponse({
+            data: [{ name: "chat.message.sent", subscription_id: "sub-1", version: 1 }],
+            message: "OK",
+          });
+        }
+
+        assert.equal(String(url), "https://api.kick.com/public/v1/events/subscriptions");
+        return jsonResponse({ data: [] });
+      },
+    });
+
+    const result = await client.ensureChatEventSubscriptions([
+      {
+        broadcasterUserId: 676,
+        platform: "kick",
+        sourceHandle: "xqc",
+        sourceId: "kick-xqc",
+        sourceLabel: "Xbob",
+      },
+    ]);
+
+    assert.deepEqual(result, {
+      created: [{ broadcasterUserId: 676, sourceHandle: "xqc", subscriptionId: "sub-1" }],
+      existing: [],
+      skipped: [],
+    });
+    assert.equal(calls.length, 3);
+  });
+
   it("returns offline Kick sources when the channel has no stream", async () => {
     const client = createKickApiClient({
       clientId: "client-id",

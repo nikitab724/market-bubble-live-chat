@@ -52,6 +52,7 @@ describe("server contract", () => {
     await writeFile(configPath, JSON.stringify({ sources: [] }));
 
     const resolvedHandles = [];
+    const subscriptionSources = [];
     const server = createAppServer({
       adminPasswordHash: "",
       configPath,
@@ -64,6 +65,10 @@ describe("server contract", () => {
         async resolveBroadcasterUserId(handle) {
           resolvedHandles.push(handle);
           return 676;
+        },
+        async ensureChatEventSubscriptions(sources) {
+          subscriptionSources.push(sources);
+          return { created: [{ broadcasterUserId: 676, sourceHandle: "xqc", subscriptionId: "sub-1" }] };
         },
       },
     });
@@ -78,6 +83,10 @@ describe("server contract", () => {
       assert.equal(update.json.sources[0].sourceHandle, "xqc");
       assert.equal(update.json.sources[0].broadcasterUserId, 676);
       assert.deepEqual(resolvedHandles, ["xqc"]);
+      assert.equal(subscriptionSources.length, 1);
+      assert.equal(subscriptionSources[0][0].platform, "kick");
+      assert.equal(subscriptionSources[0][0].sourceHandle, "xqc");
+      assert.equal(subscriptionSources[0][0].broadcasterUserId, 676);
 
       const saved = JSON.parse(await readFile(configPath, "utf8"));
       assert.equal(saved.sources[0].broadcasterUserId, 676);

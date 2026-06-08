@@ -344,3 +344,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Removed the hover text-shadow from chat authors and source labels so the brighter hover text does not pick up a dark smoky overlay.
 - Extended the chat interaction contract to keep hover text brightening while preventing hover text shadows from returning.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "keeps chat rows tight"`; `npm test` (88 passed); `npm run build`; in-app browser smoke confirmed served hover text rules have no `text-shadow`, still brighten all chat text parts, and report no console errors.
+
+## [2026-06-08] fix | Subscribe Kick chat webhooks on admin save
+
+- Added Kick event subscription support for configured broadcasters so admin saves create missing `chat.message.sent` webhook subscriptions after resolving `broadcasterUserId`.
+- Wired the admin source save route to ensure Kick chat subscriptions before persisting sources, and documented the webhook/subscription setup requirement.
+- Verification: `node --test tests/kick-api.test.mjs`; `node --test tests/server-contract.test.mjs --test-name-pattern "resolves Kick"`; `npm test` (89 passed); `npm run build`; local SSE/browser smoke confirmed `/api/dev/kick-chat` renders a Kick row with no console errors.

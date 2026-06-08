@@ -233,6 +233,7 @@ export function createAppServer(options = {}) {
             normalizeSources(stripEditableViewerCounts(body.sources || [])),
             kickClient,
           );
+          await ensureKickChatSubscriptions(sources, kickClient);
           await writeSources(configPath, sources);
           return sendJson(response, 200, { sources });
         }
@@ -347,6 +348,18 @@ async function resolveKickBroadcasterUserIds(sources, kickClient) {
       };
     }),
   );
+}
+
+async function ensureKickChatSubscriptions(sources, kickClient) {
+  if (!sources.some((source) => source.platform === "kick" && source.broadcasterUserId)) {
+    return null;
+  }
+
+  if (typeof kickClient.ensureChatEventSubscriptions !== "function") {
+    return null;
+  }
+
+  return kickClient.ensureChatEventSubscriptions(sources);
 }
 
 export async function readSources(configPath = DEFAULT_CONFIG_PATH) {
