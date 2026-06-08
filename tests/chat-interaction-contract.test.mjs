@@ -514,6 +514,7 @@ describe("chat interaction contract", () => {
     assert.doesNotMatch(chatMessageRule, /transform-origin/);
     assert.doesNotMatch(chatMessageRule, /transition:[^}]*transform/s);
     assert.doesNotMatch(chatRiseKeyframes, /translateY/);
+    assert.doesNotMatch(chatRiseKeyframes, /filter/);
   });
 
   it("appends new chat rows without rebuilding the full chat history", () => {

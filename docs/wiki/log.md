@@ -319,3 +319,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Changed live chat rendering so any active profile hover queues incoming chat DOM updates instead of appending/scrolling rows under the pointer.
 - Updated the chat interaction contract to cover profile hover inspection at the live bottom, not only while reading older messages.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`.
+
+## [2026-06-08] fix | Restore visible chat profile cards
+
+- Removed the remaining blur filter from chat row entrance keyframes because the filled animation made each row a containing block for fixed-position profile cards.
+- Extended the chat interaction contract so row keyframes cannot use transform or filter, keeping profile cards positioned against the viewport.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "controlled chat bottom"`; `node --test tests/chat-interaction-contract.test.mjs`; `npm run build`; in-app browser smoke confirmed a pinned profile card renders at `left=1024 top=475` within a 1280x720 viewport with row `filter: none` and no console errors.
