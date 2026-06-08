@@ -60,6 +60,8 @@ The browser keeps all received messages in memory for correctness, but only rend
 
 `src/ui/main.jsx` is the React entry for the viewer/chat shell. It renders stable DOM ids consumed by the live runtime: `streamPlayer`, `chatFeed`, `jumpToLive`, `viewerCount`, and `sourceBreakdown`.
 
+Reusable shadcn-style React primitives live under `components/ui/`, with shared helpers in `lib/`. The Vite and TypeScript configs both map `@/` to the repository root so registry components can import paths such as `@/components/ui/count-animation` and `@/lib/utils`. Tailwind v4 enters through `src/ui/tailwind.css`, which imports the app stylesheet.
+
 `src/app.mjs` exports `mountLiveApp()` and remains the browser runtime orchestrator after React has mounted. Focused modules own the heavy pieces:
 
 - `src/client-sources.mjs`: static fallback source config for offline/dev loading.

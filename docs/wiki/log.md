@@ -331,3 +331,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Increased chat row hover contrast by brightening the message body, author name, colon, and source label instead of relying only on the row background.
 - Updated the chat interaction contract to lock in the brighter hover text treatment.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "keeps chat rows tight"`; `npm test` (86 passed); `npm run build`; `git diff --check`; in-app browser smoke confirmed the served demo chat loaded 26 messages, all four hover text brightening rules were present, and there were no console errors.
+
+## [2026-06-08] ui | Add shadcn count animation component
+
+- Added the `components/ui/count-animation.tsx` Framer Motion count animation and colocated demo under the shadcn-style component path.
+- Added the shared `@/lib/utils` `cn` helper, shadcn metadata, TypeScript config, Vite `@/` alias, and required npm dependencies for the TSX component.
+- Documented the reusable component path in the architecture notes and added a focused component integration contract.
+- Verification: `node --test tests/count-animation-component.test.mjs`; `npx tsc --noEmit`; `npm test` (88 passed); `npm run build`; `git diff --check`.
