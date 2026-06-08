@@ -338,3 +338,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Added the shared `@/lib/utils` `cn` helper, shadcn metadata, TypeScript config, Vite `@/` alias, and required npm dependencies for the TSX component.
 - Documented the reusable component path in the architecture notes and added a focused component integration contract.
 - Verification: `node --test tests/count-animation-component.test.mjs`; `npx tsc --noEmit`; `npm test` (88 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-08] ui | Remove chat hover text shadow
+
+- Removed the hover text-shadow from chat authors and source labels so the brighter hover text does not pick up a dark smoky overlay.
+- Extended the chat interaction contract to keep hover text brightening while preventing hover text shadows from returning.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "keeps chat rows tight"`; `npm test` (88 passed); `npm run build`; in-app browser smoke confirmed served hover text rules have no `text-shadow`, still brighten all chat text parts, and report no console errors.
