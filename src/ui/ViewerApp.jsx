@@ -121,6 +121,7 @@ export function ViewerApp({ surface = "viewer" }) {
         )}
 
         <section className="chat-view" aria-label="Combined live chat">
+          <div id="chatFilters" className="chat-filters" aria-label="Chat source filters" />
           <div id="chatFeed" className="chat-feed" role="log" aria-live="polite" />
           <button id="jumpToLive" className="jump-to-live" type="button" hidden>
             Jump to live

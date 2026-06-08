@@ -23,6 +23,8 @@ Market Bubble Live has three user-facing surfaces:
 
 The server also exposes provider endpoints for config, live state, Twitch emotes, SSE chat delivery, Kick webhook chat, and X chat bridge ingest.
 
+Chat delivery uses a SQLite event log in the persistent `data/` directory so browser reconnect replay survives server restarts without a separate database service.
+
 ## Update Rule
 
 If a change affects behavior, setup, routes, connectors, deployment, tests, or data shape, update the matching doc in the same commit. For repo-changing runs, append a short entry to [wiki/log.md](wiki/log.md). Keep docs concise and avoid secrets.

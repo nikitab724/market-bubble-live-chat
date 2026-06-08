@@ -46,6 +46,9 @@ Common env vars:
 - `KICK_CLIENT_ID`
 - `KICK_CLIENT_SECRET`
 - `KICK_REDIRECT_URI`
+- `CHAT_DB_PATH` (optional, defaults to `/app/data/chat-events.sqlite` in Docker)
+- `CHAT_RETENTION_DAYS` (optional, defaults to `7`)
+- `CHAT_REPLAY_LIMIT` (optional, defaults to `1000`)
 
 ## Build Step
 
@@ -57,6 +60,18 @@ npm run build
 ```
 
 The Node server serves `dist/client` for `/`, `/chat/`, `/admin/`, and `/assets/*` before falling back to source files used by tests.
+
+## Persistent Chat Event Log
+
+Chat events are stored in SQLite before they are sent over `/api/chat-events`. The default Docker path is:
+
+```text
+/app/data/chat-events.sqlite
+```
+
+The deploy script already mounts `/opt/market-bubble-live/data` to `/app/data`, so the chat event log survives container rebuilds and restarts without a separate DB service. Keep that data mount in place for reliable reconnect replay.
+
+SQLite sidecar files such as `chat-events.sqlite-wal` and `chat-events.sqlite-shm` are expected.
 
 ## Manual Deploy Smoke Check
 

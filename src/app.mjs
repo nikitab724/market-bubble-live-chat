@@ -9,7 +9,6 @@ import {
   loadTwitchEmotes,
   refreshLiveState,
   startBackendChatEvents,
-  startTwitchConnectors,
 } from "./chat-runtime.mjs";
 import { fallbackSources } from "./client-sources.mjs";
 import { seedDemoMessages, startDemoChat } from "./demo-chat.mjs";
@@ -40,6 +39,7 @@ function createLiveApp({ document, window }) {
   let authorProfilesByKey = new Map();
 
   const state = {
+    disabledChatSourceIds: new Set(),
     followingChat: true,
     inspectingProfile: false,
     messages: [],
@@ -54,6 +54,7 @@ function createLiveApp({ document, window }) {
 
   const elements = {
     chatFeed: document.querySelector("#chatFeed"),
+    chatFilters: document.querySelector("#chatFilters"),
     chatView: document.querySelector(".chat-view"),
     jumpToLive: document.querySelector("#jumpToLive"),
     sourceBreakdown: document.querySelector("#sourceBreakdown"),
@@ -92,8 +93,7 @@ function createLiveApp({ document, window }) {
     initStreamPlayer({ document, sources: connectedSources, window });
     loadTwitchBadges({ sources: connectedSources, state, queueRender });
     loadTwitchEmotes({ sources: connectedSources, state, queueRender });
-    startTwitchConnectors({ sources: connectedSources, state, addMessage, queueRender });
-    startBackendChatEvents({ window, addBackendMessage });
+    startBackendChatEvents({ window, addBackendMessage, updateBackendChatStatus });
     if (isDemoChatEnabled()) {
       startDemoChat({
         addMessage,
@@ -118,6 +118,16 @@ function createLiveApp({ document, window }) {
 
   function addBackendMessage(rawMessage) {
     addMessage(rawMessage);
+  }
+
+  function updateBackendChatStatus(rawStatus) {
+    const sourceId = String(rawStatus?.sourceId || "");
+    if (rawStatus?.platform !== "twitch" || !sourceId || !hasSource(sourceId)) {
+      return;
+    }
+
+    state.twitchStatuses[sourceId] = String(rawStatus.status || "connecting");
+    queueRender();
   }
 
   function buildSourceMap(sources) {
@@ -179,6 +189,7 @@ function createLiveApp({ document, window }) {
     elements.chatView.addEventListener("wheel", renderer.handleChatWheel, { capture: true, passive: false });
     elements.chatView.addEventListener("touchstart", renderer.handleChatTouchStart, { capture: true, passive: true });
     elements.chatView.addEventListener("touchmove", renderer.handleChatTouchMove, { capture: true, passive: false });
+    elements.chatFilters.addEventListener("click", handleChatFilterToggle);
     elements.chatFeed.addEventListener("click", handleProfilePinClick);
     document.addEventListener("click", handleDocumentProfileUnpinClick);
 
@@ -188,6 +199,27 @@ function createLiveApp({ document, window }) {
       state.inspectingProfile = false;
       renderer.renderPendingChat();
     });
+  }
+
+  function handleChatFilterToggle(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest(".chat-filter-toggle");
+    const sourceId = String(button?.dataset.sourceId || "");
+    if (!button || !hasSource(sourceId)) {
+      return;
+    }
+
+    clearPinnedProfileCard({ syncScroll: false });
+    state.inspectingProfile = false;
+    state.followingChat = true;
+
+    if (state.disabledChatSourceIds.has(sourceId)) {
+      state.disabledChatSourceIds.delete(sourceId);
+    } else {
+      state.disabledChatSourceIds.add(sourceId);
+    }
+
+    renderer.render();
   }
 
   function handleProfilePinClick(event) {

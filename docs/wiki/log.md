@@ -363,3 +363,24 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Changed the stream layout toggle hover state so hovering the fullscreen stream border applies the same bright corner color and light background as direct button hover.
 - Extended the layout interaction contract to require the visible hover treatment on stream hover, direct hover, and keyboard focus.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "layout"`; `npm test` (90 passed); `npm run build`.
+
+## [2026-06-08] fix | Durable backend chat delivery
+
+- Added replayable SSE event ids, heartbeat comments, startup replay, and `Last-Event-ID` reconnect replay for `/api/chat-events`.
+- Moved Twitch chat fan-in to a server-managed connector service so Twitch, Kick, and X chat use the same backend SSE delivery path, with backend Twitch status events consumed by the current and legacy browser runtimes.
+- Documented the new chat flow and linked the durable ingest plan.
+- Verification: red/green `node --test tests/chat-events.test.mjs`; red/green `node --test tests/twitch-chat-service.test.mjs`; red/green `node --test tests/server-contract.test.mjs --test-name-pattern "syncs server-side Twitch"`; red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "listens for backend chat events"`; `npm test` (95 passed); `npm run build`.
+
+## [2026-06-08] db | Persist chat event replay in SQLite
+
+- Added an embedded SQLite chat event store at `data/chat-events.sqlite` by default, with optional `CHAT_DB_PATH`, `CHAT_RETENTION_DAYS`, and `CHAT_REPLAY_LIMIT` settings.
+- Wired `/api/chat-events` to persist events before broadcasting and to use database row ids as SSE event ids, so replay survives server restarts while keeping setup to a single container and persistent `data/` mount.
+- Added Docker build dependencies for the stable `better-sqlite3` package, ignored generated SQLite sidecar files, and documented setup/retention tradeoffs.
+- Verification: red/green `node --test tests/chat-event-store.test.mjs`; red/green `node --test tests/chat-events.test.mjs --test-name-pattern "hub restart"`; red/green `node --test tests/server-contract.test.mjs --test-name-pattern "configured event store"`; `node --test tests/chat-event-store.test.mjs tests/chat-events.test.mjs tests/server-contract.test.mjs` (15 passed); `npm test` (101 passed); `npm run build`.
+
+## [2026-06-08] ui | Add per-source chat filters
+
+- Added a compact ON/OFF filter bar above chat with one button per enabled source/platform.
+- Filtering hides or restores rows by `sourceId` in the rendered chat window while keeping full message history and provider ingest intact.
+- Added the requested shadcn-style `ThemeToggle` component and `lucide-react` dependency without replacing the existing count-animation demo.
+- Verification: red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "chat filter"`; red/green `node --test tests/theme-toggle-component.test.mjs`; `node --check src/app.mjs src/chat-renderer.mjs`; `npx tsc --noEmit`; `npm test` (104 passed); `npm run build`; in-app browser smoke on `/?demoChat=1&layout=full` toggled the Twitch/Xtwin filter off and back on, hiding/restoring its rows with no console errors.

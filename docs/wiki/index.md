@@ -22,8 +22,11 @@ This is the content-oriented catalog for the Market Bubble Live LLM Wiki. Read t
 ## Historical Planning
 
 - [Dashboard design spec](../superpowers/specs/2026-06-05-market-bubble-dashboard-design.md): Original dashboard design direction.
+- [SQLite chat event log design](../superpowers/specs/2026-06-08-sqlite-chat-event-log-design.md): Current design for persistent chat replay through an embedded SQLite file.
 - [Admin config backend plan](../superpowers/plans/2026-06-05-admin-config-backend.md): Historical implementation plan for admin config/backend work.
 - [React Tailwind refresh plan](../superpowers/plans/2026-06-06-react-tailwind-refresh.md): Implementation plan for the React/Vite/Tailwind visual refresh.
+- [Durable chat ingest plan](../superpowers/plans/2026-06-08-durable-chat-ingest.md): Implementation plan for replaying SSE chat delivery and server-side Twitch chat fan-in.
+- [SQLite chat event log plan](../superpowers/plans/2026-06-08-sqlite-chat-event-log.md): Implementation plan for persisting chat events in SQLite while keeping setup simple.
 
 ## Maintenance Notes
 

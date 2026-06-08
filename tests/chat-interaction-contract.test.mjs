@@ -64,6 +64,37 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.includes('id="sourceBreakdown"'), true);
   });
 
+  it("renders per-source chat filter toggles and hides disabled source messages without dropping history", () => {
+    const viewer = readViewerRuntime();
+    const app = readAppRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(viewer.includes('id="chatFilters"'), true);
+    assert.match(viewer, /<div id="chatFilters" className="chat-filters" aria-label="Chat source filters" \/>/);
+    assert.equal(app.includes("disabledChatSourceIds: new Set()"), true);
+    assert.equal(app.includes("chatFilters: document.querySelector(\"#chatFilters\")"), true);
+    assert.equal(app.includes('elements.chatFilters.addEventListener("click", handleChatFilterToggle);'), true);
+    assert.equal(app.includes("function handleChatFilterToggle(event)"), true);
+    assert.equal(app.includes('target?.closest(".chat-filter-toggle")'), true);
+    assert.equal(app.includes("state.disabledChatSourceIds.has(sourceId)"), true);
+    assert.equal(app.includes("state.disabledChatSourceIds.delete(sourceId)"), true);
+    assert.equal(app.includes("state.disabledChatSourceIds.add(sourceId)"), true);
+    assert.equal(app.includes("state.messages.filter((message) => !state.disabledChatSourceIds.has(message.sourceId))"), true);
+    assert.equal(app.includes("function renderChatFilters()"), true);
+    assert.equal(app.includes('class="chat-filter-toggle ${source.platform}"'), true);
+    assert.equal(app.includes('data-source-id="${escapeHtml(source.sourceId)}"'), true);
+    assert.equal(app.includes('data-filter-state="${isEnabled ? "on" : "off"}"'), true);
+    assert.equal(app.includes('aria-pressed="${String(isEnabled)}"'), true);
+    assert.equal(app.includes('<span class="chat-filter-switch" aria-hidden="true">'), true);
+    assert.match(styles, /\.chat-view\s*\{[^}]*grid-template-rows: auto minmax\(0, 1fr\)/s);
+    assert.match(styles, /\.chat-filters\s*\{[^}]*display: flex[^}]*overflow-x: auto/s);
+    assert.match(styles, /\.chat-filter-toggle\s*\{[^}]*border: 1px solid rgba\(228, 228, 228, 0\.18\)[^}]*border-radius: 999px/s);
+    assert.match(styles, /\.chat-filter-toggle\[data-filter-state="off"\]\s*\{[^}]*opacity: 0\.48/s);
+    assert.match(styles, /\.chat-filter-switch\s*\{[^}]*border-radius: 999px/s);
+    assert.match(styles, /\.chat-filter-toggle\[data-filter-state="off"\]\s+\.chat-filter-switch::before\s*\{[^}]*transform: translateX\(0\)/s);
+    assert.match(styles, /\.chat-filter-toggle\[data-filter-state="on"\]\s+\.chat-filter-switch::before\s*\{[^}]*transform: translateX\(16px\)/s);
+  });
+
   it("renders the Banks quote as a small bottom-left surface note", () => {
     const viewer = readViewerRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
@@ -421,12 +452,20 @@ describe("chat interaction contract", () => {
 
   it("listens for backend chat events", () => {
     const app = readAppRuntime();
+    const runtime = readFileSync(new URL("../src/chat-runtime.mjs", import.meta.url), "utf8");
+    const legacyRuntime = readFileSync(new URL("../src/app-v2.mjs", import.meta.url), "utf8");
 
     assert.match(app, /new (window\.)?EventSource\("\/api\/chat-events"\)/);
     assert.equal(app.includes("/api/chat-events/recent"), false);
     assert.equal(app.includes("pollBackendChatEvents"), false);
     assert.equal(app.includes("startBackendChatEvents"), true);
     assert.equal(app.includes("addBackendMessage"), true);
+    assert.equal(app.includes("startTwitchConnectors"), false);
+    assert.equal(runtime.includes("connectTwitchChat"), false);
+    assert.match(runtime, /events\.addEventListener\("chat-status", \(event\) => \{/);
+    assert.match(app, /function updateBackendChatStatus\(rawStatus\) \{/);
+    assert.equal(legacyRuntime.includes("connectTwitchChat"), false);
+    assert.match(legacyRuntime, /events\.addEventListener\("chat-status", \(e\) => \{/);
   });
 
   it("keeps every chat message received during the viewer session", () => {
@@ -614,7 +653,7 @@ describe("chat interaction contract", () => {
 
     assert.equal(app.includes("CHAT_RENDER_WINDOW_SIZE = 500"), true);
     assert.equal(app.includes("function getVisibleMessages"), true);
-    assert.equal(app.includes("state.messages.slice(-CHAT_RENDER_WINDOW_SIZE)"), true);
+    assert.equal(app.includes("state.messages.filter((message) => !state.disabledChatSourceIds.has(message.sourceId)).slice(-CHAT_RENDER_WINDOW_SIZE)"), true);
     assert.equal(app.includes("function getWindowOverlapLength"), true);
     assert.equal(app.includes("function removeStaleRows"), true);
   });

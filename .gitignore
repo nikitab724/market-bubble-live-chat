@@ -5,6 +5,8 @@
 output/
 node_modules/
 dist/
+data/*.sqlite
+data/*.sqlite-*
 
 # Local debug/preview screenshots
 /*.png

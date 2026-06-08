@@ -15,6 +15,7 @@ export function createChatRenderer({
   getTwitchBadgeMap = () => ({}),
   getTwitchEmoteMap,
 }) {
+  let renderedChatFilterKey = "";
   let renderedViewerSummaryKey = "";
   let renderedMessageIds = [];
   let queuedProfileCardFrame = 0;
@@ -40,6 +41,7 @@ export function createChatRenderer({
     state.followingChat = shouldFollowChat;
 
     renderViewerSummary();
+    renderChatFilters();
 
     if (state.pinnedProfileMessageId) {
       state.pendingChatRender = true;
@@ -149,7 +151,7 @@ export function createChatRenderer({
   }
 
   function getVisibleMessages() {
-    return state.messages.slice(-CHAT_RENDER_WINDOW_SIZE);
+    return state.messages.filter((message) => !state.disabledChatSourceIds.has(message.sourceId)).slice(-CHAT_RENDER_WINDOW_SIZE);
   }
 
   function getChatStack() {
@@ -375,6 +377,42 @@ export function createChatRenderer({
 
   function updateJumpToLive() {
     elements.jumpToLive.hidden = !state.pinnedProfileMessageId && state.followingChat;
+  }
+
+  function renderChatFilters() {
+    const sources = state.sources.filter((source) => source.enabled !== false);
+    const filterKey = JSON.stringify(sources.map((source) => ({
+      disabled: state.disabledChatSourceIds.has(source.sourceId),
+      platform: source.platform,
+      sourceId: source.sourceId,
+      sourceLabel: source.sourceLabel,
+    })));
+
+    if (filterKey === renderedChatFilterKey) {
+      return;
+    }
+
+    renderedChatFilterKey = filterKey;
+    elements.chatFilters.innerHTML = sources.map(renderChatFilter).join("");
+  }
+
+  function renderChatFilter(source) {
+    const meta = platformMeta[source.platform];
+    const isEnabled = !state.disabledChatSourceIds.has(source.sourceId);
+    const status = isEnabled ? "On" : "Off";
+    const title = `${status}: ${meta.label} / ${source.sourceLabel}`;
+
+    return `
+      <button class="chat-filter-toggle ${source.platform}" type="button" data-source-id="${escapeHtml(source.sourceId)}" data-filter-state="${isEnabled ? "on" : "off"}" aria-pressed="${String(isEnabled)}" title="${escapeHtml(title)}">
+        <span class="chat-filter-label">
+          <span>${escapeHtml(meta.label)}</span>
+          <strong>${escapeHtml(source.sourceLabel)}</strong>
+        </span>
+        <span class="chat-filter-switch" aria-hidden="true">
+          <span>${escapeHtml(status)}</span>
+        </span>
+      </button>
+    `;
   }
 
   function renderSource(source) {

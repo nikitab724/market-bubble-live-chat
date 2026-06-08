@@ -5,7 +5,7 @@
 Twitch has three pieces:
 
 - Video embed: browser iframe in `src/app.mjs`.
-- Chat: browser-side IRC-over-WebSocket in `src/twitch-connector.mjs`.
+- Chat: server-side IRC-over-WebSocket managed by `src/twitch-chat-service.mjs`, using `src/twitch-connector.mjs` as the low-level connector.
 - Live state/viewer count: server-side Helix calls in `src/twitch-api.mjs`.
 
 Required env vars for live state:
@@ -14,6 +14,8 @@ Required env vars for live state:
 - `TWITCH_CLIENT_SECRET`
 
 Twitch native IRC emotes, username colors, and per-message badge ids come from IRC tags. Third-party emotes are fetched through `GET /api/twitch-emotes?channel=...` and cached from 7TV, BetterTTV, and FrankerFaceZ. Badge images are fetched through `GET /api/twitch-badges?channel=...`, which combines Twitch global and channel badge sets from Helix.
+
+The server starts or stops one Twitch chat connection per enabled Twitch source when source config is loaded or saved. Normalized Twitch messages, Twitch chat connection status, Kick chat, and X chat all write to the SQLite chat event log, then fan out through `/api/chat-events`. The stored log gives new browser connections and reconnects a bounded replay window that survives server restarts.
 
 ## Kick
 
@@ -43,7 +45,7 @@ The current working path is a Chrome extension bridge, not an official X API con
 - `extension/popup.js` lets the operator choose which configured X source the current tab belongs to.
 - The extension popup stores the backend base URL used for public config and X chat ingest.
 - The extension posts normalized messages to `POST /api/x-chat`.
-- The backend broadcasts those messages through `/api/chat-events`.
+- The backend broadcasts those messages through the replaying `/api/chat-events` stream.
 
 X stream viewing on `/` uses `conversationId` from source config to load X widgets. Without `conversationId`, it falls back to an open-stream link.
 

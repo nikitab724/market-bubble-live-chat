@@ -25,7 +25,7 @@ describe("count animation component integration", () => {
 
     assert.match(demo, /import \{ CountAnimation \} from "@\/components\/ui\/count-animation";/);
     assert.match(demo, /<CountAnimation number=\{60\} className="text-4xl" \/>/);
-    assert.match(demo, /export \{ CountAnimationExamle \};/);
+    assert.match(demo, /export \{ CountAnimationExamle, DefaultToggle \};/);
   });
 
   it("supports the component's TypeScript, shadcn alias, and required dependencies", () => {

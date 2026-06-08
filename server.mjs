@@ -19,8 +19,10 @@ import {
   normalizeKickChatWebhook,
   verifyKickWebhookSignature,
 } from "./src/kick-webhook.mjs";
+import { createSqliteChatEventStore } from "./src/chat-event-store.mjs";
 import { DEFAULT_SOURCES, normalizeSources, toPublicConfig } from "./src/source-config.mjs";
 import { createTwitchApiClient } from "./src/twitch-api.mjs";
+import { createTwitchChatService } from "./src/twitch-chat-service.mjs";
 import { createTwitchEmoteClient } from "./src/twitch-emotes.mjs";
 
 const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -28,6 +30,8 @@ const DEFAULT_CONFIG_PATH = join(ROOT_DIR, "data", "sources.json");
 const DEFAULT_PORT = 4178;
 let devChatMessageSequence = 0;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const DEFAULT_CHAT_REPLAY_LIMIT = 1000;
+const DEFAULT_CHAT_RETENTION_DAYS = 7;
 
 const CONTENT_TYPES = {
   ".avif": "image/avif",
@@ -82,29 +86,48 @@ export function createAppServer(options = {}) {
   const rootDir = options.rootDir || ROOT_DIR;
   const configPath = options.configPath || DEFAULT_CONFIG_PATH;
   const adminPasswordHash = options.adminPasswordHash || process.env.ADMIN_PASSWORD_HASH || "";
-  const chatHub = options.chatHub || createChatEventHub();
+  const chatReplayLimit = getPositiveNumber(
+    options.chatReplayLimit ?? process.env.CHAT_REPLAY_LIMIT,
+    DEFAULT_CHAT_REPLAY_LIMIT,
+  );
+  const chatEventStore = options.chatEventStore === undefined
+    ? createSqliteChatEventStore({
+      dbPath: process.env.CHAT_DB_PATH || join(rootDir, "data", "chat-events.sqlite"),
+      replayLimit: chatReplayLimit,
+      retentionDays: getPositiveNumber(process.env.CHAT_RETENTION_DAYS, DEFAULT_CHAT_RETENTION_DAYS),
+    })
+    : options.chatEventStore;
+  const chatHub = options.chatHub || createChatEventHub({
+    eventStore: chatEventStore || undefined,
+    replayLimit: chatReplayLimit,
+  });
   const enableDevRoutes = options.enableDevRoutes ?? process.env.NODE_ENV !== "production";
   const kickWebhookVerifier = options.kickWebhookVerifier || verifyKickWebhookSignature;
   const secureCookies = options.secureCookies ?? process.env.NODE_ENV === "production";
   const kickClient = options.kickClient || createKickApiClient();
   const twitchClient = options.twitchClient || createTwitchApiClient();
+  const twitchChatService = options.twitchChatService === undefined
+    ? createTwitchChatService({ chatHub })
+    : options.twitchChatService;
   const twitchEmoteClient = options.twitchEmoteClient || createTwitchEmoteClient({ twitchClient });
   const sessions = new Map();
   let ensuredKickSubscriptionKey = "";
   let kickSubscriptionEnsurePromise = null;
 
-  return createServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://localhost");
 
       if (url.pathname === "/api/public-config" && request.method === "GET") {
         const sources = await readSources(configPath);
+        syncTwitchChatSources(sources);
         await ensureKickChatSubscriptionsOnce(sources);
         return sendJson(response, 200, toPublicConfig(sources));
       }
 
       if (url.pathname === "/api/live-state" && request.method === "GET") {
         const sources = await readSources(configPath);
+        syncTwitchChatSources(sources);
         await ensureKickChatSubscriptionsOnce(sources);
         return sendJson(response, 200, await getLiveState(sources, [twitchClient, kickClient]));
       }
@@ -128,7 +151,7 @@ export function createAppServer(options = {}) {
       }
 
       if (url.pathname === "/api/chat-events" && request.method === "GET") {
-        return chatHub.connect(response);
+        return chatHub.connect(response, request);
       }
 
       if (url.pathname === "/api/x-chat") {
@@ -242,6 +265,7 @@ export function createAppServer(options = {}) {
           await ensureKickChatSubscriptions(sources, kickClient);
           ensuredKickSubscriptionKey = getKickSubscriptionKey(sources);
           await writeSources(configPath, sources);
+          syncTwitchChatSources(sources);
           return sendJson(response, 200, { sources });
         }
       }
@@ -255,6 +279,13 @@ export function createAppServer(options = {}) {
       return sendJson(response, 500, { error: error.message || "Server error" });
     }
   });
+
+  server.on("close", () => {
+    twitchChatService?.stop?.();
+    chatEventStore?.close?.();
+  });
+
+  return server;
 
   async function ensureKickChatSubscriptionsOnce(sources) {
     const subscriptionKey = getKickSubscriptionKey(sources);
@@ -278,6 +309,15 @@ export function createAppServer(options = {}) {
 
     await kickSubscriptionEnsurePromise;
   }
+
+  function syncTwitchChatSources(sources) {
+    twitchChatService?.syncSources?.(sources);
+  }
+}
+
+function getPositiveNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
 }
 
 async function getLiveState(sources, clients) {

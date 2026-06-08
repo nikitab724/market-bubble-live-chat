@@ -5,7 +5,6 @@ import {
   normalizeMessage,
 } from "./chat-model.mjs";
 import { renderMessageBody } from "./emote-renderer.mjs";
-import { connectTwitchChat } from "./twitch-connector.mjs";
 
 // ── Stream tab configuration ──────────────────────────────────────────────────
 //
@@ -149,7 +148,6 @@ async function initializeApp() {
   render();
   initTwitchPlayer();
   loadTwitchEmotes();
-  startTwitchConnectors();
   startBackendChatEvents();
   refreshLiveState();
 }
@@ -198,19 +196,6 @@ function initTwitchPlayer(channel) {
 
 // ── Connectors ────────────────────────────────────────────────────────────────
 
-function startTwitchConnectors() {
-  for (const source of connectedSources.filter((s) => s.platform === "twitch")) {
-    connectTwitchChat(source.sourceHandle, {
-      source,
-      onMessage: addMessage,
-      onStatus(status) {
-        state.twitchStatuses[source.sourceId] = status;
-        queueRender();
-      },
-    });
-  }
-}
-
 async function loadTwitchEmotes() {
   for (const source of connectedSources.filter((s) => s.platform === "twitch")) {
     try {
@@ -231,6 +216,17 @@ function startBackendChatEvents() {
   if (!("EventSource" in window)) return;
   const events = new EventSource("/api/chat-events");
   events.addEventListener("chat", (e) => addMessage(JSON.parse(e.data)));
+  events.addEventListener("chat-status", (e) => {
+    updateBackendChatStatus(JSON.parse(e.data));
+  });
+}
+
+function updateBackendChatStatus(rawStatus) {
+  const sourceId = String(rawStatus?.sourceId || "");
+  if (rawStatus?.platform !== "twitch" || !sourceId || !sourceById.has(sourceId)) return;
+
+  state.twitchStatuses[sourceId] = String(rawStatus.status || "connecting");
+  queueRender();
 }
 
 // ── Live state ────────────────────────────────────────────────────────────────

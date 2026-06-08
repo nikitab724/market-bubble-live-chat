@@ -24,6 +24,7 @@ describe("server contract", () => {
       configPath,
       rootDir: fileURLToPath(new URL("..", import.meta.url)),
       secureCookies: false,
+      twitchChatService: null,
     });
     await listen(server);
 
@@ -58,6 +59,7 @@ describe("server contract", () => {
       configPath,
       rootDir: fileURLToPath(new URL("..", import.meta.url)),
       secureCookies: false,
+      twitchChatService: null,
       kickClient: {
         async getLiveState() {
           return { providers: { kick: { status: "connected" } }, sources: [] };
@@ -116,6 +118,7 @@ describe("server contract", () => {
       configPath,
       rootDir: fileURLToPath(new URL("..", import.meta.url)),
       secureCookies: false,
+      twitchChatService: null,
       kickClient: {
         async getLiveState() {
           return { providers: { kick: { status: "connected" } }, sources: [] };
@@ -145,6 +148,106 @@ describe("server contract", () => {
     }
   });
 
+  it("syncs server-side Twitch chat connectors from source config", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-twitch-chat-sync-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [
+          { platform: "twitch", sourceName: "xQc", sourceHandle: "xqc" },
+          { platform: "kick", sourceName: "xQc", sourceHandle: "xqc" },
+        ],
+      }),
+    );
+
+    const syncedSources = [];
+    let stopCount = 0;
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: {
+        syncSources(sources) {
+          syncedSources.push(sources.filter((source) => source.platform === "twitch").map((source) => source.sourceId));
+        },
+        stop() {
+          stopCount += 1;
+        },
+      },
+    });
+    await listen(server);
+
+    try {
+      const publicConfig = await request(server, "GET", "/api/public-config");
+      assert.equal(publicConfig.status, 200);
+
+      const update = await request(server, "PUT", "/api/admin/sources", {
+        sources: [{ platform: "twitch", sourceName: "Hasan", sourceHandle: "hasanabi" }],
+      });
+      assert.equal(update.status, 200);
+    } finally {
+      await close(server);
+    }
+
+    assert.deepEqual(syncedSources, [["twitch-xqc"], ["twitch-hasanabi"]]);
+    assert.equal(stopCount, 1);
+  });
+
+  it("writes backend chat events through the configured event store", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-chat-event-store-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [{ platform: "kick", sourceName: "xQc", sourceHandle: "xqc" }],
+      }),
+    );
+
+    const storedEvents = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      chatEventStore: {
+        append(eventName, payload) {
+          const event = { id: storedEvents.length + 1, eventName, payload };
+          storedEvents.push(event);
+          return event;
+        },
+        close() {},
+        getEventsAfter() {
+          return [];
+        },
+        getRecentEvents() {
+          return [];
+        },
+      },
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+    });
+    await listen(server);
+
+    try {
+      const devKickChat = await request(server, "POST", "/api/dev/kick-chat", {
+        author: "Local Tester",
+        body: "stored kick",
+        handle: "localtester",
+        sourceHandle: "xqc",
+      });
+
+      assert.equal(devKickChat.status, 200);
+    } finally {
+      await close(server);
+    }
+
+    assert.equal(storedEvents.length, 1);
+    assert.equal(storedEvents[0].eventName, "chat");
+    assert.equal(storedEvents[0].payload.platform, "kick");
+    assert.equal(storedEvents[0].payload.body, "stored kick");
+  });
+
   it("protects admin APIs with a server-side session cookie", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-admin-"));
     const configPath = join(tempDir, "sources.json");
@@ -166,6 +269,7 @@ describe("server contract", () => {
       configPath,
       rootDir: fileURLToPath(new URL("..", import.meta.url)),
       secureCookies: false,
+      twitchChatService: null,
       twitchClient: {
         async getLiveState(sources) {
           return {

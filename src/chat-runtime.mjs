@@ -1,5 +1,3 @@
-import { connectTwitchChat } from "./twitch-connector.mjs";
-
 export async function loadPublicConfig({ fetchImpl = fetch, fallbackSources }) {
   try {
     const response = await fetchImpl("/api/public-config", { cache: "no-store" });
@@ -16,23 +14,6 @@ export async function loadPublicConfig({ fetchImpl = fetch, fallbackSources }) {
   }
 
   return fallbackSources.map((source) => ({ ...source }));
-}
-
-export function startTwitchConnectors({ sources, state, addMessage, queueRender }) {
-  const twitchSources = sources.filter((source) => source.platform === "twitch");
-
-  for (const twitchSource of twitchSources) {
-    connectTwitchChat(twitchSource.sourceHandle, {
-      source: twitchSource,
-      onMessage(rawMessage) {
-        addMessage(rawMessage);
-      },
-      onStatus(status) {
-        state.twitchStatuses[twitchSource.sourceId] = status;
-        queueRender();
-      },
-    });
-  }
 }
 
 export async function loadTwitchEmotes({ fetchImpl = fetch, sources, state, queueRender }) {
@@ -77,12 +58,15 @@ export async function loadTwitchBadges({ fetchImpl = fetch, sources, state, queu
   );
 }
 
-export function startBackendChatEvents({ window, addBackendMessage }) {
+export function startBackendChatEvents({ window, addBackendMessage, updateBackendChatStatus }) {
   if (!("EventSource" in window)) return null;
 
   const events = new window.EventSource("/api/chat-events");
   events.addEventListener("chat", (event) => {
     addBackendMessage(JSON.parse(event.data));
+  });
+  events.addEventListener("chat-status", (event) => {
+    updateBackendChatStatus(JSON.parse(event.data));
   });
 
   return events;
