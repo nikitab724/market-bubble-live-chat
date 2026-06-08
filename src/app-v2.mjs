@@ -19,16 +19,16 @@ import { connectTwitchChat } from "./twitch-connector.mjs";
 
 const STREAMS = [
   {
-    id: "ansem",
-    label: "Ansem",
-    twitchChannel: "xqc",
-    sourceIds: ["twitch-stableronaldo"],
+    id: "junko",
+    label: "Junko",
+    twitchChannel: "whatever",
+    sourceIds: ["twitch-whatever"],
   },
   {
-    id: "banks",
-    label: "Banks",
-    twitchChannel: null,
-    sourceIds: ["x-banks"],
+    id: "moist",
+    label: "Moist",
+    twitchChannel: "moistcr1tikal",
+    sourceIds: ["twitch-moistcr1tikal"],
   },
 ];
 
@@ -48,19 +48,35 @@ const PLATFORM_LABELS = { twitch: "Twitch", kick: "Kick", x: "X", room: "MB.com"
 
 const fallbackSources = [
   {
-    sourceId: "twitch-stableronaldo",
+    sourceId: "twitch-whatever",
     platform: "twitch",
-    sourceName: "Ansem",
-    sourceHandle: "stableronaldo",
-    sourceUrl: "https://twitch.tv/stableronaldo",
+    sourceName: "Junko",
+    sourceHandle: "whatever",
+    sourceUrl: "https://twitch.tv/whatever",
     viewerCount: 0,
   },
   {
-    sourceId: "x-banks",
+    sourceId: "kick-kaneljoseph",
+    platform: "kick",
+    sourceName: "kanel",
+    sourceHandle: "kaneljoseph",
+    sourceUrl: "https://kick.com/kaneljoseph",
+    viewerCount: 0,
+  },
+  {
+    sourceId: "twitch-moistcr1tikal",
+    platform: "twitch",
+    sourceName: "Moist",
+    sourceHandle: "moistcr1tikal",
+    sourceUrl: "https://twitch.tv/moistcr1tikal",
+    viewerCount: 0,
+  },
+  {
+    sourceId: "x-z",
     platform: "x",
-    sourceName: "Banks",
-    sourceHandle: "banks",
-    sourceUrl: "https://x.com/banks",
+    sourceName: "Z",
+    sourceHandle: "z",
+    sourceUrl: "https://x.com/z",
     viewerCount: 0,
   },
 ];
