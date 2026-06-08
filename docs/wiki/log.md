@@ -325,3 +325,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Removed the remaining blur filter from chat row entrance keyframes because the filled animation made each row a containing block for fixed-position profile cards.
 - Extended the chat interaction contract so row keyframes cannot use transform or filter, keeping profile cards positioned against the viewport.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "controlled chat bottom"`; `node --test tests/chat-interaction-contract.test.mjs`; `npm run build`; in-app browser smoke confirmed a pinned profile card renders at `left=1024 top=475` within a 1280x720 viewport with row `filter: none` and no console errors.
+
+## [2026-06-08] ui | Brighten chat row hover text
+
+- Increased chat row hover contrast by brightening the message body, author name, colon, and source label instead of relying only on the row background.
+- Updated the chat interaction contract to lock in the brighter hover text treatment.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "keeps chat rows tight"`; `npm test` (86 passed); `npm run build`; `git diff --check`; in-app browser smoke confirmed the served demo chat loaded 26 messages, all four hover text brightening rules were present, and there were no console errors.

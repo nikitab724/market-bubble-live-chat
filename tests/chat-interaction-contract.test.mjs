@@ -313,6 +313,10 @@ describe("chat interaction contract", () => {
     assert.match(chatMessageRule, /border: 0/);
     assert.match(chatMessageRule, /background: transparent/);
     assert.match(styles, /\.chat-message p\s*\{[^}]*margin: 0/s);
+    assert.match(styles, /\.chat-message:hover\s+p\s*\{[^}]*color: #fff/s);
+    assert.match(styles, /\.chat-message:hover\s+\.message-author\s*\{[^}]*color: color-mix\(in srgb, var\(--author-color, var\(--text\)\) 72%, #fff\)/s);
+    assert.match(styles, /\.chat-message:hover\s+\.message-colon\s*\{[^}]*color: rgba\(255, 255, 255, 0\.82\)/s);
+    assert.match(styles, /\.chat-message:hover\s+\.source-label\s*\{[^}]*color: color-mix\(in srgb, var\(--source-color\) 76%, #fff\)/s);
     assert.equal(styles.includes("margin-left: 51px;"), false);
   });
 
