@@ -99,7 +99,7 @@ body.admin-body {
   position: relative;
   z-index: 140;
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   height: 52px;
@@ -142,21 +142,35 @@ body.admin-body {
 }
 
 .layout-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 30;
   display: grid;
   place-items: center;
-  width: 36px;
+  width: 34px;
   height: 34px;
   padding: 0;
   border: 1px solid rgba(228, 228, 228, 0.16);
-  border-radius: 6px;
-  background: transparent;
+  border-radius: 8px;
+  background: rgba(10, 10, 12, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text);
   cursor: pointer;
+  opacity: 0.32;
   transition:
     border-color 160ms ease,
     background 160ms ease,
     color 160ms ease,
+    opacity 200ms ease,
     transform 160ms ease;
+}
+
+.stream-view:hover .layout-toggle,
+.layout-toggle:hover,
+.layout-toggle:focus-visible {
+  opacity: 1;
 }
 
 .layout-toggle:hover {
@@ -280,23 +294,6 @@ body.admin-body {
   line-height: 0.82;
 }
 
-.live-layout-mini .layout-toggle {
-  justify-self: start;
-  min-height: 0;
-  height: auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  box-shadow: none;
-}
-
-.live-layout-mini .layout-toggle:hover,
-.live-layout-mini .layout-toggle[aria-pressed="true"] {
-  background: transparent;
-  color: var(--text);
-}
-
 .live-layout-mini .broadcast-metrics {
   grid-template-columns: 1fr;
   align-content: center;
@@ -310,7 +307,7 @@ body.admin-body {
 .live-layout-mini .viewer-counter {
   display: grid;
   justify-content: start;
-  gap: 3px;
+  gap: 8px;
   width: 100%;
   min-height: 0;
   padding: 0;
@@ -319,12 +316,14 @@ body.admin-body {
 
 .live-layout-mini .viewer-counter strong {
   font-size: 50px;
-  line-height: 0.86;
+  line-height: 1;
+  padding-bottom: 2px;
 }
 
 .live-layout-mini .viewer-counter span {
   margin-top: 0;
   font-size: 10px;
+  letter-spacing: 0.18em;
 }
 
 .live-layout-mini .source-breakdown {
@@ -381,6 +380,11 @@ body.admin-body {
 
 .live-layout-mini .video-frame {
   border-radius: 18px;
+}
+
+.live-layout-mini .layout-toggle {
+  top: 22px;
+  right: 22px;
 }
 
 .live-layout-mini .source-popover {
@@ -454,6 +458,7 @@ body.admin-body {
 }
 
 .stream-view {
+  position: relative;
   display: block;
   height: 100%;
   view-transition-name: mb-stream;

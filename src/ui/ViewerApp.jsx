@@ -84,26 +84,6 @@ export function ViewerApp({ surface = "viewer" }) {
             </text>
           </svg>
         </div>
-        {showStream && (
-          <button
-            aria-label={effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
-            aria-keyshortcuts="F"
-            aria-pressed={effectiveLayout === "mini"}
-            className="layout-toggle"
-            onClick={toggleLayoutWithTransition}
-            title={effectiveLayout === "mini" ? "Use full layout (F)" : "Use mini layout (F)"}
-            type="button"
-          >
-            <span
-              aria-hidden="true"
-              className="layout-toggle-icon"
-              data-layout-action={effectiveLayout === "mini" ? "expand" : "minimize"}
-            />
-            <span className="layout-toggle-label">
-              {effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
-            </span>
-          </button>
-        )}
         <div className="broadcast-metrics">
           <div className="viewer-counter" aria-label="Combined viewers">
             <strong id="viewerCount">0</strong>
@@ -116,6 +96,24 @@ export function ViewerApp({ surface = "viewer" }) {
       <main className={`app-shell ${showStream ? "viewer-shell" : "chat-shell"}`} data-surface={surface}>
         {showStream && (
           <section className="stream-view" aria-label="Market Bubble stream">
+            <button
+              aria-label={effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+              aria-keyshortcuts="F"
+              aria-pressed={effectiveLayout === "mini"}
+              className="layout-toggle"
+              onClick={toggleLayoutWithTransition}
+              title={effectiveLayout === "mini" ? "Use full layout (F)" : "Use mini layout (F)"}
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                className="layout-toggle-icon"
+                data-layout-action={effectiveLayout === "mini" ? "expand" : "minimize"}
+              />
+              <span className="layout-toggle-label">
+                {effectiveLayout === "mini" ? "Use full layout" : "Use mini layout"}
+              </span>
+            </button>
             <div className="video-frame">
               <div id="streamPlayer" className="stream-player" />
             </div>
