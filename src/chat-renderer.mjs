@@ -101,7 +101,7 @@ export function createChatRenderer({
         sourceHandle: source.sourceHandle,
         sourceLabel: source.sourceLabel,
         sourceUrl: source.sourceUrl,
-        status: source.platform === "twitch" ? state.twitchStatuses[source.sourceId] || "connecting" : "",
+        status: getSourceStatus(source, state.twitchStatuses),
         streamTitle: source.streamTitle || "",
         viewerCount: source.viewerCount,
         viewerCountLocked: source.viewerCountLocked === true,
@@ -418,8 +418,8 @@ export function createChatRenderer({
   function renderSource(source) {
     const meta = platformMeta[source.platform];
     const profile = getSourceProfile(source);
-    const sourceStatus = getSourceStatus(source);
-    const statusDot = source.platform === "twitch"
+    const sourceStatus = getSourceStatus(source, state.twitchStatuses);
+    const statusDot = shouldRenderSourceStatusDot(source)
       ? renderStatusDot(sourceStatus)
       : "";
     const chipTitle = getSourceChipTitle(meta, source);
@@ -516,14 +516,6 @@ export function createChatRenderer({
         <b>${escapeHtml(handle)}</b>
       </a>
     `;
-  }
-
-  function getSourceStatus(source) {
-    if (source.platform === "twitch") {
-      return state.twitchStatuses[source.sourceId] || "connecting";
-    }
-
-    return source.viewerCount > 0 ? "connected" : "configured";
   }
 
   function syncAnimatedViewerCountNode(node, key, target) {
@@ -797,6 +789,22 @@ export function createChatRenderer({
       state.queueRender();
     }
   }
+}
+
+export function shouldRenderSourceStatusDot(source) {
+  return source.platform === "twitch" || source.platform === "kick";
+}
+
+export function getSourceStatus(source, twitchStatuses = {}) {
+  if (source.platform === "twitch") {
+    return twitchStatuses[source.sourceId] || "connecting";
+  }
+
+  if (source.platform === "kick" && source.viewerCountLocked) {
+    return source.isLive === true ? "connected" : "disconnected";
+  }
+
+  return source.viewerCount > 0 ? "connected" : "configured";
 }
 
 function renderPlatformLogo(platform, label) {

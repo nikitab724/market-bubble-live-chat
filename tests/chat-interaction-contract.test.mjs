@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+import { getSourceStatus, shouldRenderSourceStatusDot } from "../src/chat-renderer.mjs";
+
 function readAppRuntime() {
   return [
     "../src/app.mjs",
@@ -619,6 +621,31 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".rolling-number-digit"), false);
     assert.equal(styles.includes("@keyframes digit-roll"), false);
     assert.equal(styles.includes("@keyframes count-roll"), false);
+  });
+
+  it("renders live status dots for Twitch and Kick source chips", () => {
+    assert.equal(shouldRenderSourceStatusDot({ platform: "twitch" }), true);
+    assert.equal(shouldRenderSourceStatusDot({ platform: "kick" }), true);
+    assert.equal(shouldRenderSourceStatusDot({ platform: "x" }), false);
+  });
+
+  it("uses Kick live-state to choose the source chip status", () => {
+    assert.equal(getSourceStatus({
+      isLive: true,
+      platform: "kick",
+      viewerCount: 0,
+      viewerCountLocked: true,
+    }), "connected");
+    assert.equal(getSourceStatus({
+      isLive: false,
+      platform: "kick",
+      viewerCount: 100,
+      viewerCountLocked: true,
+    }), "disconnected");
+    assert.equal(getSourceStatus({
+      platform: "kick",
+      viewerCount: 100,
+    }), "connected");
   });
 
   it("integrates the layout toggle into the stream border corner", () => {

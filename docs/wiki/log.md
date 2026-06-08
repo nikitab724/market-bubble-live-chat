@@ -390,3 +390,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Changed the SQLite chat event retention default from 7 days to 2 hours through `CHAT_RETENTION_HOURS`.
 - Kept `CHAT_RETENTION_DAYS` as a compatibility fallback when hours are unset, and pruned old rows when the store opens, before replay queries, and after writes.
 - Verification: red/green `node --test tests/chat-event-store.test.mjs`; red/green `node --test tests/server-contract.test.mjs --test-name-pattern "two-hour chat retention"`; `node --test tests/chat-event-store.test.mjs tests/server-contract.test.mjs` (12 passed); `npm test` (106 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-08] ui | Show Kick live status dots
+
+- Added Kick to the source-chip live status dot path, using Kick `/api/live-state` `isLive` data when available.
+- Kept Twitch source dots on the server-side chat connector status path.
+- Verification: red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "live status|Kick live-state"`; `npm test` (108 passed); `npm run build`; `git diff --check`.
