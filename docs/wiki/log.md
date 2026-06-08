@@ -313,3 +313,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Kept the stream layout toggle as a stable 40px circular border control in both full and mini layouts, restored the hover/focus visual state, and changed the full-layout minimize icon back to inward corners.
 - Removed vertical row movement from the chat message entrance keyframes and locked the viewer surface against overscroll so wheel-down does not restart the visual bounce.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`; in-app browser smoke on `/?layout=mini&demoChat=1` confirmed a 40x40 circular mini toggle, outward expand icon, no page scroll after wheel-down, no console errors, and clicking back to full restored the 40x40 inward minimize icon.
+
+## [2026-06-08] fix | Keep profile hover stable during live chat
+
+- Changed live chat rendering so any active profile hover queues incoming chat DOM updates instead of appending/scrolling rows under the pointer.
+- Updated the chat interaction contract to cover profile hover inspection at the live bottom, not only while reading older messages.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs`; `npm test` (86 passed); `npm run build`.

@@ -141,7 +141,8 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes('elements.chatFeed.addEventListener("focusout"'), false);
     assert.equal(styles.includes(".chat-message:focus"), false);
     assert.equal(app.includes("pendingChatRender"), true);
-    assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), true);
+    assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), false);
+    assert.match(app, /if \(state\.inspectingProfile\) \{\s*state\.pendingChatRender = true;[\s\S]*updateJumpToLive\(\);[\s\S]*return;[\s\S]*\}/);
     assert.equal(app.includes("state.pendingChatRender = true"), true);
     assert.equal(app.includes("state.pendingChatRender = false"), true);
     assert.equal(app.includes("renderChatFeed"), true);
@@ -450,12 +451,13 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);
   });
 
-  it("freezes chat DOM updates while reading older messages and renders pending chat on jump to live", () => {
+  it("freezes chat DOM updates while inspecting profile hovers and renders pending chat on jump to live", () => {
     const app = readAppRuntime();
 
     assert.equal(app.includes("shouldPauseChatRender"), true);
-    assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), true);
-    assert.equal(app.includes("if (state.inspectingProfile)"), false);
+    assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), false);
+    assert.equal(app.includes("if (state.inspectingProfile)"), true);
+    assert.match(app, /if \(state\.inspectingProfile\) \{\s*state\.pendingChatRender = true;[\s\S]*updateJumpToLive\(\);[\s\S]*return;[\s\S]*\}/);
     assert.match(app, /if \(shouldPauseChatRender\(shouldFollowChat\)\)\s*\{/);
     assert.match(app, /state\.pendingChatRender = true;[\s\S]*updateJumpToLive\(\);[\s\S]*return;/);
     assert.equal(app.includes("renderPendingChat"), true);

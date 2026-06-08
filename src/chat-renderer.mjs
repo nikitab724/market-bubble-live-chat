@@ -47,7 +47,7 @@ export function createChatRenderer({
       return;
     }
 
-    if (state.inspectingProfile && !shouldFollowChat) {
+    if (state.inspectingProfile) {
       state.pendingChatRender = true;
       updateJumpToLive();
       return;
