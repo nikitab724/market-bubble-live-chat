@@ -32,6 +32,7 @@ const LIVE_STATE_REFRESH_MS = 30_000;
 const CHAT_RENDER_INTERVAL_MS = 80;
 const CHAT_BOTTOM_THRESHOLD_PX = 8;
 const MSG_PER_MIN_WINDOW_MS = 60_000;
+const MAX_MESSAGES = 200;
 const PLATFORM_ORDER = ["twitch", "kick", "x", "room"];
 const PLATFORM_LABELS = { twitch: "Twitch", kick: "Kick", x: "X", room: "MB.com" };
 
@@ -401,8 +402,6 @@ function renderPlatformBreakdown(messages) {
 }
 
 // ── Chat rendering ────────────────────────────────────────────────────────────
-
-const MAX_MESSAGES = 200;
 
 function renderChatFeed(messages) {
   const shouldFollow = state.followingChat || isChatAtBottom();
