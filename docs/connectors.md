@@ -37,7 +37,7 @@ Kick chat username colors come from `sender.identity.username_color` when Kick i
 
 Operators should type only the Kick handle in admin. The read-only broadcaster user id field is filled after save when `KICK_CLIENT_ID` and `KICK_CLIENT_SECRET` can resolve the channel.
 
-Kick source chips use `/api/live-state` `isLive` data for their live/offline status dot when the provider check succeeds.
+Kick source chips use `/api/live-state` `isLive` data for their live/offline status dot when the provider check succeeds. The dot is green only when the Kick channel is live and orange when Kick is connected but the channel is offline.
 
 ## X
 

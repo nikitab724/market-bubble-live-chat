@@ -650,6 +650,7 @@ export function createChatRenderer({
       connecting: "Connecting",
       configured: "Configured",
       disconnected: "Offline",
+      offline: "Offline",
     };
 
     return labels[status] || status;
@@ -668,7 +669,12 @@ export function createChatRenderer({
   }
 
   function renderStatusDot(status) {
-    const labels = { connected: "Live", connecting: "Connecting...", disconnected: "Disconnected" };
+    const labels = {
+      connected: "Live",
+      connecting: "Connecting...",
+      disconnected: "Disconnected",
+      offline: "Offline",
+    };
     return `<em class="live-dot ${status}" title="${labels[status] ?? status}"></em>`;
   }
 
@@ -801,7 +807,7 @@ export function getSourceStatus(source, twitchStatuses = {}) {
   }
 
   if (source.platform === "kick" && source.viewerCountLocked) {
-    return source.isLive === true ? "connected" : "disconnected";
+    return source.isLive === true ? "connected" : "offline";
   }
 
   return source.viewerCount > 0 ? "connected" : "configured";

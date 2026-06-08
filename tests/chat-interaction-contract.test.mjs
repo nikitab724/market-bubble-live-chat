@@ -630,6 +630,8 @@ describe("chat interaction contract", () => {
   });
 
   it("uses Kick live-state to choose the source chip status", () => {
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
     assert.equal(getSourceStatus({
       isLive: true,
       platform: "kick",
@@ -641,11 +643,12 @@ describe("chat interaction contract", () => {
       platform: "kick",
       viewerCount: 100,
       viewerCountLocked: true,
-    }), "disconnected");
+    }), "offline");
     assert.equal(getSourceStatus({
       platform: "kick",
       viewerCount: 100,
     }), "connected");
+    assert.match(styles, /\.live-dot\.offline\s*\{[^}]*#f5a623/s);
   });
 
   it("integrates the layout toggle into the stream border corner", () => {

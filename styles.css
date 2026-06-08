@@ -1024,6 +1024,10 @@ h2 {
   animation: pulse-live 1s ease-in-out infinite;
 }
 
+.live-dot.offline {
+  background: #f5a623;
+}
+
 .live-dot.disconnected {
   background: #e04040;
 }

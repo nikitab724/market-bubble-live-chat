@@ -396,3 +396,8 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Added Kick to the source-chip live status dot path, using Kick `/api/live-state` `isLive` data when available.
 - Kept Twitch source dots on the server-side chat connector status path.
 - Verification: red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "live status|Kick live-state"`; `npm test` (108 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-08] ui | Keep offline Kick status orange
+
+- Adjusted Kick source-chip status so `isLive: true` is green, while a connected Kick provider with an offline channel is orange instead of red.
+- Verification: red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "Kick live-state"`; `npm test` (108 passed); `npm run build`; `git diff --check`.
