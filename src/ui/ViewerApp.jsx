@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 
-import marketBubbleLogoUrl from "../../assets/market-bubble-logo.jpg";
-
 const LAYOUT_STORAGE_KEY = "market-bubble-viewer-layout";
 const layoutModes = new Set(["full", "mini"]);
 
@@ -73,8 +71,18 @@ export function ViewerApp({ surface = "viewer" }) {
   return (
     <div className={`live-surface live-layout-${effectiveLayout}`} data-layout={effectiveLayout} data-surface={surface}>
       <header className="broadcast-topbar" aria-label="Market Bubble live status">
-        <div className="brand-mark">
-          <img src={marketBubbleLogoUrl} alt="Market Bubble" />
+        <div className="brand-mark" aria-label="Market Bubble">
+          <svg
+            className="brand-wordmark"
+            viewBox="0 0 360 64"
+            role="img"
+            aria-hidden="true"
+            preserveAspectRatio="xMinYMid meet"
+          >
+            <text className="brand-wordmark-text" x="2" y="46">
+              Market Bubble
+            </text>
+          </svg>
         </div>
         {showStream && (
           <button
