@@ -60,6 +60,7 @@ const PUBLIC_ASSETS = new Map([
   ["/styles-v2.css", "styles-v2.css"],
   ["/src/app-v2.mjs", "src/app-v2.mjs"],
   ["/assets/kick-logo.png", "assets/kick-logo.png"],
+  ["/assets/logo.png", "assets/logo.png"],
   ["/assets/market-bubble-logo.jpg", "assets/market-bubble-logo.jpg"],
   ["/chat", "chat/index.html"],
   ["/chat/", "chat/index.html"],
