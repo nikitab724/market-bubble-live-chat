@@ -370,7 +370,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .v2-player-frame {
-  width: 100%;
+  width: calc(100% - 32px);
+  margin: 8px 16px 16px;
   aspect-ratio: 16 / 9;
   max-height: 500px;
   flex: none;
@@ -380,6 +381,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .v2-stream-panel.v2-expanded .v2-player-frame {
+  width: 100%;
+  margin: 0;
   aspect-ratio: unset;
   max-height: none;
   flex: 1;
