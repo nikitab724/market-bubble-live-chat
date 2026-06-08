@@ -118,14 +118,19 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.stream-view\s*\{[^}]*view-transition-name: mb-stream/s);
     assert.match(styles, /\.chat-view\s*\{[^}]*view-transition-name: mb-chat/s);
     assert.match(styles, /\.broadcast-topbar\s*\{[^}]*view-transition-name: mb-topbar/s);
-    assert.match(styles, /\.layout-toggle-icon\s*\{[^}]*display: block/s);
-    assert.match(styles, /\.layout-toggle\s*\{[^}]*width: 40px[^}]*height: 40px[^}]*border-radius: 999px/s);
+    assert.match(styles, /\.layout-toggle-icon\s*\{[^}]*display: none/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*top: 0[^}]*left: 0[^}]*width: var\(--layout-toggle-size, 64px\)[^}]*height: var\(--layout-toggle-size, 64px\)/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*border: 0[^}]*border-radius: var\(--layout-toggle-radius, 14px\) 0 12px 0[^}]*background: transparent[^}]*box-shadow: none/s);
+    assert.match(styles, /\.layout-toggle::before\s*\{[^}]*border-top: 2px solid[^}]*border-left: 2px solid[^}]*border-top-left-radius: var\(--layout-toggle-radius, 14px\)/s);
+    assert.match(styles, /\.layout-toggle::after\s*\{[^}]*border-top: 1px solid[^}]*border-left: 1px solid/s);
     assert.match(styles, /\.stream-view:hover\s+\.layout-toggle,\s*\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*opacity: 1/s);
     assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*top: 50%[^}]*width: 220px[^}]*background: transparent[^}]*box-shadow: none[^}]*animation: none/s);
     assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(520px, 1fr\) minmax\(270px, 320px\)/s);
     assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 32px/s);
     assert.match(styles, /\.live-layout-mini\s+\.chat-view\s*\{[^}]*background: transparent[^}]*box-shadow: none/s);
-    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*width: 40px[^}]*height: 40px[^}]*border-radius: 999px/s);
+    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*--layout-toggle-radius: 18px[^}]*--layout-toggle-size: 58px[^}]*top: 14px[^}]*left: 14px/s);
+    assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="expand"]'), false);
+    assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="minimize"]'), false);
     assert.match(styles, /\.live-layout-mini\s+\.source-popover\s*\{[^}]*right: auto[^}]*left: calc\(100% - 1px\)[^}]*top: 50%[^}]*transform: translateY\(-50%\)/s);
     assert.match(styles, /\.live-layout-mini\s+\.source-chip:hover\s+\.source-popover\s*\{[^}]*transform: translateY\(-50%\)/s);
     assert.equal(styles.includes(".live-layout-mini .brand-mark,\n.live-layout-mini .layout-toggle"), false);
@@ -575,7 +580,7 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes("@keyframes count-roll"), false);
   });
 
-  it("docks the layout toggle into the stream border with stable hover and inward minimize corners", () => {
+  it("integrates the layout toggle into the stream border corner", () => {
     const viewer = readViewerRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
     const streamViewIndex = viewer.indexOf('className="stream-view"');
@@ -587,16 +592,18 @@ describe("chat interaction contract", () => {
     assert.equal(videoFrameIndex > -1, true);
     assert.equal(toggleIndex > streamViewIndex && toggleIndex < videoFrameIndex, true);
     assert.equal(toggleIndex < chatViewIndex, true);
-    assert.match(styles, /\.layout-toggle\s*\{[^}]*position: absolute[^}]*top: -1px[^}]*left: -1px[^}]*right: auto/s);
-    assert.match(styles, /\.layout-toggle\s*\{[^}]*width: 40px[^}]*height: 40px[^}]*border-radius: 999px/s);
-    assert.match(styles, /\.layout-toggle\s*\{[^}]*opacity: 0\.46/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*position: absolute[^}]*top: 0[^}]*left: 0[^}]*right: auto/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*width: var\(--layout-toggle-size, 64px\)[^}]*height: var\(--layout-toggle-size, 64px\)/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*border: 0[^}]*border-radius: var\(--layout-toggle-radius, 14px\) 0 12px 0[^}]*background: transparent[^}]*box-shadow: none/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*opacity: 0\.68/s);
     assert.match(styles, /\.stream-view:hover\s+\.layout-toggle,\s*\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*opacity: 1/s);
-    assert.match(styles, /\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*border-color: rgba\(228, 228, 228, 0\.54\)[^}]*background: rgba\(228, 228, 228, 0\.12\)/s);
-    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*top: 18px[^}]*left: 18px[^}]*right: auto[^}]*width: 40px[^}]*height: 40px/s);
-    assert.match(styles, /\.layout-toggle-icon\[data-layout-action="minimize"\]::before\s*\{[^}]*top: 0[^}]*left: 0[^}]*border-top: 2px solid[^}]*border-left: 2px solid/s);
-    assert.match(styles, /\.layout-toggle-icon\[data-layout-action="minimize"\]::after\s*\{[^}]*right: 0[^}]*bottom: 0[^}]*border-right: 2px solid[^}]*border-bottom: 2px solid/s);
-    assert.match(styles, /\.layout-toggle-icon\[data-layout-action="expand"\]::before\s*\{[^}]*border-top: 2px solid/s);
-    assert.match(styles, /\.layout-toggle-icon\[data-layout-action="expand"\]::after\s*\{[^}]*border-bottom: 2px solid/s);
+    assert.match(styles, /\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*background: linear-gradient\(135deg, rgba\(228, 228, 228, 0\.11\), transparent 68%\)/s);
+    assert.match(styles, /\.layout-toggle::before\s*\{[^}]*border-top: 2px solid[^}]*border-left: 2px solid[^}]*border-top-left-radius: var\(--layout-toggle-radius, 14px\)/s);
+    assert.match(styles, /\.layout-toggle::after\s*\{[^}]*border-top: 1px solid[^}]*border-left: 1px solid/s);
+    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*--layout-toggle-radius: 18px[^}]*--layout-toggle-size: 58px[^}]*top: 14px[^}]*left: 14px[^}]*right: auto/s);
+    assert.match(styles, /\.layout-toggle-icon\s*\{[^}]*display: none/s);
+    assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="expand"]'), false);
+    assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="minimize"]'), false);
   });
 
   it("mounts only a rolling live chat window while keeping full message state", () => {

@@ -351,3 +351,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Wired the admin source save route and existing public config loads to ensure Kick chat subscriptions, with a cache so normal polling does not repeat successful subscription checks.
 - Documented the webhook/subscription setup requirement.
 - Verification: `node --test tests/kick-api.test.mjs`; `node --test tests/server-contract.test.mjs --test-name-pattern "existing public config|resolves Kick"`; `npm test` (90 passed); `npm run build`; local SSE smoke confirmed `/api/dev/kick-chat` broadcasts a normalized Kick chat event.
+
+## [2026-06-08] ui | Integrate layout toggle into stream border
+
+- Reworked the stream layout toggle from a circular arrow button into a clickable L-shaped border-corner control.
+- Hid the old arrow icon CSS while keeping the existing button semantics, layout mode toggle behavior, and keyboard focus affordance.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "layout"`; `npm test` (90 passed); `npm run build`; in-app browser smoke confirmed the 58x58 mini control aligns with the video frame corner, toggles to full layout on click, and logs no console errors.
