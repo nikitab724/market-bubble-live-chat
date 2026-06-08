@@ -72,6 +72,22 @@
           </div>
         </div>
         <div class="v2-player-frame">
+          <button id="expandBtn" class="v2-expand-btn" type="button" title="Expand player" aria-label="Expand player">
+            <!-- expand icon -->
+            <svg id="expandIcon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9,1 13,1 13,5"/>
+              <polyline points="5,13 1,13 1,9"/>
+              <line x1="13" y1="1" x2="8" y2="6"/>
+              <line x1="1" y1="13" x2="6" y2="8"/>
+            </svg>
+            <!-- collapse icon (hidden by default) -->
+            <svg id="collapseIcon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+              <polyline points="13,5 13,1 9,1"/>
+              <polyline points="1,9 1,13 5,13"/>
+              <line x1="8" y1="6" x2="13" y2="1"/>
+              <line x1="6" y1="8" x2="1" y2="13"/>
+            </svg>
+          </button>
           <div id="twitchPlayer" class="v2-twitch-player"></div>
         </div>
       </section>

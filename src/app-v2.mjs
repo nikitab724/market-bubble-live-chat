@@ -105,6 +105,10 @@ const el = {
   liveBadge:         document.querySelector("#liveBadge"),
   followBtn:         document.querySelector("#followBtn"),
   subscribeBtn:      document.querySelector("#subscribeBtn"),
+  expandBtn:         document.querySelector("#expandBtn"),
+  expandIcon:        document.querySelector("#expandIcon"),
+  collapseIcon:      document.querySelector("#collapseIcon"),
+  streamPanel:       document.querySelector(".v2-stream-panel"),
 };
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
@@ -554,6 +558,14 @@ function bindEvents() {
     state.followingChat = true;
     updateJumpToLive();
     scrollChatToBottom();
+  });
+
+  el.expandBtn?.addEventListener("click", () => {
+    const expanded = el.streamPanel.classList.toggle("v2-expanded");
+    el.expandIcon.style.display  = expanded ? "none"  : "";
+    el.collapseIcon.style.display = expanded ? ""     : "none";
+    el.expandBtn.title = expanded ? "Collapse player" : "Expand player";
+    el.expandBtn.setAttribute("aria-label", el.expandBtn.title);
   });
 }
 
