@@ -203,22 +203,20 @@ body.admin-body {
 .layout-toggle:hover,
 .layout-toggle:focus-visible {
   opacity: 1;
+  background: linear-gradient(135deg, rgba(228, 228, 228, 0.18), rgba(228, 228, 228, 0.07) 42%, transparent 74%);
+  color: rgba(255, 255, 255, 0.98);
 }
 
-.layout-toggle:hover,
-.layout-toggle:focus-visible {
-  background: linear-gradient(135deg, rgba(228, 228, 228, 0.11), transparent 68%);
-  color: rgba(255, 255, 255, 0.96);
-}
-
+.stream-view:hover .layout-toggle::before,
 .layout-toggle:hover::before,
 .layout-toggle:focus-visible::before {
   opacity: 1;
 }
 
+.stream-view:hover .layout-toggle::after,
 .layout-toggle:hover::after,
 .layout-toggle:focus-visible::after {
-  opacity: 0.62;
+  opacity: 0.7;
   transform: translate(2px, 2px);
 }
 

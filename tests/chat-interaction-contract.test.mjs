@@ -123,7 +123,9 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.layout-toggle\s*\{[^}]*border: 0[^}]*border-radius: var\(--layout-toggle-radius, 14px\) 0 12px 0[^}]*background: transparent[^}]*box-shadow: none/s);
     assert.match(styles, /\.layout-toggle::before\s*\{[^}]*border-top: 2px solid[^}]*border-left: 2px solid[^}]*border-top-left-radius: var\(--layout-toggle-radius, 14px\)/s);
     assert.match(styles, /\.layout-toggle::after\s*\{[^}]*border-top: 1px solid[^}]*border-left: 1px solid/s);
-    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle,\s*\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*opacity: 1/s);
+    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle,\s*\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*opacity: 1[^}]*background: linear-gradient\(135deg, rgba\(228, 228, 228, 0\.18\), rgba\(228, 228, 228, 0\.07\) 42%, transparent 74%\)[^}]*color: rgba\(255, 255, 255, 0\.98\)/s);
+    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle::before,\s*\.layout-toggle:hover::before,\s*\.layout-toggle:focus-visible::before\s*\{[^}]*opacity: 1/s);
+    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle::after,\s*\.layout-toggle:hover::after,\s*\.layout-toggle:focus-visible::after\s*\{[^}]*opacity: 0\.7[^}]*transform: translate\(2px, 2px\)/s);
     assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*top: 50%[^}]*width: 220px[^}]*background: transparent[^}]*box-shadow: none[^}]*animation: none/s);
     assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(520px, 1fr\) minmax\(270px, 320px\)/s);
     assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 32px/s);
@@ -596,8 +598,9 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.layout-toggle\s*\{[^}]*width: var\(--layout-toggle-size, 64px\)[^}]*height: var\(--layout-toggle-size, 64px\)/s);
     assert.match(styles, /\.layout-toggle\s*\{[^}]*border: 0[^}]*border-radius: var\(--layout-toggle-radius, 14px\) 0 12px 0[^}]*background: transparent[^}]*box-shadow: none/s);
     assert.match(styles, /\.layout-toggle\s*\{[^}]*opacity: 0\.68/s);
-    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle,\s*\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*opacity: 1/s);
-    assert.match(styles, /\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*background: linear-gradient\(135deg, rgba\(228, 228, 228, 0\.11\), transparent 68%\)/s);
+    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle,\s*\.layout-toggle:hover,\s*\.layout-toggle:focus-visible\s*\{[^}]*opacity: 1[^}]*background: linear-gradient\(135deg, rgba\(228, 228, 228, 0\.18\), rgba\(228, 228, 228, 0\.07\) 42%, transparent 74%\)[^}]*color: rgba\(255, 255, 255, 0\.98\)/s);
+    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle::before,\s*\.layout-toggle:hover::before,\s*\.layout-toggle:focus-visible::before\s*\{[^}]*opacity: 1/s);
+    assert.match(styles, /\.stream-view:hover\s+\.layout-toggle::after,\s*\.layout-toggle:hover::after,\s*\.layout-toggle:focus-visible::after\s*\{[^}]*opacity: 0\.7[^}]*transform: translate\(2px, 2px\)/s);
     assert.match(styles, /\.layout-toggle::before\s*\{[^}]*border-top: 2px solid[^}]*border-left: 2px solid[^}]*border-top-left-radius: var\(--layout-toggle-radius, 14px\)/s);
     assert.match(styles, /\.layout-toggle::after\s*\{[^}]*border-top: 1px solid[^}]*border-left: 1px solid/s);
     assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*--layout-toggle-radius: 18px[^}]*--layout-toggle-size: 58px[^}]*top: 14px[^}]*left: 14px[^}]*right: auto/s);

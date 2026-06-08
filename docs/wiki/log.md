@@ -357,3 +357,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Reworked the stream layout toggle from a circular arrow button into a clickable L-shaped border-corner control.
 - Hid the old arrow icon CSS while keeping the existing button semantics, layout mode toggle behavior, and keyboard focus affordance.
 - Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "layout"`; `npm test` (90 passed); `npm run build`; in-app browser smoke confirmed the 58x58 mini control aligns with the video frame corner, toggles to full layout on click, and logs no console errors.
+
+## [2026-06-08] fix | Restore fullscreen layout toggle hover
+
+- Changed the stream layout toggle hover state so hovering the fullscreen stream border applies the same bright corner color and light background as direct button hover.
+- Extended the layout interaction contract to require the visible hover treatment on stream hover, direct hover, and keyboard focus.
+- Verification: `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "layout"`; `npm test` (90 passed); `npm run build`.
