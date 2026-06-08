@@ -8,31 +8,23 @@ import { renderMessageBody } from "./emote-renderer.mjs";
 
 // ── Stream tab configuration ──────────────────────────────────────────────────
 //
-// Edit this array to match your actual source IDs from /api/public-config.
-// "both" is always appended automatically as the "show all" tab.
-//
-// twitchChannel: the channel embedded in the player for that tab.
-//                Set to null to keep the currently embedded channel.
-// sourceIds:     filter messages and viewer stats to these source IDs only.
-//                Leave empty to include all sources.
-
-const STREAMS = [
-  {
-    id: "junko",
-    label: "Junko",
-    twitchChannel: "whatever",
-    sourceIds: ["twitch-whatever"],
-  },
-  {
-    id: "moist",
-    label: "Moist",
-    twitchChannel: "moistcr1tikal",
-    sourceIds: ["twitch-moistcr1tikal"],
-  },
-];
+// Tabs are built dynamically from /api/public-config after boot.
+// One tab is created per Twitch source; "Both" is always appended last.
 
 const BOTH_TAB = { id: "both", label: "Both", twitchChannel: null, sourceIds: [] };
-const ALL_TABS = [...STREAMS, BOTH_TAB];
+let ALL_TABS = [BOTH_TAB];
+
+function buildTabsFromSources(sources) {
+  const twitchTabs = sources
+    .filter((s) => s.platform === "twitch")
+    .map((s) => ({
+      id: s.sourceId,
+      label: s.sourceLabel || s.sourceName || s.sourceHandle,
+      twitchChannel: s.sourceHandle,
+      sourceIds: [s.sourceId],
+    }));
+  return [...twitchTabs, BOTH_TAB];
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -45,40 +37,7 @@ const PLATFORM_LABELS = { twitch: "Twitch", kick: "Kick", x: "X", room: "MB.com"
 
 // ── Fallback sources (used if API is unreachable) ─────────────────────────────
 
-const fallbackSources = [
-  {
-    sourceId: "twitch-whatever",
-    platform: "twitch",
-    sourceName: "Junko",
-    sourceHandle: "whatever",
-    sourceUrl: "https://twitch.tv/whatever",
-    viewerCount: 0,
-  },
-  {
-    sourceId: "kick-kaneljoseph",
-    platform: "kick",
-    sourceName: "kanel",
-    sourceHandle: "kaneljoseph",
-    sourceUrl: "https://kick.com/kaneljoseph",
-    viewerCount: 0,
-  },
-  {
-    sourceId: "twitch-moistcr1tikal",
-    platform: "twitch",
-    sourceName: "Moist",
-    sourceHandle: "moistcr1tikal",
-    sourceUrl: "https://twitch.tv/moistcr1tikal",
-    viewerCount: 0,
-  },
-  {
-    sourceId: "x-z",
-    platform: "x",
-    sourceName: "Z",
-    sourceHandle: "z",
-    sourceUrl: "https://x.com/z",
-    viewerCount: 0,
-  },
-];
+const fallbackSources = [];
 
 // ── App state ─────────────────────────────────────────────────────────────────
 
@@ -92,7 +51,7 @@ let renderedMessageIds = [];
 let knownMessageIds = new Set();
 
 const state = {
-  activeTabId: ALL_TABS[0].id,
+  activeTabId: BOTH_TAB.id,
   followingChat: true,
   inspectingProfile: false,
   messages: [],
@@ -129,7 +88,6 @@ const el = {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 bindEvents();
-renderTabs();
 await initializeApp();
 window.setInterval(refreshLiveState, LIVE_STATE_REFRESH_MS);
 
@@ -144,6 +102,10 @@ async function initializeApp() {
       .filter((s) => s.platform === "twitch")
       .map((s) => [s.sourceId, "connecting"]),
   );
+
+  ALL_TABS = buildTabsFromSources(connectedSources);
+  state.activeTabId = ALL_TABS[0].id;
+  renderTabs();
 
   render();
   initTwitchPlayer();
