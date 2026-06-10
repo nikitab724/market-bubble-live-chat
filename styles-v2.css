@@ -104,6 +104,11 @@ a { color: inherit; text-decoration: none; }
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  transition: grid-template-columns 0.35s ease;
+}
+
+.v2-main:has(.v2-stream-panel.v2-expanded) {
+  grid-template-columns: 0px 1fr 0px;
 }
 
 /* ── Left: Chat panel ────────────────────────────────────────────────────── */
@@ -115,6 +120,12 @@ a { color: inherit; text-decoration: none; }
   border-right: 10px solid var(--line-soft);
   background: var(--bg);
   overflow: hidden;
+  transition: opacity 0.25s ease;
+}
+
+.v2-main:has(.v2-stream-panel.v2-expanded) .v2-chat-panel {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .v2-chat-feed {
@@ -262,6 +273,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   flex-direction: column;
   margin: 0 0 20px;
+  transition: border-width 0.35s ease, border-radius 0.35s ease, margin 0.35s ease;
 }
 
 .v2-stream-header {
@@ -450,6 +462,12 @@ a { color: inherit; text-decoration: none; }
   gap: 0;
   background: var(--bg);
   overflow: hidden;
+  transition: opacity 0.25s ease;
+}
+
+.v2-main:has(.v2-stream-panel.v2-expanded) .v2-stats-panel {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Tabs */
