@@ -17,6 +17,7 @@ import { initStreamPlayer } from "./viewer-stream.mjs";
 
 const LIVE_STATE_REFRESH_MS = 30_000;
 const CHAT_RENDER_INTERVAL_MS = 80;
+const CHAT_FILTER_STORAGE_KEY = "market-bubble-hidden-chat-sources";
 
 let mountedLiveApp = null;
 
@@ -39,7 +40,8 @@ function createLiveApp({ document, window }) {
   let authorProfilesByKey = new Map();
 
   const state = {
-    disabledChatSourceIds: new Set(),
+    chatFilterMenuOpen: false,
+    disabledChatSourceIds: loadInitialDisabledChatSourceIds(window),
     followingChat: true,
     inspectingProfile: false,
     messages: [],
@@ -192,6 +194,8 @@ function createLiveApp({ document, window }) {
     elements.chatFilters.addEventListener("click", handleChatFilterToggle);
     elements.chatFeed.addEventListener("click", handleProfilePinClick);
     document.addEventListener("click", handleDocumentProfileUnpinClick);
+    document.addEventListener("click", handleDocumentChatFilterMenuClose);
+    document.addEventListener("keydown", handleChatFilterMenuEscape);
 
     elements.jumpToLive.addEventListener("click", () => {
       clearPinnedProfileCard({ syncScroll: false });
@@ -203,6 +207,13 @@ function createLiveApp({ document, window }) {
 
   function handleChatFilterToggle(event) {
     const target = event.target instanceof Element ? event.target : null;
+
+    if (target?.closest(".chat-filter-button")) {
+      state.chatFilterMenuOpen = !state.chatFilterMenuOpen;
+      renderer.render();
+      return;
+    }
+
     const button = target?.closest(".chat-filter-toggle");
     const sourceId = String(button?.dataset.sourceId || "");
     if (!button || !hasSource(sourceId)) {
@@ -219,7 +230,58 @@ function createLiveApp({ document, window }) {
       state.disabledChatSourceIds.add(sourceId);
     }
 
+    persistDisabledChatSourceIds();
     renderer.render();
+  }
+
+  function handleDocumentChatFilterMenuClose(event) {
+    if (!state.chatFilterMenuOpen) {
+      return;
+    }
+
+    const target = event.target instanceof Element ? event.target : null;
+    // A click handled inside the filter UI re-renders it, detaching the
+    // original target; only clicks on connected outside elements close it.
+    if (!target || !target.isConnected || target.closest(".chat-filters")) {
+      return;
+    }
+
+    state.chatFilterMenuOpen = false;
+    renderer.render();
+  }
+
+  function handleChatFilterMenuEscape(event) {
+    if (event.key !== "Escape" || !state.chatFilterMenuOpen) {
+      return;
+    }
+
+    state.chatFilterMenuOpen = false;
+    renderer.render();
+  }
+
+  function loadInitialDisabledChatSourceIds(window) {
+    try {
+      const hidden = String(new URLSearchParams(window.location.search).get("hide") || "")
+        .split(",")
+        .map((sourceId) => sourceId.trim())
+        .filter(Boolean);
+      if (hidden.length > 0) {
+        return new Set(hidden);
+      }
+
+      const stored = JSON.parse(window.localStorage.getItem(CHAT_FILTER_STORAGE_KEY) || "[]");
+      return new Set(Array.isArray(stored) ? stored.map(String) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function persistDisabledChatSourceIds() {
+    try {
+      window.localStorage.setItem(CHAT_FILTER_STORAGE_KEY, JSON.stringify([...state.disabledChatSourceIds]));
+    } catch {
+      // storage unavailable (private mode, embedded overlay)
+    }
   }
 
   function handleProfilePinClick(event) {

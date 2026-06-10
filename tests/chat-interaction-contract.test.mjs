@@ -66,35 +66,57 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.includes('id="sourceBreakdown"'), true);
   });
 
-  it("renders per-source chat filter toggles and hides disabled source messages without dropping history", () => {
+  it("tucks per-source chat filters behind a sources button with a popover", () => {
     const viewer = readViewerRuntime();
     const app = readAppRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(viewer.includes('id="chatFilters"'), true);
     assert.match(viewer, /<div id="chatFilters" className="chat-filters" aria-label="Chat source filters" \/>/);
-    assert.equal(app.includes("disabledChatSourceIds: new Set()"), true);
+    assert.equal(app.includes("disabledChatSourceIds: loadInitialDisabledChatSourceIds(window)"), true);
     assert.equal(app.includes("chatFilters: document.querySelector(\"#chatFilters\")"), true);
     assert.equal(app.includes('elements.chatFilters.addEventListener("click", handleChatFilterToggle);'), true);
     assert.equal(app.includes("function handleChatFilterToggle(event)"), true);
+    assert.equal(app.includes('target?.closest(".chat-filter-button")'), true);
+    assert.equal(app.includes("state.chatFilterMenuOpen = !state.chatFilterMenuOpen"), true);
+    assert.equal(app.includes("function handleDocumentChatFilterMenuClose(event)"), true);
+    assert.equal(app.includes('document.addEventListener("click", handleDocumentChatFilterMenuClose);'), true);
+    assert.equal(app.includes('document.addEventListener("keydown", handleChatFilterMenuEscape);'), true);
     assert.equal(app.includes('target?.closest(".chat-filter-toggle")'), true);
     assert.equal(app.includes("state.disabledChatSourceIds.has(sourceId)"), true);
     assert.equal(app.includes("state.disabledChatSourceIds.delete(sourceId)"), true);
     assert.equal(app.includes("state.disabledChatSourceIds.add(sourceId)"), true);
     assert.equal(app.includes("state.messages.filter((message) => !state.disabledChatSourceIds.has(message.sourceId))"), true);
     assert.equal(app.includes("function renderChatFilters()"), true);
+    assert.equal(app.includes('class="chat-filter-button"'), true);
+    assert.equal(app.includes('aria-expanded="${String(isOpen)}"'), true);
+    assert.equal(app.includes('class="chat-filter-popover"'), true);
     assert.equal(app.includes('class="chat-filter-toggle ${source.platform}"'), true);
     assert.equal(app.includes('data-source-id="${escapeHtml(source.sourceId)}"'), true);
     assert.equal(app.includes('data-filter-state="${isEnabled ? "on" : "off"}"'), true);
     assert.equal(app.includes('aria-pressed="${String(isEnabled)}"'), true);
     assert.equal(app.includes('<span class="chat-filter-switch" aria-hidden="true">'), true);
     assert.match(styles, /\.chat-view\s*\{[^}]*grid-template-rows: auto minmax\(0, 1fr\)/s);
-    assert.match(styles, /\.chat-filters\s*\{[^}]*display: flex[^}]*overflow-x: auto/s);
-    assert.match(styles, /\.chat-filter-toggle\s*\{[^}]*border: 1px solid rgba\(228, 228, 228, 0\.18\)[^}]*border-radius: 999px/s);
+    assert.match(styles, /\.chat-filters\s*\{[^}]*position: relative[^}]*justify-content: flex-end/s);
+    assert.match(styles, /\.chat-filter-button\s*\{[^}]*border-radius: 999px/s);
+    assert.match(styles, /\.chat-filter-popover\s*\{[^}]*position: absolute[^}]*right: 0[^}]*background: #111/s);
+    assert.match(styles, /\.chat-filter-popover\[hidden\]\s*\{[^}]*display: none/s);
+    assert.match(styles, /\.chat-filter-toggle\s*\{[^}]*width: 100%/s);
     assert.match(styles, /\.chat-filter-toggle\[data-filter-state="off"\]\s*\{[^}]*opacity: 0\.48/s);
     assert.match(styles, /\.chat-filter-switch\s*\{[^}]*border-radius: 999px/s);
     assert.match(styles, /\.chat-filter-toggle\[data-filter-state="off"\]\s+\.chat-filter-switch::before\s*\{[^}]*transform: translateX\(0\)/s);
     assert.match(styles, /\.chat-filter-toggle\[data-filter-state="on"\]\s+\.chat-filter-switch::before\s*\{[^}]*transform: translateX\(16px\)/s);
+  });
+
+  it("persists hidden chat sources and accepts a hide URL parameter", () => {
+    const app = readAppRuntime();
+
+    assert.equal(app.includes('CHAT_FILTER_STORAGE_KEY = "market-bubble-hidden-chat-sources"'), true);
+    assert.equal(app.includes("function loadInitialDisabledChatSourceIds(window)"), true);
+    assert.equal(app.includes('.get("hide")'), true);
+    assert.equal(app.includes("function persistDisabledChatSourceIds()"), true);
+    assert.equal(app.includes("persistDisabledChatSourceIds();"), true);
+    assert.equal(app.includes("window.localStorage.setItem(CHAT_FILTER_STORAGE_KEY"), true);
   });
 
   it("renders the Banks quote as a small bottom-left surface note", () => {

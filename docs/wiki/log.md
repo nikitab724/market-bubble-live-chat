@@ -425,3 +425,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 
 - Made the `panel-expand-in`/`shell-calm-in` entrance animations load-only: the viewer surface sets `data-entered` after the intro (or on first toggle), and entered surfaces drop the entrance animations so mini/full layout toggles travel without fading out/in. The fade happened because re-adding `.live-layout-full` restarted the entrances from `opacity: 0`, which also blanked the view transition's new-state snapshot.
 - Verification: `npm test` (112 passed, including a new entrance-once contract test); `npm run build`; browser smoke sampled stream/chat opacity across both toggle directions at ~130 frames each and it never dropped below 1, while the load entrance still plays before `data-entered` flips.
+
+## [2026-06-10] ui | Move chat source filters into a sources popover
+
+- Replaced the always-visible row of per-source filter pills above chat with a compact `Sources n/n` button that opens a popover of ON/OFF rows, freeing the top of the narrow chat column and scaling past five sources.
+- Hidden sources persist in `localStorage` and can be preset with `?hide=<sourceId,...>`, which takes precedence for OBS/browser-source embeds; outside clicks and Escape close the popover, and the count turns amber when any source is muted.
+- Fixed a popover self-close bug found during verification: the open-click re-rendered the container, detaching the event target, so the document-level close handler now ignores disconnected targets.
+- Verification: `npm test` (113 passed with the rewritten filter contract and a new persistence contract); `npm run build`; browser smoke on `/?demoChat=1` confirmed open/toggle/persist/`?hide=`/outside-click/Escape behavior and per-source row hiding.

@@ -4,6 +4,7 @@ import { PLATFORM_ORDER, escapeHtml, platformMeta } from "./platforms.mjs";
 
 const AUTO_SCROLL_THRESHOLD_PX = 120;
 const CHAT_RENDER_WINDOW_SIZE = 500;
+const CHAT_FILTER_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.5 7.5v5l-3-1.7v-3.3L4 5z" /></svg>`;
 const VIEWER_COUNT_EXPONENTIAL_RATE = 18;
 const VIEWER_COUNT_MAX_FRAME_MS = 48;
 
@@ -381,19 +382,35 @@ export function createChatRenderer({
 
   function renderChatFilters() {
     const sources = state.sources.filter((source) => source.enabled !== false);
-    const filterKey = JSON.stringify(sources.map((source) => ({
-      disabled: state.disabledChatSourceIds.has(source.sourceId),
-      platform: source.platform,
-      sourceId: source.sourceId,
-      sourceLabel: source.sourceLabel,
-    })));
+    const filterKey = JSON.stringify({
+      open: state.chatFilterMenuOpen === true,
+      sources: sources.map((source) => ({
+        disabled: state.disabledChatSourceIds.has(source.sourceId),
+        platform: source.platform,
+        sourceId: source.sourceId,
+        sourceLabel: source.sourceLabel,
+      })),
+    });
 
     if (filterKey === renderedChatFilterKey) {
       return;
     }
 
     renderedChatFilterKey = filterKey;
-    elements.chatFilters.innerHTML = sources.map(renderChatFilter).join("");
+    const enabledCount = sources.filter((source) => !state.disabledChatSourceIds.has(source.sourceId)).length;
+    const isOpen = state.chatFilterMenuOpen === true;
+
+    elements.chatFilters.innerHTML = `
+      <button class="chat-filter-button" type="button" aria-haspopup="true" aria-expanded="${String(isOpen)}" data-filter-state="${enabledCount === sources.length ? "all" : "filtered"}" title="Choose chat sources">
+        ${CHAT_FILTER_ICON}
+        <span>Sources</span>
+        <b>${enabledCount}/${sources.length}</b>
+      </button>
+      <div class="chat-filter-popover" aria-label="Chat sources"${isOpen ? "" : " hidden"}>
+        <span class="chat-filter-popover-kicker">Chat sources</span>
+        ${sources.map(renderChatFilter).join("")}
+      </div>
+    `;
   }
 
   function renderChatFilter(source) {
