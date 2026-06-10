@@ -4,6 +4,9 @@ import { flushSync } from "react-dom";
 const LAYOUT_STORAGE_KEY = "market-bubble-viewer-layout";
 const layoutModes = new Set(["full", "mini"]);
 const ENTRANCE_ANIMATIONS_MS = 1200;
+// Gecko's view-transition morph still drops frames over live video on
+// Windows, so Firefox gets a clean instant layout switch instead.
+const prefersInstantLayoutSwitch = typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent);
 
 export function ViewerApp({ surface = "viewer" }) {
   const showStream = surface === "viewer";
@@ -68,7 +71,7 @@ export function ViewerApp({ surface = "viewer" }) {
     // the panels and blanks the view transition's new-state snapshot.
     setEntered(true);
 
-    if (typeof document.startViewTransition === "function") {
+    if (!prefersInstantLayoutSwitch && typeof document.startViewTransition === "function") {
       document.startViewTransition(() => {
         flushSync(() => setLayoutMode(nextLayout));
       });

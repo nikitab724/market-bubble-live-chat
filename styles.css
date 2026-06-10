@@ -2031,6 +2031,21 @@ button:hover {
   }
 }
 
+/* Gecko-only: Windows Firefox re-rasterizes animating text with grayscale
+   anti-aliasing and snaps to ClearType afterwards, so continuously fading
+   chat rows and blurred entrance text visibly shimmer. Keep the motion
+   elsewhere but drop those text effects for Firefox. */
+@supports (-moz-appearance: none) {
+  .chat-message {
+    animation: none;
+  }
+
+  .corner-quote,
+  .corner-schedule {
+    filter: none !important;
+  }
+}
+
 .profile-remove,
 .source-remove,
 #logoutButton {

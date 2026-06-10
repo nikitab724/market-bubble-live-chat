@@ -732,6 +732,16 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.live-surface\[data-entered="true"\]\s+\.broadcast-topbar,\s*\.live-surface\[data-entered="true"\]\s+\.stream-view,\s*\.live-surface\[data-entered="true"\]\s+\.chat-view\s*\{[^}]*animation: none/s);
   });
 
+  it("keeps Firefox on calm animations where Gecko text rendering shimmers", () => {
+    const viewer = readViewerRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(viewer.includes('/firefox/i.test(navigator.userAgent)'), true);
+    assert.match(viewer, /if \(!prefersInstantLayoutSwitch && typeof document\.startViewTransition === "function"\)/);
+    assert.match(styles, /@supports \(-moz-appearance: none\)\s*\{[\s\S]*?\.chat-message\s*\{[^}]*animation: none/);
+    assert.match(styles, /@supports \(-moz-appearance: none\)\s*\{[\s\S]*?filter: none !important/);
+  });
+
   it("keeps fixed profile cards anchored to the viewport after panel entrance animations", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 

@@ -438,3 +438,8 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Removed the On/Off text from the chat filter switches; the knob position and platform color carry the state, with the row title/aria-pressed keeping it accessible.
 - Added a plain-length `contain-intrinsic-size` fallback before the `auto` form so browsers that do not parse the auto keyword never collapse skipped chat rows to zero height.
 - Verification: `npm test` (113 passed); `npm run build`; browser smoke confirmed empty switch text and the popover renders cleanly.
+
+## [2026-06-10] ui | Calm Firefox animations
+
+- Firefox now skips the view-transition layout morph (instant switch) and drops the per-row chat fade plus blurred corner-text entrances through a Gecko-only `@supports (-moz-appearance: none)` block, because Windows Gecko re-rasterizes animating text with grayscale anti-aliasing and its new view-transition morph drops frames over live video.
+- Verification: `npm test` (114 passed including the new Gecko contract test); `npm run build`.
