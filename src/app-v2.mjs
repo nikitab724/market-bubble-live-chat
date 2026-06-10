@@ -303,38 +303,17 @@ function getTabMessages(tab) {
 
 function renderTabs() {
   if (!el.streamTabs) return;
-  el.streamTabs.innerHTML = ALL_TABS.map((tab) => `
-    <button
-      class="v2-tab"
-      role="tab"
-      data-tab-id="${tab.id}"
-      aria-selected="${tab.id === state.activeTabId}"
-    >${escapeHtml(tab.label)}</button>
-  `).join("");
 
+  // Tabs are static in HTML ("Live", "Content", "Community").
+  // Just wire up the click handler once.
   el.streamTabs.addEventListener("click", (e) => {
     const btn = e.target.closest(".v2-tab");
     if (!btn) return;
     const tabId = btn.dataset.tabId;
-    if (tabId === state.activeTabId) return;
-
-    state.activeTabId = tabId;
-    renderedMessageIds = [];
-    state.followingChat = true;
-
-    // Clear the chat DOM so the next render does a clean append into an empty stack
-    const oldStack = el.chatFeed.querySelector(".v2-chat-stack");
-    if (oldStack) oldStack.innerHTML = "";
 
     el.streamTabs.querySelectorAll(".v2-tab").forEach((b) => {
       b.setAttribute("aria-selected", String(b.dataset.tabId === tabId));
     });
-
-    const tab = getActiveTab();
-    if (tab.twitchChannel) initTwitchPlayer(tab.twitchChannel);
-
-    updateStreamHeader();
-    queueRender();
   });
 }
 
