@@ -169,11 +169,14 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   gap: 3px;
   color: #fff;
-  padding: 1px 5px 1px 3px;
+  padding: 0 5px 0 3px;
   white-space: nowrap;
   vertical-align: middle;
   margin-right: 3px;
   line-height: 1;
+  height: 16px;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .v2-channel-icon-svg {
@@ -193,6 +196,7 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 48px;
+  line-height: 1;
 }
 
 .v2-chat-channel-icon.twitch { background: var(--twitch); }
