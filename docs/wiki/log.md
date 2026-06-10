@@ -401,3 +401,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 
 - Adjusted Kick source-chip status so `isLive: true` is green, while a connected Kick provider with an offline channel is orange instead of red.
 - Verification: red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "Kick live-state"`; `npm test` (108 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-09] ui | Make source status dots profile-aware
+
+- Changed source-chip status so a live source in a profile makes the profile's Twitch/Kick status dots green, even when another provider source in that same profile is offline.
+- Kept the orange offline state for checked provider sources only when no source in that profile is live.
+- Verification: red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "profile live-state"`; `npm test` (109 passed); `npm run build`; `git diff --check`.

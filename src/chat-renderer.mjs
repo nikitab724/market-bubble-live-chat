@@ -101,7 +101,7 @@ export function createChatRenderer({
         sourceHandle: source.sourceHandle,
         sourceLabel: source.sourceLabel,
         sourceUrl: source.sourceUrl,
-        status: getSourceStatus(source, state.twitchStatuses),
+        status: getProfileSourceStatus(source, getSourceProfile(source).sources, state.twitchStatuses),
         streamTitle: source.streamTitle || "",
         viewerCount: source.viewerCount,
         viewerCountLocked: source.viewerCountLocked === true,
@@ -418,11 +418,11 @@ export function createChatRenderer({
   function renderSource(source) {
     const meta = platformMeta[source.platform];
     const profile = getSourceProfile(source);
-    const sourceStatus = getSourceStatus(source, state.twitchStatuses);
+    const sourceStatus = getProfileSourceStatus(source, profile.sources, state.twitchStatuses);
     const statusDot = shouldRenderSourceStatusDot(source)
       ? renderStatusDot(sourceStatus)
       : "";
-    const chipTitle = getSourceChipTitle(meta, source);
+    const chipTitle = getSourceChipTitle(meta, source, sourceStatus);
 
     return `
       <div class="source-chip ${source.platform}" aria-label="${escapeHtml(chipTitle)}">
@@ -656,11 +656,11 @@ export function createChatRenderer({
     return labels[status] || status;
   }
 
-  function getSourceChipTitle(meta, source) {
+  function getSourceChipTitle(meta, source, sourceStatus) {
     const parts = [`${meta.label} / ${source.sourceLabel}`];
 
-    if (source.viewerCountLocked) {
-      parts.push(source.isLive ? "Live" : "Offline");
+    if (source.viewerCountLocked || sourceStatus === "connected" || sourceStatus === "offline") {
+      parts.push(formatSourceStatus(sourceStatus));
       if (source.streamTitle) parts.push(source.streamTitle);
       if (source.gameName) parts.push(source.gameName);
     }
@@ -799,6 +799,22 @@ export function createChatRenderer({
 
 export function shouldRenderSourceStatusDot(source) {
   return source.platform === "twitch" || source.platform === "kick";
+}
+
+export function getProfileSourceStatus(source, profileSources = [], twitchStatuses = {}) {
+  const sources = Array.isArray(profileSources) && profileSources.length > 0
+    ? profileSources
+    : [source];
+
+  if (sources.some((profileSource) => profileSource.viewerCountLocked && profileSource.isLive === true)) {
+    return "connected";
+  }
+
+  if (sources.some((profileSource) => profileSource.viewerCountLocked && profileSource.isLive === false)) {
+    return "offline";
+  }
+
+  return getSourceStatus(source, twitchStatuses);
 }
 
 export function getSourceStatus(source, twitchStatuses = {}) {

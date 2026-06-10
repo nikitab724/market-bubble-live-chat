@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { getSourceStatus, shouldRenderSourceStatusDot } from "../src/chat-renderer.mjs";
+import { getProfileSourceStatus, getSourceStatus, shouldRenderSourceStatusDot } from "../src/chat-renderer.mjs";
 
 function readAppRuntime() {
   return [
@@ -649,6 +649,27 @@ describe("chat interaction contract", () => {
       viewerCount: 100,
     }), "connected");
     assert.match(styles, /\.live-dot\.offline\s*\{[^}]*#f5a623/s);
+  });
+
+  it("uses profile live-state before an offline source status", () => {
+    const profileSources = [
+      {
+        isLive: true,
+        platform: "twitch",
+        sourceId: "twitch-jynxzi",
+        viewerCount: 57771,
+        viewerCountLocked: true,
+      },
+      {
+        isLive: false,
+        platform: "kick",
+        sourceId: "kick-kaneljoseph",
+        viewerCount: 0,
+        viewerCountLocked: true,
+      },
+    ];
+
+    assert.equal(getProfileSourceStatus(profileSources[1], profileSources), "connected");
   });
 
   it("integrates the layout toggle into the stream border corner", () => {

@@ -35,7 +35,7 @@ Important fields:
 - `enabled`: controls whether a source appears in public config.
 - `showStream`: marks the one source used by the hosted stream player.
 
-The server strips editable `viewerCount` values from admin writes. Viewer counts are live provider data when available. The viewer renders combined and per-source count changes with lightweight exponential catch-up after the initial paint, moving quickly across large gaps and easing into the target with plain tabular text; reduced-motion clients snap directly to the latest value. Source chips show a status dot for Twitch chat connection state and Kick live-state; Kick is green only when live and orange when the provider is connected but the channel is offline.
+The server strips editable `viewerCount` values from admin writes. Viewer counts are live provider data when available. The viewer renders combined and per-source count changes with lightweight exponential catch-up after the initial paint, moving quickly across large gaps and easing into the target with plain tabular text; reduced-motion clients snap directly to the latest value. Source chips show a profile-aware status dot: if any source in the same profile is live the profile's Twitch/Kick chips show green; otherwise checked-but-offline provider sources show orange.
 
 ## Chat Flow
 
