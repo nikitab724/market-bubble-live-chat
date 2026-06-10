@@ -136,15 +136,6 @@ function initTwitchPlayer(channel) {
 
   if (!twitchChannel) return;
 
-  const parent = window.location.hostname || "localhost";
-  const iframe = document.createElement("iframe");
-  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(twitchChannel)}&parent=${encodeURIComponent(parent)}&autoplay=true`;
-  iframe.allowFullscreen = true;
-  iframe.allow = "autoplay; fullscreen";
-  iframe.title = `${twitchChannel} on Twitch`;
-
-  el.twitchPlayer.replaceChildren(iframe);
-
   const twitchSource = connectedSources.find(
     (s) => s.platform === "twitch" && s.sourceHandle === twitchChannel,
   ) || connectedSources.find((s) => s.platform === "twitch");
@@ -154,6 +145,44 @@ function initTwitchPlayer(channel) {
     el.streamerAvatar.textContent = (twitchSource.sourceLabel || twitchChannel).charAt(0).toUpperCase();
     el.followBtn.href = `https://twitch.tv/${twitchChannel}`;
     el.subscribeBtn.href = `https://twitch.tv/subs/${twitchChannel}`;
+  }
+
+  const source = twitchSource || connectedSources.find((s) => s.platform === "twitch");
+  const isLive = source?.isLive === true;
+
+  if (isLive) {
+    setTwitchPlayerChannel(twitchChannel);
+  } else {
+    loadLatestVod(twitchChannel);
+  }
+}
+
+function setTwitchPlayerChannel(channel) {
+  const parent = window.location.hostname || "localhost";
+  const iframe = document.createElement("iframe");
+  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${encodeURIComponent(parent)}&autoplay=true`;
+  iframe.allowFullscreen = true;
+  iframe.allow = "autoplay; fullscreen";
+  iframe.title = `${channel} on Twitch`;
+  el.twitchPlayer.replaceChildren(iframe);
+}
+
+async function loadLatestVod(channel) {
+  try {
+    const r = await fetch(`/api/twitch-vod?channel=${encodeURIComponent(channel)}`, { cache: "no-store" });
+    if (!r.ok) return setTwitchPlayerChannel(channel);
+    const data = await r.json();
+    if (!data.vod?.id) return setTwitchPlayerChannel(channel);
+
+    const parent = window.location.hostname || "localhost";
+    const iframe = document.createElement("iframe");
+    iframe.src = `https://player.twitch.tv/?video=${encodeURIComponent(data.vod.id)}&parent=${encodeURIComponent(parent)}&autoplay=false`;
+    iframe.allowFullscreen = true;
+    iframe.allow = "autoplay; fullscreen";
+    iframe.title = data.vod.title || `${channel} on Twitch`;
+    el.twitchPlayer.replaceChildren(iframe);
+  } catch {
+    setTwitchPlayerChannel(channel);
   }
 }
 
@@ -224,11 +253,14 @@ async function refreshLiveState() {
   }
 }
 
+let lastLiveState = null;
+
 function updateStreamHeader() {
   const tab = getActiveTab();
   const tabSources = getTabSources(tab);
   const liveSources = tabSources.filter((s) => s.isLive);
   const primaryLive = liveSources[0];
+  const nowLive = !!primaryLive;
 
   if (primaryLive) {
     el.liveBadge.textContent = "Live";
@@ -238,6 +270,19 @@ function updateStreamHeader() {
     el.liveBadge.textContent = "Offline";
     el.liveBadge.dataset.state = "offline";
   }
+
+  // Reload the player if live status changed since last check
+  if (lastLiveState !== null && lastLiveState !== nowLive) {
+    const twitchChannel = tab.twitchChannel || connectedSources.find((s) => s.platform === "twitch")?.sourceHandle;
+    if (twitchChannel) {
+      if (nowLive) {
+        setTwitchPlayerChannel(twitchChannel);
+      } else {
+        loadLatestVod(twitchChannel);
+      }
+    }
+  }
+  lastLiveState = nowLive;
 }
 
 // ── Tab management ────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ const DEFAULT_STREAMS_URL = "https://api.twitch.tv/helix/streams";
 const DEFAULT_USERS_URL = "https://api.twitch.tv/helix/users";
 const DEFAULT_GLOBAL_BADGES_URL = "https://api.twitch.tv/helix/chat/badges/global";
 const DEFAULT_CHANNEL_BADGES_URL = "https://api.twitch.tv/helix/chat/badges";
+const DEFAULT_VIDEOS_URL = "https://api.twitch.tv/helix/videos";
 const TOKEN_EXPIRY_MARGIN_MS = 60_000;
 
 export function createTwitchApiClient(options = {}) {
@@ -15,6 +16,7 @@ export function createTwitchApiClient(options = {}) {
   const usersUrl = options.usersUrl || DEFAULT_USERS_URL;
   const globalBadgesUrl = options.globalBadgesUrl || DEFAULT_GLOBAL_BADGES_URL;
   const channelBadgesUrl = options.channelBadgesUrl || DEFAULT_CHANNEL_BADGES_URL;
+  const videosUrl = options.videosUrl || DEFAULT_VIDEOS_URL;
 
   let cachedToken = "";
   let tokenExpiresAt = 0;
@@ -54,6 +56,38 @@ export function createTwitchApiClient(options = {}) {
       }
 
       return getUserIdByLogin(login);
+    },
+
+    async getLatestVod(channel) {
+      const channelName = String(channel || "").trim().toLowerCase();
+      if (!clientId || !clientSecret || !channelName) return null;
+
+      try {
+        const token = await getAppAccessToken();
+        const userId = await getUserIdByLogin(channelName);
+        if (!userId) return null;
+
+        const url = new URL(videosUrl);
+        url.searchParams.set("user_id", userId);
+        url.searchParams.set("type", "archive");
+        url.searchParams.set("first", "1");
+
+        const response = await fetchImpl(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Client-Id": clientId,
+          },
+        });
+
+        if (!response.ok) return null;
+        const payload = await response.json();
+        const vod = payload.data?.[0];
+        if (!vod) return null;
+
+        return { id: vod.id, title: vod.title || "", duration: vod.duration || "" };
+      } catch {
+        return null;
+      }
     },
 
     async getChatBadges(channel) {
