@@ -457,3 +457,8 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Replaced the rigid outer-`kind===1` gate in `normalizeXBroadcastMessage` with a structural walk down the `body` chain that treats a frame as chat only when it has a non-empty leaf text body, collecting identity/uuid/timestamp across levels. This filters the real control frames regardless of envelope kind and accepts chat whether the outer kind is 1 or 2.
 - Locked the behavior with real-captured join/occupancy fixtures (must filter) and a chat frame with outer kind 2 (must accept) in `tests/x-api.test.mjs`.
 - Verification: `npm test` (132 passed); `npm run build`; 30s live capture against the real broadcast classified its control frame correctly (0 false chat, no crash). A rendered chat line was not captured because the broadcast was silent during the window; the chat-text path is covered by unit fixtures.
+
+## [2026-06-10] admin | Add X broadcast id field for server-side chat
+
+- Added a "Broadcast id (chat)" text field to the X row in the admin profile editor so operators can paste a broadcast id or `/i/broadcasts/<id>` URL without hand-editing `data/sources.json`. Threaded `broadcastId` through `admin/profile-model.mjs` (build/collect/empty slots) and widened the X social row grid to six columns.
+- Verification: `npm test` (133 passed, including a new profile-model round-trip test); `npm run build`; browser smoke on `/admin/` confirmed the field renders with its placeholder; a real PUT saved a `/i/broadcasts/<id>` URL, the server normalized it to the bare id, persisted it to disk, kept it out of `/api/public-config`, and synced the X connector on save with no errors.

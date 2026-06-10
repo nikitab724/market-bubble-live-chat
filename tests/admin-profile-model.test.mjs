@@ -54,6 +54,34 @@ describe("admin profile model", () => {
     assert.equal(profiles[1].sources.x.conversationId, "2062574325970973093");
   });
 
+  it("round-trips an X broadcast id through profile editing", () => {
+    const [profile] = buildProfilesFromSources([
+      {
+        enabled: true,
+        platform: "x",
+        sourceHandle: "banks",
+        sourceLabel: "Banks",
+        sourceName: "Banks",
+        broadcastId: "1yKAPPboWlDxb",
+      },
+    ]);
+    assert.equal(profile.sources.x.broadcastId, "1yKAPPboWlDxb");
+
+    const [source] = buildSourcesFromProfiles([
+      {
+        id: "banks",
+        name: "Banks",
+        sources: { x: { enabled: true, handle: "banks", label: "Banks", broadcastId: "1yKAPPboWlDxb" } },
+      },
+    ]);
+    assert.equal(source.broadcastId, "1yKAPPboWlDxb");
+
+    const [noId] = buildSourcesFromProfiles([
+      { id: "z", name: "Z", sources: { x: { enabled: true, handle: "z", label: "Z" } } },
+    ]);
+    assert.equal("broadcastId" in noId, false);
+  });
+
   it("collects expanded profile data back into source rows without blank socials", () => {
     const sources = buildSourcesFromProfiles([
       {

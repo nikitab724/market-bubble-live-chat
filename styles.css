@@ -1901,7 +1901,7 @@ h2 {
 }
 
 .profile-social-row.platform-x {
-  grid-template-columns: 170px minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.2fr) 132px;
+  grid-template-columns: 170px minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr) 132px;
 }
 
 .profile-social-row.platform-kick {

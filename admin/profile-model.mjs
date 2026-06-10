@@ -28,6 +28,7 @@ export function buildProfilesFromSources(sources) {
     if (source.profileName) profile.name = normalizeProfileName(source.profileName);
     profile.sources[platform] = {
       broadcasterUserId: platform === "kick" ? String(source.broadcasterUserId || "") : "",
+      broadcastId: platform === "x" ? String(source.broadcastId || "") : "",
       conversationId: String(source.conversationId || ""),
       enabled: source.enabled !== false,
       handle: String(source.sourceHandle || ""),
@@ -54,6 +55,9 @@ export function buildSourcesFromProfiles(profiles) {
         return {
           ...(platform === "kick" && source.broadcasterUserId ? {
             broadcasterUserId: String(source.broadcasterUserId).trim(),
+          } : {}),
+          ...(platform === "x" && source.broadcastId ? {
+            broadcastId: String(source.broadcastId).trim(),
           } : {}),
           conversationId: platform === "x" ? String(source.conversationId || "").trim() : "",
           enabled: source.enabled === true,
@@ -87,6 +91,7 @@ export function createEmptySourceSlots() {
       id,
       {
         broadcasterUserId: "",
+        broadcastId: "",
         conversationId: "",
         enabled: false,
         handle: "",
