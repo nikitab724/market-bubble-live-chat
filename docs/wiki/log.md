@@ -432,3 +432,9 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Hidden sources persist in `localStorage` and can be preset with `?hide=<sourceId,...>`, which takes precedence for OBS/browser-source embeds; outside clicks and Escape close the popover, and the count turns amber when any source is muted.
 - Fixed a popover self-close bug found during verification: the open-click re-rendered the container, detaching the event target, so the document-level close handler now ignores disconnected targets.
 - Verification: `npm test` (113 passed with the rewritten filter contract and a new persistence contract); `npm run build`; browser smoke on `/?demoChat=1` confirmed open/toggle/persist/`?hide=`/outside-click/Escape behavior and per-source row hiding.
+
+## [2026-06-10] ui | Textless filter switches and intrinsic-size fallback
+
+- Removed the On/Off text from the chat filter switches; the knob position and platform color carry the state, with the row title/aria-pressed keeping it accessible.
+- Added a plain-length `contain-intrinsic-size` fallback before the `auto` form so browsers that do not parse the auto keyword never collapse skipped chat rows to zero height.
+- Verification: `npm test` (113 passed); `npm run build`; browser smoke confirmed empty switch text and the popover renders cleanly.

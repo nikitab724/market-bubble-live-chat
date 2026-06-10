@@ -425,9 +425,7 @@ export function createChatRenderer({
           <span>${escapeHtml(meta.label)}</span>
           <strong>${escapeHtml(source.sourceLabel)}</strong>
         </span>
-        <span class="chat-filter-switch" aria-hidden="true">
-          <span>${escapeHtml(status)}</span>
-        </span>
+        <span class="chat-filter-switch" aria-hidden="true"></span>
       </button>
     `;
   }

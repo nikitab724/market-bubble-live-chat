@@ -1216,8 +1216,7 @@ h2 {
   text-align: left;
 }
 
-.chat-filter-label span,
-.chat-filter-switch span {
+.chat-filter-label span {
   font-size: 8px;
   font-weight: 900;
   line-height: 1;
@@ -1241,14 +1240,12 @@ h2 {
 
 .chat-filter-switch {
   position: relative;
-  display: grid;
+  display: block;
   flex: 0 0 38px;
-  place-items: center;
   width: 38px;
   height: 22px;
   border-radius: 999px;
   background: rgba(228, 228, 228, 0.12);
-  color: rgba(255, 255, 255, 0.72);
   overflow: hidden;
 }
 
@@ -1262,13 +1259,6 @@ h2 {
   border-radius: 50%;
   background: var(--source-color, var(--text));
   transition: transform 180ms var(--ease-out);
-}
-
-.chat-filter-switch span {
-  position: relative;
-  z-index: 1;
-  color: #050505;
-  font-size: 7px;
 }
 
 .chat-filter-toggle[data-filter-state="off"] .chat-filter-switch {
@@ -1367,8 +1357,11 @@ h2 {
   border-radius: 8px;
   background: transparent;
   outline: 0;
-  /* Off-screen rows in the 500-row window skip style/layout/paint entirely. */
+  /* Off-screen rows in the 500-row window skip style/layout/paint entirely.
+     The plain-length line is the fallback for engines without the auto
+     keyword, so skipped rows never collapse to zero height. */
   content-visibility: auto;
+  contain-intrinsic-size: 34px;
   contain-intrinsic-size: auto 34px;
   animation: chat-message-rise 320ms var(--ease-out) both;
   transition: background 160ms ease, box-shadow 160ms ease;
