@@ -256,8 +256,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .v2-stream-card {
-  border: 20px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
+  border: 10px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
