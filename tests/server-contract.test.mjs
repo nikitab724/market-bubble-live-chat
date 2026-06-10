@@ -522,6 +522,48 @@ describe("server contract", () => {
       await close(server);
     }
   });
+
+  it("ignores extension DOM-bridge chat for an X source owned by the server-side connector", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-dedupe-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({ sources: [{ platform: "x", sourceHandle: "banks", sourceLabel: "Banks", enabled: true }] }),
+    );
+
+    const chatEvents = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: { syncSources() {}, stop() {} },
+      chatHub: {
+        broadcast(eventName, payload) {
+          chatEvents.push({ eventName, payload });
+        },
+        connect() {},
+      },
+    });
+    await listen(server);
+
+    try {
+      const post = () => request(server, "POST", "/api/x-chat", { sourceHandle: "banks", author: "Nuckelx", handle: "nuckelx", body: "hello" });
+
+      // No broadcast id yet: the DOM bridge is the only path, so it is delivered.
+      assert.equal((await post()).status, 204);
+      assert.equal(chatEvents.filter((e) => e.eventName === "chat").length, 1);
+
+      // Once a broadcast id is set, the source is owned by the server-side
+      // connector and the DOM-bridge post is ignored (no second delivery).
+      assert.equal((await request(server, "POST", "/api/x-broadcast", { sourceHandle: "banks", broadcastId: "1yKAPPboWlDxb" })).status, 200);
+      assert.equal((await post()).status, 204);
+      assert.equal(chatEvents.filter((e) => e.eventName === "chat").length, 1);
+    } finally {
+      await close(server);
+    }
+  });
 });
 
 function listen(server) {

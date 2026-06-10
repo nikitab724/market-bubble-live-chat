@@ -16,7 +16,7 @@
 - `GET /api/twitch-emotes?channel=...`: Twitch third-party emote cache.
 - `GET /api/twitch-badges?channel=...`: Twitch global/channel chat badge image cache.
 - `GET /api/chat-events`: database-backed replaying server-sent events stream for normalized chat and connector status events.
-- `POST /api/x-chat`: X extension chat ingest.
+- `POST /api/x-chat`: X extension chat ingest, ignored for any X source that has a `broadcastId` (owned by the server-side connector) so messages are not delivered twice.
 - `POST /api/x-broadcast`: X extension reports the current live broadcast id, which the server writes to the matching enabled X source so the server-side X chat connector attaches without a manual paste.
 - `POST /api/webhooks/kick`: Kick webhook chat ingest with signature verification.
 - `POST /api/dev/kick-chat`: local development injector outside production.

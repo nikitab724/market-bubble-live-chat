@@ -177,8 +177,19 @@ export function createAppServer(options = {}) {
           const body = await readJsonBody(request);
           const sources = await readSources(configPath);
           const message = normalizeXChatMessage(body, sources);
-          chatHub.broadcast("chat", message);
-          console.log(`[x-chat] ${message.sourceLabel} | ${message.author}: ${message.body}`);
+
+          // A source with a broadcast id is served by the server-side X chat
+          // connector. Ignore the extension DOM bridge for it so its messages
+          // are not delivered twice (once from each path).
+          const ownedByConnector = sources.some(
+            (source) => source.platform === "x" && source.sourceId === message.sourceId && source.broadcastId,
+          );
+
+          if (!ownedByConnector) {
+            chatHub.broadcast("chat", message);
+            console.log(`[x-chat] ${message.sourceLabel} | ${message.author}: ${message.body}`);
+          }
+
           response.writeHead(204);
           return response.end();
         }

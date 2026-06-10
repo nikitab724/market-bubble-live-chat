@@ -62,6 +62,8 @@ Setup: give the X source a broadcast id, two ways:
 
 The broadcast id is stored server-side only, like Kick's `broadcasterUserId`, and never appears in public config. A numeric post id in `conversationId` is an X post id, not a broadcast id, and is ignored for chat. No env vars or credentials are required. Confirm chat is enabled on the broadcast (X has a per-broadcast chat permission setting).
 
+Once a source has a broadcast id it is owned by the server-side connector, so `POST /api/x-chat` ingest from the extension DOM bridge is ignored for that source. This keeps a source on exactly one chat path and prevents the same message arriving twice (once from the connector, once from the bridge).
+
 Caveats: these are unofficial endpoints (the same ones x.com's web player calls), so they can change without notice, and read-only access is a ToS gray area. Every failure is treated as a soft `disconnected` status with reconnect, never a crash.
 
 ### Chrome extension bridge (fallback)

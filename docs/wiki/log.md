@@ -469,3 +469,8 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - The endpoint is a bounded sibling to `/api/x-chat`: unauthenticated like the existing extension bridge, but it can only set `broadcastId` on an existing enabled X source matched by handle (no source creation or other edits), validates the id strictly, is idempotent, and never leaks the id to public config.
 - Documented in `x-live-setup.md`, `connectors.md`, and `architecture.md`.
 - Verification: `npm test` (134 passed, including a new server-contract test covering set/persist/sync, idempotency, unknown handle 404, and invalid id 400); `node --check extension/content.js`; live server smoke posted a `/i/broadcasts/<id>` URL, saw it normalized to the bare id, persisted server-side only, and logged `[x-broadcast] x-banks -> 1yKAPPboWlDxb` with the connector re-synced.
+
+## [2026-06-10] fix | Stop duplicate X chat from connector + extension bridge
+
+- Fixed X chat messages arriving twice when both the server-side connector and the extension DOM bridge were active for the same source. `POST /api/x-chat` now ignores ingest for any X source that has a `broadcastId`, since that source is owned by the server-side connector — one source, one chat path.
+- Verification: `npm test` (135 passed, including a new server-contract test that delivers a DOM-bridge post before a broadcast id is set and drops it after); live SSE smoke confirmed one delivery before the id and zero additional deliveries after.
