@@ -181,4 +181,51 @@ describe("x-api message normalization", () => {
     const message = normalizeXBroadcastMessage(frame, source);
     assert.equal(message.timestamp, new Date(1700000000000).toISOString());
   });
+
+  // Fixtures captured from a real X broadcast (id 1yKAPPboWlDxb). Control frames
+  // share the chat envelope but carry no human text, so they must be filtered.
+  it("filters real join and occupancy control frames", () => {
+    const joinFrame = {
+      kind: 2,
+      payload: JSON.stringify({
+        kind: 1,
+        sender: { user_id: "1ayQVvzeopyQp", username: "Asmali77", display_name: "Ahmed ((ASMALi))" },
+        body: JSON.stringify({ room: "1yKAPPboWlDxb", following: false, unlimited: false }),
+      }),
+      signature: "abc",
+    };
+    const occupancyFrame = {
+      kind: 2,
+      payload: JSON.stringify({
+        kind: 4,
+        sender: { user_id: "" },
+        body: JSON.stringify({ room: "1yKAPPboWlDxb", occupancy: 108, total_participants: 108 }),
+      }),
+    };
+
+    assert.equal(normalizeXBroadcastMessage(joinFrame, source), null);
+    assert.equal(normalizeXBroadcastMessage(occupancyFrame, source), null);
+  });
+
+  it("accepts a chat frame regardless of the outer envelope kind", () => {
+    // Same nesting as the captured control frames, but the leaf body is text.
+    const chatFrame = {
+      kind: 2,
+      payload: JSON.stringify({
+        kind: 1,
+        sender: { username: "trader", display_name: "Trader" },
+        body: JSON.stringify({
+          body: "send it",
+          uuid: "real-uuid",
+          timestamp: 1700000000000,
+        }),
+      }),
+    };
+
+    const message = normalizeXBroadcastMessage(chatFrame, source);
+    assert.equal(message.body, "send it");
+    assert.equal(message.author, "Trader");
+    assert.equal(message.handle, "trader");
+    assert.equal(message.id, "x-real-uuid");
+  });
 });

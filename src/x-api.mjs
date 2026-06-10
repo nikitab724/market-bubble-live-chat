@@ -180,41 +180,32 @@ export function getSourceBroadcastId(source = {}) {
   return "";
 }
 
-// Normalize a raw Periscope chat frame (kind 1) into the shared chat shape.
-// The payload is double/triple JSON-encoded: { payload: "{ body: "{...}" }" }.
+// Normalize a raw Periscope chat frame into the shared chat shape.
+//
+// Real frames are an envelope wrapping a nested, repeatedly JSON-encoded body:
+//   { kind, payload: "{ kind, sender, body: "{ body: 'text', ... }" }" }
+//
+// Control frames (join, occupancy/heartbeat) share that envelope but their
+// deepest body has no human text — a join body is {room,following,unlimited},
+// an occupancy body is {room,occupancy,total_participants}. So chat is detected
+// structurally by the presence of leaf text in the body chain, not by a magic
+// `kind` number (the envelope kind varies and is not a reliable chat marker).
 export function normalizeXBroadcastMessage(rawFrame, source = {}) {
-  if (!rawFrame || rawFrame.kind !== 1 || !rawFrame.payload) {
+  const chat = extractBroadcastChat(rawFrame);
+  if (!chat) {
     return null;
   }
 
-  const outer = safeJsonParse(rawFrame.payload);
-  if (!outer) {
-    return null;
-  }
-
-  const inner = typeof outer.body === "string" ? safeJsonParse(outer.body) : outer.body;
-  if (!inner) {
-    return null;
-  }
-
-  const body = typeof inner.body === "string" ? inner.body.trim() : "";
-  if (!body) {
-    return null;
-  }
-
-  const username = String(inner.username || outer.sender?.username || "").replace(/^@/, "").trim();
-  const displayName = String(inner.displayName || outer.sender?.display_name || username || "X viewer").trim();
-  const handle = username || displayName.toLowerCase().replace(/\s+/g, "");
-  const timestampMs = resolveTimestampMs(inner);
-  const uuid = String(inner.uuid || `${source.sourceId || "x"}:${handle}:${timestampMs}:${body}`);
+  const handle = chat.username || chat.displayName.toLowerCase().replace(/\s+/g, "");
+  const uuid = chat.uuid || `${source.sourceId || "x"}:${handle}:${chat.timestampMs}:${chat.body}`;
 
   return {
     id: `x-${uuid}`,
     platform: "x",
-    author: displayName,
+    author: chat.displayName,
     handle,
-    body,
-    timestamp: new Date(timestampMs).toISOString(),
+    body: chat.body,
+    timestamp: new Date(chat.timestampMs).toISOString(),
     sourceUrl: handle ? `https://x.com/${handle}` : source.sourceUrl || "",
     sourceId: source.sourceId,
     sourceName: source.sourceName,
@@ -223,14 +214,100 @@ export function normalizeXBroadcastMessage(rawFrame, source = {}) {
   };
 }
 
-function resolveTimestampMs(inner) {
-  if (typeof inner.timestamp === "number" && Number.isFinite(inner.timestamp)) {
-    // Periscope timestamps are sometimes microseconds; clamp to milliseconds.
-    return inner.timestamp > 1e14 ? Math.round(inner.timestamp / 1000) : inner.timestamp;
+// Walk the nested body chain to the innermost object, collecting identity along
+// the way. Returns chat fields only when a non-empty leaf text body is found.
+export function extractBroadcastChat(rawFrame) {
+  if (!rawFrame || !rawFrame.payload) {
+    return null;
   }
 
-  if (typeof inner.programDateTime === "string") {
-    const parsed = Date.parse(inner.programDateTime);
+  const root = safeJsonParse(rawFrame.payload);
+  if (!root || typeof root !== "object") {
+    return null;
+  }
+
+  const levels = [root];
+  let bodyText = "";
+  let cursor = root;
+
+  for (let depth = 0; depth < 5; depth += 1) {
+    const body = cursor.body;
+
+    if (typeof body === "object" && body !== null) {
+      cursor = body;
+      levels.push(cursor);
+      continue;
+    }
+
+    if (typeof body === "string") {
+      const parsed = safeJsonParse(body);
+      if (parsed && typeof parsed === "object") {
+        cursor = parsed;
+        levels.push(cursor);
+        continue;
+      }
+      // Plain string leaf: the chat text itself.
+      bodyText = body.trim();
+    }
+
+    break;
+  }
+
+  if (!bodyText) {
+    return null;
+  }
+
+  const username = String(pickFromLevels(levels, ["username"]) || pickSender(levels, "username") || "")
+    .replace(/^@/, "")
+    .trim();
+  const displayName = String(
+    pickFromLevels(levels, ["displayName"]) || pickSender(levels, "display_name") || username || "X viewer",
+  ).trim();
+  const uuid = String(pickFromLevels(levels, ["uuid"]) || "");
+
+  return {
+    body: bodyText,
+    displayName,
+    timestampMs: resolveTimestampMs(levels),
+    username,
+    uuid,
+  };
+}
+
+function pickFromLevels(levels, keys) {
+  for (let index = levels.length - 1; index >= 0; index -= 1) {
+    for (const key of keys) {
+      const value = levels[index]?.[key];
+      if (value !== undefined && value !== null && value !== "") {
+        return value;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function pickSender(levels, key) {
+  for (let index = levels.length - 1; index >= 0; index -= 1) {
+    const value = levels[index]?.sender?.[key];
+    if (value !== undefined && value !== null && value !== "") {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function resolveTimestampMs(levels) {
+  const timestamp = pickFromLevels(levels, ["timestamp"]);
+  if (typeof timestamp === "number" && Number.isFinite(timestamp)) {
+    // Periscope timestamps are sometimes microseconds; clamp to milliseconds.
+    return timestamp > 1e14 ? Math.round(timestamp / 1000) : timestamp;
+  }
+
+  const programDateTime = pickFromLevels(levels, ["programDateTime"]);
+  if (typeof programDateTime === "string") {
+    const parsed = Date.parse(programDateTime);
     if (Number.isFinite(parsed)) {
       return parsed;
     }
