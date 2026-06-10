@@ -2,17 +2,23 @@
 
 ## What Works Now
 
-X chat currently works through the Chrome extension in `extension/`, because the app does not yet have official X API credentials or a server-side X stream connector.
+There are two X chat paths. The preferred path is the **server-side connector** (`src/x-chat-service.mjs`), which connects to the X/Periscope broadcast chat directly once a source has a broadcast id. The Chrome extension in `extension/` remains as a fallback chat bridge and, more usefully, as the way the broadcast id is captured automatically.
 
-Flow:
+### Server-side connector + automatic broadcast id (preferred)
 
-1. Configure X sources in `/admin/`.
-2. For each X source, set `sourceHandle` to the broadcaster handle, such as `banks`.
-3. Add `conversationId` when the hosted viewer should embed that X broadcast/post.
-4. Load `extension/` as an unpacked Chrome extension.
-5. Open the X live/broadcast page in Chrome.
-6. Click the Market Bubble extension popup and select the matching X source.
-7. Keep the X live page open. The content script watches chat DOM changes and posts messages to the backend.
+The server-side connector needs a broadcast id per X source. The extension fills it in automatically:
+
+1. Configure X sources in `/admin/`, setting `sourceHandle` to the broadcaster handle (such as `banks`).
+2. Load `extension/` as an unpacked Chrome extension.
+3. Open the broadcaster's own X live page (`x.com/i/broadcasts/<id>`) in Chrome.
+4. Click the Market Bubble extension popup and select the matching X source.
+5. The content script reads the broadcast id from the URL and POSTs it to `POST /api/x-broadcast`. The server writes it to the matching X source and the server-side connector attaches to that broadcast's chat.
+
+X mints a new broadcast id each time the account goes live, so the extension re-reports it whenever the URL changes — no manual paste per stream. You can also set the **Broadcast id (chat)** field in `/admin/` by hand (bare id or `/i/broadcasts/<id>` URL).
+
+### Extension DOM bridge (fallback)
+
+If a source has no broadcast id (or the server-side handshake is unavailable), keep the X live page open with the source selected. The content script watches chat DOM changes and posts messages to `POST /api/x-chat`.
 
 Current backend target in the extension:
 
@@ -53,10 +59,11 @@ If X widgets cannot embed the live surface, or if `conversationId` is empty, the
 - Confirm the X source exists and is enabled in `/admin/`.
 - Confirm the extension popup Backend URL points at the backend that serves `/api/public-config`.
 - Confirm the extension popup source matches the X live page being watched.
-- Check the X tab console for `[MB X Bridge] Watching document.body...`.
-- Check server stdout for `[x-chat] Source | Author: body`.
+- For automatic broadcast id capture: open the broadcaster's `x.com/i/broadcasts/<id>` page, select the source in the popup, and check the X tab console for `[MB X Bridge] reported broadcast <id> for @handle`, then check server stdout for `[x-broadcast] <sourceId> -> <id>`.
+- Confirm chat is enabled on the broadcast (X has a per-broadcast chat permission setting); a restricted broadcast yields a connected websocket with no messages.
+- For the DOM fallback: check the X tab console for `[MB X Bridge] Watching document.body...` and server stdout for `[x-chat] Source | Author: body`.
 - Open `/` or `/chat/` and confirm the message arrives through SSE.
-- If messages stop after X UI changes, inspect a live chat row, copy its outerHTML, and update `extractMessage()` in `extension/content.js`.
+- If DOM-fallback messages stop after X UI changes, inspect a live chat row, copy its outerHTML, and update `extractMessage()` in `extension/content.js`.
 
 ## Future Official X API Path
 

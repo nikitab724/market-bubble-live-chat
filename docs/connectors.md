@@ -55,7 +55,12 @@ X Live chat is **not** tweet replies; it runs on the legacy Periscope chat servi
 4. `POST proxsee-cf.pscp.tv/api/v2/accessChatPublic` → chat websocket endpoint + access token.
 5. Connect the `chatapi/v1/chatnow` websocket, authenticate (frame kind 3), join the room (frame kind 2), and receive chat frames (kind 1). The connector reconnects with a fresh handshake on disconnect.
 
-Setup: give the X source a broadcast id. In `/admin/`, the X row has a **Broadcast id (chat)** field — paste either the bare id or a full `https://x.com/i/broadcasts/<id>` URL while the broadcast is live (the server normalizes a URL down to the id on save). It is stored server-side only, like Kick's `broadcasterUserId`, and never appears in public config. A numeric post id in `conversationId` is an X post id, not a broadcast id, and is ignored for chat. No env vars or credentials are required. X mints a new broadcast id each time the account goes live, so update the field when starting a new stream, and confirm chat is enabled on the broadcast (X has a per-broadcast chat permission setting).
+Setup: give the X source a broadcast id, two ways:
+
+- **Automatic (extension):** when the Chrome extension is on the broadcaster's own `x.com/i/broadcasts/<id>` page and a source is selected, `extension/content.js` reads the id from the URL and POSTs it to `POST /api/x-broadcast`, which writes it to the matching enabled X source and re-syncs the connector. X mints a new id each time the account goes live, so this keeps the connector pointed at the current broadcast without a manual step. The endpoint only updates `broadcastId` on an existing enabled X source matched by handle.
+- **Manual (admin):** in `/admin/`, the X row has a **Broadcast id (chat)** field — paste the bare id or a full `https://x.com/i/broadcasts/<id>` URL (the server normalizes a URL down to the id on save).
+
+The broadcast id is stored server-side only, like Kick's `broadcasterUserId`, and never appears in public config. A numeric post id in `conversationId` is an X post id, not a broadcast id, and is ignored for chat. No env vars or credentials are required. Confirm chat is enabled on the broadcast (X has a per-broadcast chat permission setting).
 
 Caveats: these are unofficial endpoints (the same ones x.com's web player calls), so they can change without notice, and read-only access is a ToS gray area. Every failure is treated as a soft `disconnected` status with reconnect, never a crash.
 

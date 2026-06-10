@@ -71,6 +71,41 @@ function detectHandleFromUrl() {
   return match ? match[1].toLowerCase() : null;
 }
 
+/**
+ * Pull the broadcast id from the current live URL, e.g.
+ * /i/broadcasts/1yKAPPboWlDxb or /Banks/broadcasts/1abc → "1yKAPPboWlDxb".
+ */
+function detectBroadcastIdFromUrl() {
+  const match = window.location.pathname.match(/\/broadcasts\/([A-Za-z0-9]+)/);
+  return match ? match[1] : "";
+}
+
+// Report the live broadcast id to the backend so the server-side X chat
+// connector can attach without a manual paste. Deduped so SPA re-renders and
+// the 1s URL poll do not spam the backend with the same id.
+let lastReportedBroadcast = "";
+
+async function reportBroadcastId() {
+  const broadcastId = detectBroadcastIdFromUrl();
+  if (!broadcastId || !currentSourceHandle) return;
+
+  const key = `${currentSourceHandle}:${broadcastId}`;
+  if (key === lastReportedBroadcast) return;
+  lastReportedBroadcast = key;
+
+  try {
+    const backendBaseUrl = await getBackendBaseUrl();
+    await fetch(buildBackendUrl("/api/x-broadcast", backendBaseUrl), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceHandle: currentSourceHandle, broadcastId }),
+    });
+    console.log(`[MB X Bridge] reported broadcast ${broadcastId} for @${currentSourceHandle}`);
+  } catch {
+    // Backend unreachable — will retry on the next URL change or source selection.
+  }
+}
+
 // ─── Message extraction ───────────────────────────────────────────────────────
 
 /**
@@ -245,6 +280,7 @@ function tryAttach() {
   }
 
   startObserving();
+  reportBroadcastId();
 }
 
 // ─── SPA navigation ──────────────────────────────────────────────────────────
@@ -270,6 +306,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === "set-source") {
     currentSourceHandle = message.sourceHandle;
+    lastReportedBroadcast = "";
+    reportBroadcastId();
     sendResponse({ ok: true });
   }
 

@@ -462,3 +462,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 
 - Added a "Broadcast id (chat)" text field to the X row in the admin profile editor so operators can paste a broadcast id or `/i/broadcasts/<id>` URL without hand-editing `data/sources.json`. Threaded `broadcastId` through `admin/profile-model.mjs` (build/collect/empty slots) and widened the X social row grid to six columns.
 - Verification: `npm test` (133 passed, including a new profile-model round-trip test); `npm run build`; browser smoke on `/admin/` confirmed the field renders with its placeholder; a real PUT saved a `/i/broadcasts/<id>` URL, the server normalized it to the bare id, persisted it to disk, kept it out of `/api/public-config`, and synced the X connector on save with no errors.
+
+## [2026-06-10] connector | Auto-capture X broadcast id from the extension
+
+- Added `POST /api/x-broadcast`: the Chrome extension reports the broadcast id from the broadcaster's own `x.com/i/broadcasts/<id>` page (read from the URL in `extension/content.js`, deduped, sent on attach and source selection), and the server writes it to the matching enabled X source and re-syncs the X chat connector. This removes the per-stream manual paste since X mints a new broadcast id each time the account goes live.
+- The endpoint is a bounded sibling to `/api/x-chat`: unauthenticated like the existing extension bridge, but it can only set `broadcastId` on an existing enabled X source matched by handle (no source creation or other edits), validates the id strictly, is idempotent, and never leaks the id to public config.
+- Documented in `x-live-setup.md`, `connectors.md`, and `architecture.md`.
+- Verification: `npm test` (134 passed, including a new server-contract test covering set/persist/sync, idempotency, unknown handle 404, and invalid id 400); `node --check extension/content.js`; live server smoke posted a `/i/broadcasts/<id>` URL, saw it normalized to the bare id, persisted server-side only, and logged `[x-broadcast] x-banks -> 1yKAPPboWlDxb` with the connector re-synced.

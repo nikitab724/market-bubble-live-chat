@@ -464,6 +464,64 @@ describe("server contract", () => {
       await close(server);
     }
   });
+
+  it("sets an X source broadcast id from the extension bridge and syncs the connector", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-broadcast-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({ sources: [{ platform: "x", sourceHandle: "banks", sourceLabel: "Banks", enabled: true }] }),
+    );
+
+    const syncedBroadcastIds = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: {
+        syncSources(sources) {
+          const x = sources.find((source) => source.platform === "x" && source.sourceHandle === "banks");
+          syncedBroadcastIds.push(x?.broadcastId);
+        },
+        stop() {},
+      },
+    });
+    await listen(server);
+
+    try {
+      // A pasted /i/broadcasts/<id> URL is normalized down to the bare id.
+      const set = await request(server, "POST", "/api/x-broadcast", {
+        sourceHandle: "banks",
+        broadcastId: "https://x.com/i/broadcasts/1yKAPPboWlDxb",
+      });
+      assert.equal(set.status, 200);
+      assert.equal(set.json.ok, true);
+      assert.equal(set.json.broadcastId, "1yKAPPboWlDxb");
+      assert.equal(set.json.sourceId, "x-banks");
+
+      const saved = JSON.parse(await readFile(configPath, "utf8"));
+      assert.equal(saved.sources[0].broadcastId, "1yKAPPboWlDxb");
+      assert.deepEqual(syncedBroadcastIds, ["1yKAPPboWlDxb"]);
+
+      // Re-reporting the same id is idempotent and does not re-sync.
+      const repeat = await request(server, "POST", "/api/x-broadcast", {
+        sourceHandle: "banks",
+        broadcastId: "1yKAPPboWlDxb",
+      });
+      assert.equal(repeat.status, 200);
+      assert.deepEqual(syncedBroadcastIds, ["1yKAPPboWlDxb"]);
+
+      // Unknown handle and invalid id are rejected.
+      const unknown = await request(server, "POST", "/api/x-broadcast", { sourceHandle: "nobody", broadcastId: "1abc" });
+      assert.equal(unknown.status, 404);
+      const invalid = await request(server, "POST", "/api/x-broadcast", { sourceHandle: "banks", broadcastId: "not a broadcast" });
+      assert.equal(invalid.status, 400);
+    } finally {
+      await close(server);
+    }
+  });
 });
 
 function listen(server) {

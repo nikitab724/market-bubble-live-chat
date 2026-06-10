@@ -25,6 +25,7 @@ import { createTwitchApiClient } from "./src/twitch-api.mjs";
 import { createTwitchChatService } from "./src/twitch-chat-service.mjs";
 import { createTwitchEmoteClient } from "./src/twitch-emotes.mjs";
 import { createXChatService } from "./src/x-chat-service.mjs";
+import { extractBroadcastId } from "./src/x-api.mjs";
 
 const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG_PATH = join(ROOT_DIR, "data", "sources.json");
@@ -180,6 +181,35 @@ export function createAppServer(options = {}) {
           console.log(`[x-chat] ${message.sourceLabel} | ${message.author}: ${message.body}`);
           response.writeHead(204);
           return response.end();
+        }
+      }
+
+      if (url.pathname === "/api/x-broadcast") {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+        if (request.method === "OPTIONS") {
+          response.writeHead(204);
+          return response.end();
+        }
+
+        if (request.method === "POST") {
+          const body = await readJsonBody(request);
+          const sources = await readSources(configPath);
+          const result = applyXBroadcastId(body, sources);
+
+          if (!result.ok) {
+            return sendJson(response, result.status, { error: result.error });
+          }
+
+          if (result.changed) {
+            await writeSources(configPath, sources);
+            syncChatConnectorSources(sources);
+            console.log(`[x-broadcast] ${result.sourceId} -> ${result.broadcastId}`);
+          }
+
+          return sendJson(response, 200, { ok: true, sourceId: result.sourceId, broadcastId: result.broadcastId });
         }
       }
 
@@ -411,6 +441,36 @@ function normalizeXChatMessage(body, sources) {
     sourceHandle: source.sourceHandle,
     sourceLabel: source.sourceLabel,
   };
+}
+
+// Bridge endpoint for the Chrome extension: when the operator is on their own
+// X live page, the extension reports the broadcast id so the server-side X chat
+// connector can attach without a manual paste. It can only set broadcastId on an
+// existing enabled X source matched by handle — no source creation or other edits.
+function applyXBroadcastId(body, sources) {
+  const requestedHandle = String(body.sourceHandle || "").replace(/^@/, "").toLowerCase().trim();
+  if (!requestedHandle) {
+    return { ok: false, status: 400, error: "sourceHandle is required" };
+  }
+
+  let broadcastId;
+  try {
+    broadcastId = extractBroadcastId(body.broadcastId || body.broadcastUrl || "");
+  } catch {
+    return { ok: false, status: 400, error: "A valid X broadcast id or URL is required" };
+  }
+
+  const source = sources.find(
+    (item) => item.platform === "x" && item.enabled !== false && item.sourceHandle === requestedHandle,
+  );
+  if (!source) {
+    return { ok: false, status: 404, error: `No enabled X source for handle @${requestedHandle}` };
+  }
+
+  const changed = source.broadcastId !== broadcastId;
+  source.broadcastId = broadcastId;
+
+  return { ok: true, changed, sourceId: source.sourceId, broadcastId };
 }
 
 function stripEditableViewerCounts(sources) {
