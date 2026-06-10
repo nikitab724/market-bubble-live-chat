@@ -476,9 +476,7 @@ function renderChatMessage(message) {
 
   return `
     <div class="v2-chat-msg">
-      <span class="v2-chat-msg-time">${formatTime(message.timestamp)}</span>
-      <div class="v2-chat-channel-icon ${message.platform}" title="${escapeHtml(channelLabel)}">${icon}<span class="v2-channel-name">${escapeHtml(channelLabel)}</span></div>
-      <div class="v2-chat-msg-right"><span class="v2-chat-msg-author ${message.platform}" title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</span><span class="v2-chat-msg-colon">: </span>${renderMessageBody(message, emoteMap)}</div>
+      <span class="v2-chat-msg-time">${formatTime(message.timestamp)}</span><span class="v2-chat-channel-icon ${message.platform}" title="${escapeHtml(channelLabel)}">${icon}<span class="v2-channel-name">${escapeHtml(channelLabel)}</span></span> <span class="v2-chat-msg-author ${message.platform}" title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</span><span class="v2-chat-msg-colon">: </span>${renderMessageBody(message, emoteMap)}
     </div>
   `;
 }
