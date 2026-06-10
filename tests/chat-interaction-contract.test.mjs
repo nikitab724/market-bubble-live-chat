@@ -699,6 +699,17 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="minimize"]'), false);
   });
 
+  it("plays panel entrance animations only once so layout toggles travel without re-fading", () => {
+    const viewer = readViewerRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(viewer.includes("const [entered, setEntered] = useState(false);"), true);
+    assert.equal(viewer.includes("ENTRANCE_ANIMATIONS_MS"), true);
+    assert.equal(viewer.includes('data-entered={entered ? "true" : "false"}'), true);
+    assert.match(viewer, /function toggleLayoutWithTransition\(\) \{[\s\S]*?setEntered\(true\);[\s\S]*?startViewTransition/);
+    assert.match(styles, /\.live-surface\[data-entered="true"\]\s+\.broadcast-topbar,\s*\.live-surface\[data-entered="true"\]\s+\.stream-view,\s*\.live-surface\[data-entered="true"\]\s+\.chat-view\s*\{[^}]*animation: none/s);
+  });
+
   it("keeps fixed profile cards anchored to the viewport after panel entrance animations", () => {
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 

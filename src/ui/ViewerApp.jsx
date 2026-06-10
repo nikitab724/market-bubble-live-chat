@@ -3,11 +3,18 @@ import { flushSync } from "react-dom";
 
 const LAYOUT_STORAGE_KEY = "market-bubble-viewer-layout";
 const layoutModes = new Set(["full", "mini"]);
+const ENTRANCE_ANIMATIONS_MS = 1200;
 
 export function ViewerApp({ surface = "viewer" }) {
   const showStream = surface === "viewer";
   const [layoutMode, setLayoutMode] = useState(() => getInitialLayout(surface));
+  const [entered, setEntered] = useState(false);
   const effectiveLayout = showStream ? layoutMode : "full";
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setEntered(true), ENTRANCE_ANIMATIONS_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -57,6 +64,9 @@ export function ViewerApp({ surface = "viewer" }) {
 
   function toggleLayoutWithTransition() {
     const nextLayout = effectiveLayout === "mini" ? "full" : "mini";
+    // Entrance animations are load-only; replaying them on a toggle re-fades
+    // the panels and blanks the view transition's new-state snapshot.
+    setEntered(true);
 
     if (typeof document.startViewTransition === "function") {
       document.startViewTransition(() => {
@@ -69,7 +79,12 @@ export function ViewerApp({ surface = "viewer" }) {
   }
 
   return (
-    <div className={`live-surface live-layout-${effectiveLayout}`} data-layout={effectiveLayout} data-surface={surface}>
+    <div
+      className={`live-surface live-layout-${effectiveLayout}`}
+      data-layout={effectiveLayout}
+      data-surface={surface}
+      data-entered={entered ? "true" : "false"}
+    >
       <header className="broadcast-topbar" aria-label="Market Bubble live status">
         <div className="brand-mark" aria-label="Market Bubble">
           <svg

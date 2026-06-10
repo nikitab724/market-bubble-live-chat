@@ -455,6 +455,15 @@ body.admin-body {
   }
 }
 
+/* Entrance animations are load-only. Re-running them when the layout class
+   flips makes the panels fade out/in and blanks the view-transition snapshot,
+   so the surface drops them once it has entered. */
+.live-surface[data-entered="true"] .broadcast-topbar,
+.live-surface[data-entered="true"] .stream-view,
+.live-surface[data-entered="true"] .chat-view {
+  animation: none;
+}
+
 .stream-view {
   position: relative;
   display: block;

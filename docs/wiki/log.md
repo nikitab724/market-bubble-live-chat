@@ -420,3 +420,8 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Added `content-visibility: auto` to chat rows so offscreen rows in the 500-row window skip rendering, with containment lifted on hovered/pinned rows so overlays are not clipped; cached the shared `Intl.NumberFormat` used by per-frame viewer-count animation renders.
 - Hardened the server: API request bodies are capped at 1 MB, and X chat ingest truncates author/handle/body lengths before broadcast.
 - Verification: `npm test` (111 passed, including two new contract tests for the containing-block and content-visibility rules); `npm run build`; browser smoke on `/?demoChat=1` and `/chat/?demoChat=1` confirmed on-screen hover/pinned profile cards, working layout toggle and jump-to-live, 500 rendered rows with `content-visibility: auto`, and no app console errors.
+
+## [2026-06-10] ui | Keep layout toggles from re-fading the stream and chat panels
+
+- Made the `panel-expand-in`/`shell-calm-in` entrance animations load-only: the viewer surface sets `data-entered` after the intro (or on first toggle), and entered surfaces drop the entrance animations so mini/full layout toggles travel without fading out/in. The fade happened because re-adding `.live-layout-full` restarted the entrances from `opacity: 0`, which also blanked the view transition's new-state snapshot.
+- Verification: `npm test` (112 passed, including a new entrance-once contract test); `npm run build`; browser smoke sampled stream/chat opacity across both toggle directions at ~130 frames each and it never dropped below 1, while the load entrance still plays before `data-entered` flips.
