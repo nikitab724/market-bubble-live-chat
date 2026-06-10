@@ -217,9 +217,10 @@ a { color: inherit; text-decoration: none; }
 .v2-chat-msg-author.x       { color: var(--x); }
 .v2-chat-msg-author.room    { color: var(--native); }
 
-.v2-chat-msg-right .chat-emote {
+.v2-chat-msg .chat-emote {
   height: 16px;
   max-width: 48px;
+  vertical-align: middle;
 }
 
 /* Jump to live button */
