@@ -41,7 +41,27 @@ Kick source chips use `/api/live-state` `isLive` data for their live/offline sta
 
 ## X
 
-The current working path is a Chrome extension bridge, not an official X API connector:
+X has two chat paths. The preferred path is a server-side connector; the Chrome extension bridge remains as a fallback.
+
+### Server-side broadcast chat (preferred)
+
+`src/x-chat-service.mjs` manages one connection per enabled X source that resolves to a broadcast id, mirroring the Twitch chat service and fanning normalized messages and `connecting`/`connected`/`disconnected` status into the same `/api/chat-events` stream. `src/x-api.mjs` does the access handshake.
+
+X Live chat is **not** tweet replies; it runs on the legacy Periscope chat service. The connector reaches it through the same guest-token handshake the public web player uses — no login and no paid X API:
+
+1. `POST api.x.com/1.1/guest/activate.json` → guest token.
+2. `GET x.com/i/api/1.1/broadcasts/show.json?ids=<broadcastId>` → `media_key`.
+3. `GET x.com/i/api/1.1/live_video_stream/status/<media_key>` → `chatToken`.
+4. `POST proxsee-cf.pscp.tv/api/v2/accessChatPublic` → chat websocket endpoint + access token.
+5. Connect the `chatapi/v1/chatnow` websocket, authenticate (frame kind 3), join the room (frame kind 2), and receive chat frames (kind 1). The connector reconnects with a fresh handshake on disconnect.
+
+Setup: give the X source a broadcast id. In admin/config, set `broadcastId` on the X source to either the bare id or a full `https://x.com/i/broadcasts/<id>` URL (stored server-side only, like Kick's `broadcasterUserId`). A numeric post id in `conversationId` is an X post id, not a broadcast id, and is ignored for chat. No env vars or credentials are required.
+
+Caveats: these are unofficial endpoints (the same ones x.com's web player calls), so they can change without notice, and read-only access is a ToS gray area. Every failure is treated as a soft `disconnected` status with reconnect, never a crash.
+
+### Chrome extension bridge (fallback)
+
+For X sources without a broadcast id (or when the handshake is unavailable):
 
 - `extension/content.js` watches X live page DOM mutations.
 - `extension/popup.js` lets the operator choose which configured X source the current tab belongs to.
@@ -51,9 +71,7 @@ The current working path is a Chrome extension bridge, not an official X API con
 
 X stream viewing on `/` uses `conversationId` from source config to load X widgets. Without `conversationId`, it falls back to an open-stream link.
 
-X chat messages do not currently include provider username colors in the bridge, so the shared deterministic fallback palette is used.
-
-The future server-side path is X API filtered stream or recent search using a `conversation_id:<id>` rule, if the X Live comments being targeted are exposed as Posts/replies. That would need X API credentials, rate-limit handling, reconnect logic, and a new backend connector.
+X chat messages do not currently include provider username colors, so the shared deterministic fallback palette is used.
 
 ## Native MarketBubble.com Room
 

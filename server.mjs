@@ -24,6 +24,7 @@ import { DEFAULT_SOURCES, normalizeSources, toPublicConfig } from "./src/source-
 import { createTwitchApiClient } from "./src/twitch-api.mjs";
 import { createTwitchChatService } from "./src/twitch-chat-service.mjs";
 import { createTwitchEmoteClient } from "./src/twitch-emotes.mjs";
+import { createXChatService } from "./src/x-chat-service.mjs";
 
 const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG_PATH = join(ROOT_DIR, "data", "sources.json");
@@ -113,6 +114,9 @@ export function createAppServer(options = {}) {
   const twitchChatService = options.twitchChatService === undefined
     ? createTwitchChatService({ chatHub })
     : options.twitchChatService;
+  const xChatService = options.xChatService === undefined
+    ? createXChatService({ chatHub })
+    : options.xChatService;
   const twitchEmoteClient = options.twitchEmoteClient || createTwitchEmoteClient({ twitchClient });
   const sessions = new Map();
   let ensuredKickSubscriptionKey = "";
@@ -124,14 +128,14 @@ export function createAppServer(options = {}) {
 
       if (url.pathname === "/api/public-config" && request.method === "GET") {
         const sources = await readSources(configPath);
-        syncTwitchChatSources(sources);
+        syncChatConnectorSources(sources);
         await ensureKickChatSubscriptionsOnce(sources);
         return sendJson(response, 200, toPublicConfig(sources));
       }
 
       if (url.pathname === "/api/live-state" && request.method === "GET") {
         const sources = await readSources(configPath);
-        syncTwitchChatSources(sources);
+        syncChatConnectorSources(sources);
         await ensureKickChatSubscriptionsOnce(sources);
         return sendJson(response, 200, await getLiveState(sources, [twitchClient, kickClient]));
       }
@@ -269,7 +273,7 @@ export function createAppServer(options = {}) {
           await ensureKickChatSubscriptions(sources, kickClient);
           ensuredKickSubscriptionKey = getKickSubscriptionKey(sources);
           await writeSources(configPath, sources);
-          syncTwitchChatSources(sources);
+          syncChatConnectorSources(sources);
           return sendJson(response, 200, { sources });
         }
       }
@@ -286,6 +290,7 @@ export function createAppServer(options = {}) {
 
   server.on("close", () => {
     twitchChatService?.stop?.();
+    xChatService?.stop?.();
     chatEventStore?.close?.();
   });
 
@@ -314,8 +319,9 @@ export function createAppServer(options = {}) {
     await kickSubscriptionEnsurePromise;
   }
 
-  function syncTwitchChatSources(sources) {
+  function syncChatConnectorSources(sources) {
     twitchChatService?.syncSources?.(sources);
+    xChatService?.syncSources?.(sources);
   }
 }
 

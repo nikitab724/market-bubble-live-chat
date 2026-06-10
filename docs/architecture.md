@@ -33,7 +33,8 @@ Important fields:
 - `platform`: provider key.
 - `sourceName`, `sourceLabel`, `sourceHandle`, `sourceUrl`: display and provider identity.
 - `broadcasterUserId`: Kick broadcaster id resolved from the Kick handle during admin save, used for event subscription setup.
-- `conversationId`: X post/broadcast/conversation id used for X embed and future API rules.
+- `broadcastId`: X (Periscope) live broadcast id used by the server-side X chat connector; accepts a bare id or `/i/broadcasts/<id>` URL and is kept server-side only.
+- `conversationId`: X post/conversation id used for the X stream embed widgets.
 - `enabled`: controls whether a source appears in public config.
 - `showStream`: marks the one source used by the hosted stream player.
 
@@ -41,7 +42,7 @@ The server strips editable `viewerCount` values from admin writes. Viewer counts
 
 ## Chat Flow
 
-Twitch, Kick, and X chat arrive at the backend and are broadcast to browsers through `/api/chat-events`. Twitch uses the server-managed connector pool in `src/twitch-chat-service.mjs`, which starts one IRC-over-WebSocket connection per enabled Twitch source. Kick and X continue to arrive through webhook/extension ingest routes.
+Twitch, Kick, and X chat arrive at the backend and are broadcast to browsers through `/api/chat-events`. Twitch uses the server-managed connector pool in `src/twitch-chat-service.mjs`, which starts one IRC-over-WebSocket connection per enabled Twitch source. X uses the parallel server-managed pool in `src/x-chat-service.mjs`, which opens one Periscope broadcast-chat websocket per enabled X source that has a broadcast id (handshake in `src/x-api.mjs`); X sources without a broadcast id continue to arrive through the Chrome extension ingest route. Kick continues to arrive through the webhook ingest route.
 
 The SSE hub writes each broadcast to the SQLite chat event log before sending it to browsers. The SQLite row id becomes the SSE event id, so event ids and replay survive server restarts. New browser connections receive the current stored replay window, and reconnects with `Last-Event-ID` receive only events after that id. The stream also sends heartbeat comments so intermediaries are less likely to close an idle chat connection.
 

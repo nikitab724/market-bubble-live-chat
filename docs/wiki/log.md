@@ -443,3 +443,10 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 
 - Firefox now skips the view-transition layout morph (instant switch) and drops the per-row chat fade plus blurred corner-text entrances through a Gecko-only `@supports (-moz-appearance: none)` block, because Windows Gecko re-rasterizes animating text with grayscale anti-aliasing and its new view-transition morph drops frames over live video.
 - Verification: `npm test` (114 passed including the new Gecko contract test); `npm run build`.
+
+## [2026-06-10] connector | Add server-side X (Periscope) broadcast chat
+
+- Added `src/x-api.mjs` (guest-token handshake: `guest/activate` -> `broadcasts/show` -> `live_video_stream/status` -> `accessChatPublic`, plus chat-frame normalization into the shared shape) and `src/x-chat-service.mjs` (one Periscope `chatnow` websocket per enabled X source with a broadcast id, fanning messages/status into the SSE hub, reconnecting with a fresh handshake). The Chrome extension bridge stays as a fallback for sources without a broadcast id.
+- Added a server-side-only `broadcastId` field to X source normalization (bare id or `/i/broadcasts/<id>` URL; numeric post ids in `conversationId` are ignored), wired both connectors through a single `syncChatConnectorSources` in `server.mjs`, and stopped the X service on server close.
+- Documented the path in `connectors.md`/`architecture.md` including unofficial-endpoint and ToS caveats.
+- Verification: `node --test tests/x-api.test.mjs tests/x-chat-service.test.mjs tests/source-config.test.mjs` (red/green, 22 new assertions covering the handshake with mocked fetch, message normalization, the websocket pool with a fake socket, reconnect, and `broadcastId` normalization); `npm test` (130 passed); `npm run build`; server boot smoke served `/`, `/api/public-config`, `/api/live-state` without crashing; a real-network probe confirmed `guest/activate` returns a live guest token (200) and `broadcasts/show` accepts the bearer (400 on a deliberately bogus id, not 401/403). The full chat chain past the handshake is unit-tested but was not exercised against a live broadcast.

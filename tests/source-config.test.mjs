@@ -106,6 +106,21 @@ describe("source config", () => {
     );
   });
 
+  it("normalizes an X broadcast id from a field or broadcasts URL but keeps it server-side", () => {
+    const [fromField, fromUrl, numericOnly] = normalizeSources([
+      { platform: "x", sourceHandle: "banks", broadcastId: "1ynKOZkXVagGR" },
+      { platform: "x", sourceHandle: "z", broadcastId: "https://x.com/i/broadcasts/1abcDEF" },
+      { platform: "x", sourceHandle: "ace", broadcastId: "not a broadcast" },
+    ]);
+
+    assert.equal(fromField.broadcastId, "1ynKOZkXVagGR");
+    assert.equal(fromUrl.broadcastId, "1abcDEF");
+    assert.equal("broadcastId" in numericOnly, false);
+
+    const publicConfig = toPublicConfig([{ platform: "x", sourceHandle: "banks", broadcastId: "1ynKOZkXVagGR" }]);
+    assert.equal("broadcastId" in publicConfig.sources[0], false);
+  });
+
   it("projects only public fields for the browser", () => {
     const publicConfig = toPublicConfig(
       normalizeSources([

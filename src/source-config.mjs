@@ -99,11 +99,13 @@ export function normalizeSource(input) {
   const conversationId = String(input.conversationId || "").trim();
   const profileId = String(input.profileId || "").trim();
   const profileName = String(input.profileName || "").trim();
+  const broadcastId = platform === "x" ? normalizeBroadcastId(input.broadcastId) : "";
 
   return {
     ...(platform === "kick" && normalizeBroadcasterUserId(input.broadcasterUserId)
       ? { broadcasterUserId: normalizeBroadcasterUserId(input.broadcasterUserId) }
       : {}),
+    ...(broadcastId ? { broadcastId } : {}),
     enabled: input.enabled !== false,
     platform,
     ...(profileId ? { profileId } : {}),
@@ -160,6 +162,16 @@ function normalizeViewerCount(viewerCount) {
   }
 
   return Math.max(0, Math.round(count));
+}
+
+function normalizeBroadcastId(value) {
+  const raw = String(value || "").trim();
+  const match = raw.match(/\/i\/broadcasts\/([A-Za-z0-9]+)/);
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  return /^[A-Za-z0-9]+$/.test(raw) ? raw : "";
 }
 
 function normalizeBroadcasterUserId(value) {
