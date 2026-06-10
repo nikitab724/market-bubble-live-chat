@@ -141,10 +141,10 @@ function initTwitchPlayer(channel) {
   ) || connectedSources.find((s) => s.platform === "twitch");
 
   if (twitchSource) {
-    el.streamerName.textContent = twitchSource.sourceLabel || twitchSource.sourceName || twitchChannel;
-    el.streamerAvatar.textContent = (twitchSource.sourceLabel || twitchChannel).charAt(0).toUpperCase();
-    el.followBtn.href = `https://twitch.tv/${twitchChannel}`;
-    el.subscribeBtn.href = `https://twitch.tv/subs/${twitchChannel}`;
+    if (el.streamerName) el.streamerName.textContent = twitchSource.sourceLabel || twitchSource.sourceName || twitchChannel;
+    if (el.streamerAvatar) el.streamerAvatar.textContent = (twitchSource.sourceLabel || twitchChannel).charAt(0).toUpperCase();
+    if (el.followBtn) el.followBtn.href = `https://twitch.tv/${twitchChannel}`;
+    if (el.subscribeBtn) el.subscribeBtn.href = `https://twitch.tv/subs/${twitchChannel}`;
   }
 
   const source = twitchSource || connectedSources.find((s) => s.platform === "twitch");
@@ -263,12 +263,10 @@ function updateStreamHeader() {
   const nowLive = !!primaryLive;
 
   if (primaryLive) {
-    el.liveBadge.textContent = "Live";
-    el.liveBadge.dataset.state = "live";
-    if (primaryLive.streamTitle) el.streamTitle.textContent = primaryLive.streamTitle;
+    if (el.liveBadge) { el.liveBadge.textContent = "Live"; el.liveBadge.dataset.state = "live"; }
+    if (el.streamTitle && primaryLive.streamTitle) el.streamTitle.textContent = primaryLive.streamTitle;
   } else {
-    el.liveBadge.textContent = "Offline";
-    el.liveBadge.dataset.state = "offline";
+    if (el.liveBadge) { el.liveBadge.textContent = "Offline"; el.liveBadge.dataset.state = "offline"; }
   }
 
   // Reload the player if live status changed since last check
