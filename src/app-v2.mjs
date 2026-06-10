@@ -521,10 +521,8 @@ function renderChatMessage(message) {
 
   return `
     <div class="v2-chat-msg">
-      <div class="v2-chat-msg-prefix">
-        <span class="v2-chat-msg-time">${formatTime(message.timestamp)}</span>
-        <span class="v2-chat-channel-icon ${message.platform}" title="${escapeHtml(channelLabel)}">${icon}<span class="v2-channel-name">${escapeHtml(channelLabel)}</span></span>
-      </div>
+      <span class="v2-chat-msg-time">${formatTime(message.timestamp)}</span>
+      <span class="v2-chat-channel-icon ${message.platform}" title="${escapeHtml(channelLabel)}">${icon}<span class="v2-channel-name">${escapeHtml(channelLabel)}</span></span>
       <div class="v2-chat-msg-body"><span class="v2-chat-msg-author ${message.platform}" title="${escapeHtml(message.author)}">${escapeHtml(message.author)}</span><span class="v2-chat-msg-colon">: </span>${renderMessageBody(message, emoteMap)}</div>
     </div>
   `;
