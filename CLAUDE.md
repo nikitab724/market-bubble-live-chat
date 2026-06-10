@@ -1,0 +1,84 @@
+# AGENTS.md
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" -> "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" -> "Write a test that reproduces it, then make it pass"
+- "Refactor X" -> "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] -> verify: [check]
+2. [Step] -> verify: [check]
+3. [Step] -> verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## 5. Documentation Memory
+
+**Use the docs as an LLM-maintained wiki. Keep them current.**
+
+Before non-trivial changes:
+- Read `docs/README.md`, `docs/wiki/index.md`, and the nearest directory-level `AGENTS.md` files for the files you will touch.
+- Treat `llms.txt` as the curated entry map. Treat `docs/wiki/index.md` and `docs/wiki/log.md` as the persistent wiki navigation/history layer.
+- If behavior, routes, data shape, deployment, connector setup, tests, or operator steps change, update the matching wiki/docs pages in the same run.
+- For repo-changing runs, append a short entry to `docs/wiki/log.md` with the date, change type, touched areas, and verification.
+- When adding or renaming durable docs, update `docs/wiki/index.md`.
+- Keep docs short, factual, and linked. Prefer Markdown files with stable headings over long prose dumps.
+- Do not document secrets, private keys, tokens, local-only passwords, or hidden production credentials.
+- If docs disagree with code, trust the code, fix the docs, and mention the mismatch.
+
+Directory rules:
+- Each top-level working directory should have its own `AGENTS.md` explaining what belongs there, what to avoid, and what docs/tests to update.
+- When creating a new directory with source, tests, scripts, or operational files, add a small `AGENTS.md` for that directory.
+- Do not use directory-level instructions to contradict this root file; add narrower, practical guidance only.
