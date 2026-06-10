@@ -699,6 +699,27 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="minimize"]'), false);
   });
 
+  it("keeps fixed profile cards anchored to the viewport after panel entrance animations", () => {
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    // A forwards fill would retain a transform on the panels, turning them into
+    // containing blocks that push fixed-position profile cards off screen.
+    assert.match(styles, /\.live-layout-full\s+\.stream-view\s*\{[^}]*animation: panel-expand-in[^}]*backwards/s);
+    assert.match(styles, /\.live-layout-full\s+\.chat-view\s*\{[^}]*animation: panel-expand-in[^}]*backwards/s);
+    assert.doesNotMatch(styles, /\.live-layout-full\s+\.chat-view\s*\{[^}]*transform:/s);
+    assert.doesNotMatch(styles, /\.live-layout-full\s+\.stream-view\s*\{[^}]*transform:/s);
+
+    const expandKeyframes = styles.match(/@keyframes panel-expand-in\s*\{(?<body>[\s\S]*?)\n\}/)?.groups.body || "";
+    assert.match(expandKeyframes, /100%\s*\{[^}]*transform: none/s);
+  });
+
+  it("skips offscreen chat row rendering while keeping hover and pin overlays unclipped", () => {
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.match(styles, /\.chat-message\s*\{[^}]*content-visibility: auto/s);
+    assert.match(styles, /\.chat-message:hover,\s*\.chat-message\.is-profile-pinned,\s*\.chat-message:has\(\.profile-card:hover\)\s*\{[^}]*content-visibility: visible/s);
+  });
+
   it("mounts only a rolling live chat window while keeping full message state", () => {
     const app = readAppRuntime();
 

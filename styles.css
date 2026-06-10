@@ -107,12 +107,10 @@ body.admin-body {
   height: 52px;
   padding: 8px 14px 7px;
   border-bottom: 1px solid rgba(228, 228, 228, 0.08);
-  background: linear-gradient(180deg, rgba(14, 14, 16, 0.92), rgba(5, 5, 5, 0.88));
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  background: linear-gradient(180deg, rgba(14, 14, 16, 0.97), rgba(5, 5, 5, 0.96));
   box-shadow: 0 1px 0 rgba(228, 228, 228, 0.04), 0 12px 30px -22px rgba(0, 0, 0, 0.9);
   overflow: visible;
-  animation: shell-calm-in 520ms var(--ease-out) both;
+  animation: shell-calm-in 520ms var(--ease-out) backwards;
   view-transition-name: mb-topbar;
 }
 
@@ -432,16 +430,14 @@ body.admin-body {
     0 24px 60px -40px rgba(0, 0, 0, 0.9);
 }
 
+/* No forwards fill here: a retained transform (even identity) would turn the
+   panels into containing blocks for the fixed-position profile cards. */
 .live-layout-full .stream-view {
-  opacity: 0;
-  transform: scale(0.972);
-  animation: panel-expand-in 820ms var(--ease-out) 160ms forwards;
+  animation: panel-expand-in 820ms var(--ease-out) 160ms backwards;
 }
 
 .live-layout-full .chat-view {
-  opacity: 0;
-  transform: scale(0.972);
-  animation: panel-expand-in 820ms var(--ease-out) 260ms forwards;
+  animation: panel-expand-in 820ms var(--ease-out) 260ms backwards;
 }
 
 @keyframes panel-expand-in {
@@ -455,7 +451,7 @@ body.admin-body {
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 
@@ -485,12 +481,9 @@ body.admin-body {
   .chat-view,
   .brand-mark,
   .broadcast-metrics {
+    /* Layout-mode changes animate through the view transition; transitioning
+       geometric properties here re-layouts every frame and fights it. */
     transition:
-      width 420ms var(--ease-out),
-      height 420ms var(--ease-out),
-      max-height 420ms var(--ease-out),
-      padding 420ms var(--ease-out),
-      border-radius 420ms var(--ease-out),
       background 320ms ease,
       transform 420ms var(--ease-out),
       opacity 240ms ease;
@@ -1286,8 +1279,19 @@ h2 {
   border-radius: 8px;
   background: transparent;
   outline: 0;
+  /* Off-screen rows in the 500-row window skip style/layout/paint entirely. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 34px;
   animation: chat-message-rise 320ms var(--ease-out) both;
   transition: background 160ms ease, box-shadow 160ms ease;
+}
+
+/* Containment clips the fixed-position profile card and badge tooltips, so
+   lift it on the row states that can show them. */
+.chat-message:hover,
+.chat-message.is-profile-pinned,
+.chat-message:has(.profile-card:hover) {
+  content-visibility: visible;
 }
 
 .chat-message::before {
@@ -1918,13 +1922,11 @@ button:hover {
 @keyframes shell-calm-in {
   0% {
     opacity: 0;
-    filter: blur(8px);
     transform: translateY(10px);
   }
   100% {
     opacity: 1;
-    filter: blur(0);
-    transform: translateY(0);
+    transform: none;
   }
 }
 

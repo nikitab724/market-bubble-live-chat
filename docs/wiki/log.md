@@ -407,3 +407,16 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - Changed source-chip status so a live source in a profile makes the profile's Twitch/Kick status dots green, even when another provider source in that same profile is offline.
 - Kept the orange offline state for checked provider sources only when no source in that profile is live.
 - Verification: red/green `node --test tests/chat-interaction-contract.test.mjs --test-name-pattern "profile live-state"`; `npm test` (109 passed); `npm run build`; `git diff --check`.
+
+## [2026-06-10] docs | Mirror AGENTS instructions for Claude
+
+- Added sibling `CLAUDE.md` files for each existing `AGENTS.md`, with byte-identical content in every matching directory.
+- Verification: byte-compare loop confirmed every `CLAUDE.md` matched its sibling `AGENTS.md`.
+
+## [2026-06-10] perf | Fix off-screen profile cards and cut viewer animation cost
+
+- Fixed the main-viewer profile hover/pin cards rendering off screen: the `panel-expand-in` entrance animation retained a `forwards` fill transform on the stream/chat panels, which made them containing blocks for the fixed-position cards. Entrances now end at `transform: none` with a `backwards` fill.
+- Removed the topbar `backdrop-filter` blur (continuous GPU cost over live video), removed `blur()` from the shell entrance keyframes, and stopped transitioning geometric properties (width/height/padding) that re-layout every frame and fight the layout-toggle view transition.
+- Added `content-visibility: auto` to chat rows so offscreen rows in the 500-row window skip rendering, with containment lifted on hovered/pinned rows so overlays are not clipped; cached the shared `Intl.NumberFormat` used by per-frame viewer-count animation renders.
+- Hardened the server: API request bodies are capped at 1 MB, and X chat ingest truncates author/handle/body lengths before broadcast.
+- Verification: `npm test` (111 passed, including two new contract tests for the containing-block and content-visibility rules); `npm run build`; browser smoke on `/?demoChat=1` and `/chat/?demoChat=1` confirmed on-screen hover/pinned profile cards, working layout toggle and jump-to-live, 500 rendered rows with `content-visibility: auto`, and no app console errors.

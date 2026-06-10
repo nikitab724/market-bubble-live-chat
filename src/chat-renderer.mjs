@@ -857,6 +857,8 @@ function renderPlatformLogo(platform, label) {
   `;
 }
 
+const NUMBER_FORMAT = new Intl.NumberFormat("en-US");
+
 function formatNumber(value) {
-  return new Intl.NumberFormat("en-US").format(value);
+  return NUMBER_FORMAT.format(value);
 }

@@ -32,6 +32,9 @@ let devChatMessageSequence = 0;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const DEFAULT_CHAT_REPLAY_LIMIT = 1000;
 const DEFAULT_CHAT_RETENTION_HOURS = 2;
+const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
+const MAX_CHAT_BODY_LENGTH = 2000;
+const MAX_CHAT_NAME_LENGTH = 120;
 
 const CONTENT_TYPES = {
   ".avif": "image/avif",
@@ -386,14 +389,15 @@ function normalizeXChatMessage(body, sources) {
     throw new Error("No X source configured");
   }
 
-  const handle = String(body.handle || body.author || "viewer").replace(/^@/, "").toLowerCase().trim();
-  const author = String(body.author || handle).trim();
+  const handle = String(body.handle || body.author || "viewer")
+    .replace(/^@/, "").toLowerCase().trim().slice(0, MAX_CHAT_NAME_LENGTH);
+  const author = String(body.author || handle).trim().slice(0, MAX_CHAT_NAME_LENGTH);
 
   return {
     platform: "x",
     author,
     handle,
-    body: String(body.body || "").trim(),
+    body: String(body.body || "").trim().slice(0, MAX_CHAT_BODY_LENGTH),
     timestamp: body.timestamp || new Date().toISOString(),
     sourceUrl: `https://x.com/${handle}`,
     sourceId: source.sourceId,
@@ -505,8 +509,14 @@ async function readJsonBody(request) {
 
 async function readRawBody(request) {
   let raw = "";
+  let receivedBytes = 0;
 
   for await (const chunk of request) {
+    receivedBytes += chunk.length;
+    if (receivedBytes > MAX_REQUEST_BODY_BYTES) {
+      throw new Error("Request body too large");
+    }
+
     raw += chunk;
   }
 
