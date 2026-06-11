@@ -67,7 +67,7 @@ function renderEmbedContent(playerEl, { document, window, sources }) {
   }
 
   if (streamSource.platform === "twitch") {
-    playerEl.append(createTwitchStreamFrame({ source: streamSource, window }));
+    renderTwitchPlayer(playerEl, { document, window, source: streamSource });
     return;
   }
 
@@ -121,6 +121,89 @@ export function getStreamSelectionKey(sources) {
   if (!source) return "";
 
   return [source.sourceId, source.platform, source.sourceHandle, source.conversationId || ""].join("|");
+}
+
+// Live Twitch channels render through the interactive player API instead of a
+// bare iframe: Twitch's embed pauses itself while the tab is hidden (and on
+// other embedded-experiences policy re-checks) and never resumes on its own,
+// so the page needs the API's pause/play events to recover. The bare iframe
+// remains the fallback when the embed script cannot load.
+const TWITCH_EMBED_SCRIPT_URL = "https://player.twitch.tv/js/embed/v1.js";
+
+function renderTwitchPlayer(playerEl, { document, window, source }) {
+  const container = document.createElement("div");
+  container.className = "twitch-player-host";
+  playerEl.append(container);
+
+  loadTwitchEmbedScript({ document, window }).then(
+    () => {
+      // The player may have re-rendered (offline swap, config change) while
+      // the script was loading; a detached container must not spawn a player.
+      if (!container.isConnected) return;
+
+      const player = new window.Twitch.Player(container, {
+        autoplay: true,
+        channel: source.sourceHandle,
+        height: "100%",
+        parent: [window.location.hostname || "localhost"],
+        width: "100%",
+      });
+      attachTwitchAutoResume({ document, window, player, container });
+    },
+    () => {
+      if (container.isConnected) {
+        container.replaceWith(createTwitchStreamFrame({ source, window }));
+      }
+    },
+  );
+}
+
+function loadTwitchEmbedScript({ document, window }) {
+  return new Promise((resolve, reject) => {
+    if (window.Twitch?.Player) {
+      resolve();
+      return;
+    }
+
+    let script = document.querySelector("[data-twitch-embed]");
+    if (!script) {
+      script = document.createElement("script");
+      script.async = true;
+      script.dataset.twitchEmbed = "true";
+      script.src = TWITCH_EMBED_SCRIPT_URL;
+      document.head.append(script);
+    }
+    script.addEventListener("load", () => resolve());
+    script.addEventListener("error", () => reject(new Error("Twitch embed script failed to load")));
+  });
+}
+
+// Twitch pauses the embed while the tab is hidden or covered ("switching tabs
+// or processes") and leaves it paused. Resume only pauses that happened while
+// hidden, so a viewer's own pause is never overridden.
+export function attachTwitchAutoResume({ document, window, player, container }) {
+  let pausedWhileHidden = false;
+
+  player.addEventListener(window.Twitch.Player.PAUSE, () => {
+    if (document.visibilityState === "hidden") {
+      pausedWhileHidden = true;
+    }
+  });
+  player.addEventListener(window.Twitch.Player.PLAY, () => {
+    pausedWhileHidden = false;
+  });
+
+  const onVisibilityChange = () => {
+    if (!container.isConnected) {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      return;
+    }
+    if (document.visibilityState === "visible" && pausedWhileHidden) {
+      pausedWhileHidden = false;
+      player.play();
+    }
+  };
+  document.addEventListener("visibilitychange", onVisibilityChange);
 }
 
 function createTwitchStreamFrame({ source, window }) {

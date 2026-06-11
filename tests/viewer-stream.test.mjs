@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { getSelectedStreamSource, getStreamSelectionKey } from "../src/viewer-stream.mjs";
+import { attachTwitchAutoResume, getSelectedStreamSource, getStreamSelectionKey } from "../src/viewer-stream.mjs";
 
 describe("stream selection", () => {
   const twitch = { platform: "twitch", sourceId: "twitch-xqc", sourceHandle: "xqc", sourceLabel: "Xtwin" };
@@ -41,5 +41,87 @@ describe("stream selection", () => {
 
   it("returns an empty key when there are no sources", () => {
     assert.equal(getStreamSelectionKey([]), "");
+  });
+});
+
+describe("twitch player auto-resume", () => {
+  function fakeDocument() {
+    const listeners = new Map();
+    return {
+      visibilityState: "visible",
+      addEventListener(type, cb) { listeners.set(cb, type); },
+      removeEventListener(type, cb) { listeners.delete(cb); },
+      dispatch() { for (const cb of [...listeners.keys()]) cb(); },
+      listenerCount: () => listeners.size,
+    };
+  }
+
+  function fakePlayer() {
+    const handlers = new Map();
+    return {
+      playCalls: 0,
+      addEventListener(event, cb) { handlers.set(event, cb); },
+      emit(event) { handlers.get(event)?.(); },
+      play() { this.playCalls += 1; },
+    };
+  }
+
+  const fakeWindow = { Twitch: { Player: { PAUSE: "pause", PLAY: "play" } } };
+
+  it("resumes a stream that paused while the tab was hidden", () => {
+    const document = fakeDocument();
+    const player = fakePlayer();
+    attachTwitchAutoResume({ document, window: fakeWindow, player, container: { isConnected: true } });
+
+    document.visibilityState = "hidden";
+    player.emit("pause");
+    document.visibilityState = "visible";
+    document.dispatch();
+
+    assert.equal(player.playCalls, 1);
+
+    // A later unrelated visibility flip does not replay it.
+    document.dispatch();
+    assert.equal(player.playCalls, 1);
+  });
+
+  it("leaves a stream alone when the viewer paused it while visible", () => {
+    const document = fakeDocument();
+    const player = fakePlayer();
+    attachTwitchAutoResume({ document, window: fakeWindow, player, container: { isConnected: true } });
+
+    player.emit("pause");
+    document.visibilityState = "hidden";
+    document.visibilityState = "visible";
+    document.dispatch();
+
+    assert.equal(player.playCalls, 0);
+  });
+
+  it("does not resume when the player already resumed itself while hidden", () => {
+    const document = fakeDocument();
+    const player = fakePlayer();
+    attachTwitchAutoResume({ document, window: fakeWindow, player, container: { isConnected: true } });
+
+    document.visibilityState = "hidden";
+    player.emit("pause");
+    player.emit("play");
+    document.visibilityState = "visible";
+    document.dispatch();
+
+    assert.equal(player.playCalls, 0);
+  });
+
+  it("detaches its visibility listener once the player leaves the DOM", () => {
+    const document = fakeDocument();
+    const player = fakePlayer();
+    const container = { isConnected: true };
+    attachTwitchAutoResume({ document, window: fakeWindow, player, container });
+
+    container.isConnected = false;
+    document.dispatch();
+
+    assert.equal(document.listenerCount(), 0);
+    assert.equal(player.playCalls, 0);
   });
 });
