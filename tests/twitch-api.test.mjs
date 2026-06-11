@@ -176,7 +176,7 @@ describe("twitch api client", () => {
         duration: "2h15m30s",
         id: "vod-1",
         published: "2026-06-08",
-        thumbnail: "https://thumb/320x180.jpg",
+        thumbnail: "https://thumb/1280x720.jpg",
         title: "Market Bubble VOD",
         url: "https://www.twitch.tv/videos/vod-1",
       },

@@ -314,14 +314,22 @@ function normalizeViewerCount(value) {
   return Math.max(0, Math.round(count));
 }
 
+function resolveTwitchThumbnailUrl(template, width, height) {
+  const url = String(template || "").trim();
+  if (!url) return "";
+
+  return url
+    .replace("%{width}", String(width))
+    .replace("%{height}", String(height))
+    .replace("{width}", String(width))
+    .replace("{height}", String(height));
+}
+
 function normalizeArchiveVod(vod) {
   const id = String(vod?.id || "").trim();
   if (!id) return null;
 
-  const thumbnailTemplate = String(vod.thumbnail_url || "");
-  const thumbnail = thumbnailTemplate
-    ? thumbnailTemplate.replace("%{width}", "320").replace("%{height}", "180")
-    : "";
+  const thumbnail = resolveTwitchThumbnailUrl(vod.thumbnail_url, 1280, 720);
 
   const publishedAt = String(vod.created_at || vod.published_at || "");
   const published = publishedAt ? publishedAt.slice(0, 10) : "";
