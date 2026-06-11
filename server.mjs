@@ -452,7 +452,7 @@ export function createAppServer(options = {}) {
           const body = await readJsonBody(request);
           const previousSources = await readSources(configPath);
           const sources = await resolveKickBroadcasterUserIds(
-            dropStaleXBroadcastIds(normalizeSources(stripEditableViewerCounts(body.sources || [])), previousSources),
+            carryXBroadcastIds(normalizeSources(stripEditableViewerCounts(body.sources || [])), previousSources),
             kickClient,
           );
           await ensureKickChatSubscriptions(sources, kickClient);
@@ -648,29 +648,31 @@ function applyXBroadcastId(body, sources) {
   return { ok: true, changed, sourceId: source.sourceId, broadcastId };
 }
 
-// An extension-captured broadcast id identifies one account's live stream. If
-// an admin save changes a source's X handle, the riding-along id would keep
-// the server-side connector attached to the previous account's broadcast, so
-// it is dropped and the connector disconnects until the new handle's id is
-// captured.
-function dropStaleXBroadcastIds(sources, previousSources) {
-  const previousHandlesBySourceId = new Map(
+// The X broadcast id is server-captured state: the extension reports it while
+// the admin editor only echoes whatever it loaded, which goes stale the moment
+// a capture lands after the page load. Saves therefore restore each X source's
+// stored id instead of trusting the client copy — except when the save changes
+// the source's X handle, because the id identifies the previous account's
+// broadcast; then it is dropped and the connector disconnects until the new
+// handle's id is captured.
+function carryXBroadcastIds(sources, previousSources) {
+  const previousXSourcesById = new Map(
     previousSources
       .filter((source) => source.platform === "x")
-      .map((source) => [source.sourceId, source.sourceHandle]),
+      .map((source) => [source.sourceId, source]),
   );
 
   return sources.map((source) => {
-    if (source.platform !== "x" || !source.broadcastId) {
-      return source;
-    }
-
-    const previousHandle = previousHandlesBySourceId.get(source.sourceId);
-    if (!previousHandle || previousHandle === source.sourceHandle) {
+    if (source.platform !== "x") {
       return source;
     }
 
     const { broadcastId, ...rest } = source;
+    const previous = previousXSourcesById.get(source.sourceId);
+    if (previous?.broadcastId && previous.sourceHandle === source.sourceHandle) {
+      return { ...rest, broadcastId: previous.broadcastId };
+    }
+
     return rest;
   });
 }

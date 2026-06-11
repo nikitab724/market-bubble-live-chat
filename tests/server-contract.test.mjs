@@ -804,7 +804,8 @@ describe("server contract", () => {
     await listen(server);
 
     try {
-      // The admin client rides sourceId and broadcastId along from loaded state.
+      // The admin client may echo broadcastId from loaded state; the server
+      // restores the stored id either way (see the stale-save test below).
       const editorSource = {
         platform: "x",
         sourceId: "x-banks",
@@ -830,6 +831,53 @@ describe("server contract", () => {
       const saved = JSON.parse(await readFile(configPath, "utf8"));
       assert.equal(saved.sources[0].broadcastId, undefined);
       assert.deepEqual(syncedBroadcastIds, ["1yKAPPboWlDxb", undefined]);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("keeps the captured broadcast id when an admin save omits it (stale admin page)", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-stale-save-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [
+          { platform: "x", sourceId: "x-banks", sourceHandle: "banks", sourceLabel: "Banks", enabled: true, broadcastId: "1yKAPPboWlDxb" },
+          { platform: "x", sourceId: "x-z", sourceHandle: "z", sourceLabel: "Z", enabled: true },
+        ],
+      }),
+    );
+
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: { syncSources() {}, stop() {} },
+    });
+    await listen(server);
+
+    try {
+      // An admin page loaded before the extension captured the id sends stale
+      // editor state without it. The id is server-captured, so the save must
+      // restore it rather than trust the echo.
+      const staleSave = await request(server, "PUT", "/api/admin/sources", {
+        sources: [
+          { platform: "x", sourceId: "x-banks", sourceHandle: "banks", sourceLabel: "Banks", enabled: true },
+          // The client also cannot invent an id for a source the server never
+          // captured one for.
+          { platform: "x", sourceId: "x-z", sourceHandle: "z", sourceLabel: "Z", enabled: true, broadcastId: "1fabricated" },
+        ],
+      });
+      assert.equal(staleSave.status, 200);
+      assert.equal(staleSave.json.sources[0].broadcastId, "1yKAPPboWlDxb");
+      assert.equal(staleSave.json.sources[1].broadcastId, undefined);
+
+      const saved = JSON.parse(await readFile(configPath, "utf8"));
+      assert.equal(saved.sources[0].broadcastId, "1yKAPPboWlDxb");
+      assert.equal(saved.sources[1].broadcastId, undefined);
     } finally {
       await close(server);
     }

@@ -42,11 +42,37 @@ let mutationObserver = null;
 let currentSourceHandle = null;
 let status = "idle"; // "idle" | "watching" | "no-container"
 
+// What the backend last said about this bridge. "Watching chat" only means the
+// DOM observer is attached; this is the part that tells the operator whether
+// posts are actually accepted. Result states come from backend responses and
+// stick; guidance states (soft) only fill in when there is no result yet.
+let bridge = { state: "idle", message: "" };
+const BRIDGE_RESULT_STATES = new Set(["linked", "unauthorized", "no-source", "error"]);
+
 // ─── State broadcasting ───────────────────────────────────────────────────────
+
+function snapshotState() {
+  return { status, sourceHandle: currentSourceHandle, bridge };
+}
+
+function broadcastState() {
+  chrome.runtime.sendMessage({ type: "status", ...snapshotState() }).catch(() => {});
+}
 
 function setStatus(next) {
   status = next;
-  chrome.runtime.sendMessage({ type: "status", status, sourceHandle: currentSourceHandle }).catch(() => {});
+  broadcastState();
+}
+
+function setBridge(state, message = "", { soft = false } = {}) {
+  if (soft && BRIDGE_RESULT_STATES.has(bridge.state)) return;
+  if (bridge.state === state && bridge.message === message) return;
+
+  bridge = { state, message };
+  if (message && state !== "linked") {
+    console.warn(`[MB X Bridge] ${message}`);
+  }
+  broadcastState();
 }
 
 // ─── URL / source detection ───────────────────────────────────────────────────
@@ -83,28 +109,55 @@ function detectBroadcastIdFromUrl() {
 
 // Report the live broadcast id to the backend so the server-side X chat
 // connector can attach without a manual paste. Deduped so SPA re-renders and
-// the 1s URL poll do not spam the backend with the same id.
+// the 1s URL poll do not spam the backend with the same id — but only once the
+// backend accepts, so a rejected report retries on the next Apply/Retry/URL
+// change instead of failing silently forever.
 let lastReportedBroadcast = "";
+let reportInFlight = null;
 
-async function reportBroadcastId() {
+function reportBroadcastId() {
   const broadcastId = detectBroadcastIdFromUrl();
-  if (!broadcastId || !currentSourceHandle) return;
+  if (!broadcastId) {
+    setBridge("no-broadcast-url", "", { soft: true });
+    return Promise.resolve();
+  }
+  if (!currentSourceHandle) {
+    setBridge("no-source-selected", "", { soft: true });
+    return Promise.resolve();
+  }
 
   const key = `${currentSourceHandle}:${broadcastId}`;
-  if (key === lastReportedBroadcast) return;
-  lastReportedBroadcast = key;
+  if (key === lastReportedBroadcast) return Promise.resolve();
+  if (reportInFlight) return reportInFlight;
 
-  try {
-    const backendBaseUrl = await getBackendBaseUrl();
-    await fetch(buildBackendUrl("/api/x-broadcast", backendBaseUrl), {
-      method: "POST",
-      headers: await buildIngestHeaders(),
-      body: JSON.stringify({ sourceHandle: currentSourceHandle, broadcastId }),
-    });
-    console.log(`[MB X Bridge] reported broadcast ${broadcastId} for @${currentSourceHandle}`);
-  } catch {
-    // Backend unreachable — will retry on the next URL change or source selection.
-  }
+  reportInFlight = (async () => {
+    try {
+      const backendBaseUrl = await getBackendBaseUrl();
+      const response = await fetch(buildBackendUrl("/api/x-broadcast", backendBaseUrl), {
+        method: "POST",
+        headers: await buildIngestHeaders(),
+        body: JSON.stringify({ sourceHandle: currentSourceHandle, broadcastId }),
+      });
+
+      if (response.ok) {
+        lastReportedBroadcast = key;
+        setBridge("linked");
+        console.log(`[MB X Bridge] reported broadcast ${broadcastId} for @${currentSourceHandle}`);
+      } else if (response.status === 401) {
+        setBridge("unauthorized", `backend ${backendBaseUrl} rejected the bridge token (401)`);
+      } else if (response.status === 404) {
+        setBridge("no-source", `backend ${backendBaseUrl} has no enabled X source for @${currentSourceHandle} (404)`);
+      } else {
+        setBridge("error", `broadcast report failed with HTTP ${response.status}`);
+      }
+    } catch {
+      setBridge("error", "backend unreachable — check the Backend URL");
+    } finally {
+      reportInFlight = null;
+    }
+  })();
+
+  return reportInFlight;
 }
 
 // ─── Message extraction ───────────────────────────────────────────────────────
@@ -193,13 +246,25 @@ async function sendMessage(author, handle, body) {
 
   try {
     const backendBaseUrl = await getBackendBaseUrl();
-    await fetch(buildBackendUrl("/api/x-chat", backendBaseUrl), {
+    const response = await fetch(buildBackendUrl("/api/x-chat", backendBaseUrl), {
       method: "POST",
       headers: await buildIngestHeaders(),
       body: JSON.stringify(payload),
     });
+
+    if (response.ok) {
+      // Don't downgrade "linked": once the server-side connector owns the
+      // source, DOM posts are acknowledged but the connector carries the chat.
+      setBridge("chat-ok", "", { soft: true });
+    } else if (response.status === 401) {
+      setBridge("unauthorized", `backend ${backendBaseUrl} rejected the bridge token (401)`);
+    } else if (response.status === 404) {
+      setBridge("no-source", `backend ${backendBaseUrl} has no enabled X source for @${payload.sourceHandle || "?"} (404)`);
+    } else {
+      setBridge("error", `chat post failed with HTTP ${response.status}`);
+    }
   } catch {
-    // Backend not running — silently ignore, user will see disconnected state in dashboard.
+    setBridge("error", "backend unreachable — check the Backend URL");
   }
 }
 
@@ -306,7 +371,9 @@ let lastUrl = location.href;
 setInterval(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
-    currentSourceHandle = detectHandleFromUrl();
+    // /i/broadcasts/<id> URLs carry no handle; keep the popup-selected source
+    // instead of clobbering it with null on every SPA navigation.
+    currentSourceHandle = detectHandleFromUrl() || currentSourceHandle;
     setTimeout(tryAttach, 1000); // wait for new page content to render
   }
 }, 1000);
@@ -315,21 +382,30 @@ setInterval(() => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "get-status") {
-    sendResponse({ status, sourceHandle: currentSourceHandle });
+    sendResponse(snapshotState());
   }
 
   if (message.type === "set-source") {
     currentSourceHandle = message.sourceHandle;
     lastReportedBroadcast = "";
-    reportBroadcastId();
-    sendResponse({ ok: true });
+    // Respond after the broadcast report settles so the popup shows the
+    // backend's verdict, not just "watching".
+    reportBroadcastId().then(() => sendResponse(snapshotState()));
+    return true;
   }
 
   if (message.type === "retry") {
     chatContainer = null;
     if (mutationObserver) mutationObserver.disconnect();
-    tryAttach();
-    sendResponse({ ok: true });
+    if (!isLivePage()) {
+      setStatus("idle");
+      sendResponse(snapshotState());
+      return;
+    }
+
+    startObserving();
+    reportBroadcastId().then(() => sendResponse(snapshotState()));
+    return true;
   }
 });
 
