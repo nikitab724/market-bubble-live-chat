@@ -1,0 +1,20 @@
+# One-command run: `docker compose up -d --build` → http://localhost:4178
+# Data (SQLite chat DB, sources.json, admin-password.json) persists in the
+# named volume `mb-data` across down/up. Providers and the admin password are
+# optional: `cp .env.example .env` and fill it in.
+# Binds loopback only (tunnel/proxy-friendly, like production); override with
+# HOST_BIND=0.0.0.0 to expose on the LAN, HOST_PORT to move off 4178.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-4178}:4178"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - mb-data:/app/data
+
+volumes:
+  mb-data:

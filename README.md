@@ -14,6 +14,16 @@ The demo treats each stream source separately, including Market Bubble on Twitch
 
 ## Run
 
+The whole app — including its SQLite database — comes up with one command:
+
+```bash
+docker compose up -d --build
+```
+
+Then open `http://localhost:4178/`. Data persists in the `mb-data` Docker volume (survives `down`/`up`). Providers and the admin password are optional: `cp .env.example .env`, fill it in, and run `docker compose up -d` again. For self-hosting on a server, see [docs/deployment.md](docs/deployment.md#local--self-host-docker-compose).
+
+### Local development (npm)
+
 Install dependencies, build the browser assets, then start the app:
 
 ```bash

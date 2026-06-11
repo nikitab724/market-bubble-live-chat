@@ -7,7 +7,7 @@ This is the content-oriented catalog for the Market Bubble Live LLM Wiki. Read t
 - [Docs README](../README.md): Start page for the wiki, current product shape, and update rule.
 - [Architecture](../architecture.md): Runtime surfaces, server routes, source config, chat flow, and stream selection.
 - [Connectors](../connectors.md): Twitch, Kick, X, native room, and viewer-count responsibilities.
-- [Deployment](../deployment.md): Firecrawl deploy flow, Docker container, env vars, persistent data, and public URL assumptions.
+- [Deployment](../deployment.md): Firecrawl deploy flow, local Docker Compose self-host, Docker container, env vars, persistent data, and public URL assumptions.
 - [Testing](../testing.md): Main test command, local smoke checks, and area-specific test files.
 - [LLM Wiki maintenance](../llm-maintenance.md): How agents should ingest, query, lint, index, and log durable knowledge.
 

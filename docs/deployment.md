@@ -10,6 +10,23 @@ Key files:
 - `scripts/deploy-firecrawl.sh`: builds the Docker image, recreates the container, and mounts persistent data.
 - `Dockerfile`: installs npm dependencies, builds the Vite frontend into `dist/client`, then runs the Node server.
 
+## Local / Self-Host (Docker Compose)
+
+For a local run or a fresh server, the repo is self-contained: `docker-compose.yml` at the root builds the image and runs a single `app` container, with the SQLite chat DB, `sources.json`, and `admin-password.json` persisted in the named volume `mb-data` (survives `down`/`up`; `docker compose down -v` wipes it). Needs Docker Compose v2.24+ (for the optional `env_file`).
+
+Fresh server (or laptop):
+
+```bash
+git clone <repo-url> && cd <repo>
+cp .env.example .env   # optional locally; on a public server set at least ADMIN_PASSWORD_HASH first
+docker compose up -d --build
+```
+
+- The app binds `127.0.0.1:4178` by default — the same tunnel/proxy-fronted shape as production. Point the tunnel or reverse proxy at it. Override with `HOST_BIND=0.0.0.0` (expose directly) and/or `HOST_PORT=<port>`.
+- No `.env` is needed to boot: the app starts in open/local mode (no admin password, providers idle) and picks the file up on the next `up`.
+- The image sets `NODE_ENV=production`, so the local-only dev Kick injector route returns 404 inside the container; use `npm start` for that workflow.
+- The existing Firecrawl server does not use compose — it keeps the push-to-`main` auto-deploy below, which manages the same image and data shape via `scripts/deploy-firecrawl.sh`. Do not run compose alongside it on that box: both want port 4178, and the legacy data lives in `/opt/market-bubble-live/data`, not the compose volume.
+
 ## Firecrawl Paths
 
 The deploy script defaults to:

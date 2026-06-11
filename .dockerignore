@@ -7,3 +7,6 @@ output
 tests
 node_modules
 dist
+data/*.sqlite
+data/*.sqlite-*
+data/admin-password.json
