@@ -16,6 +16,7 @@
 - `GET /api/twitch-vod?channel=...`: latest Twitch VOD lookup (used by the offline player states).
 - `GET /api/twitch-emotes?channel=...`: Twitch third-party emote cache.
 - `GET /api/twitch-badges?channel=...`: Twitch global/channel chat badge image cache.
+- `GET /api/x-profile?handle=...`: guest-token X profile lookup (display name, verified mark, bio, follower count, avatar) cached server-side for 15 minutes; failures return `{ profile: null }`.
 - `GET /api/chat-events`: database-backed replaying server-sent events stream for normalized chat and connector status events.
 - `POST /api/x-chat`: X extension chat ingest, ignored for any X source that has a `broadcastId` (owned by the server-side connector) so messages are not delivered twice.
 - `POST /api/x-broadcast`: X extension reports the current live broadcast id, which the server writes to the matching enabled X source so the server-side X chat connector attaches without a manual paste.
@@ -42,7 +43,7 @@ The admin editor exposes none of these id fields. They ride along from the last 
 - `enabled`: controls whether a source appears in public config.
 - `showStream`: marks the one source used by the hosted stream player.
 
-The server strips editable `viewerCount` values from admin writes. Viewer counts are live provider data when available. The viewer renders combined and per-source count changes with lightweight exponential catch-up after the initial paint, moving quickly across large gaps and easing into the target with plain tabular text; reduced-motion clients snap directly to the latest value. Source chips show a profile-aware status dot: if any source in the same profile is live the profile's Twitch/Kick chips show green; otherwise checked-but-offline provider sources show orange.
+The server strips editable `viewerCount` values from admin writes. Viewer counts are live provider data when available. The viewer renders combined and per-source count changes with lightweight exponential catch-up after the initial paint, moving quickly across large gaps and easing into the target with plain tabular text; reduced-motion clients snap directly to the latest value. Source chips show a profile-aware status dot: if any source in the same profile is live the profile's Twitch/Kick chips show green; otherwise checked-but-offline provider sources show orange. Hovering a chip opens the profile popover; when the profile has a connected X account, the popover leads with a live X identity card — avatar, display name with verified mark, @handle, bio, compact follower count, and a Follow pill — fetched once per page load from `GET /api/x-profile` and linking to the X profile.
 
 ## Chat Flow
 

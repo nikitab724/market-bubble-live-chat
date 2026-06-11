@@ -25,7 +25,7 @@ import { createTwitchApiClient } from "./src/twitch-api.mjs";
 import { createTwitchChatService } from "./src/twitch-chat-service.mjs";
 import { createTwitchEmoteClient } from "./src/twitch-emotes.mjs";
 import { createXChatService } from "./src/x-chat-service.mjs";
-import { extractBroadcastId } from "./src/x-api.mjs";
+import { createXApiClient, extractBroadcastId } from "./src/x-api.mjs";
 
 const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG_PATH = join(ROOT_DIR, "data", "sources.json");
@@ -124,6 +124,7 @@ export function createAppServer(options = {}) {
     ? createXChatService({ chatHub })
     : options.xChatService;
   const twitchEmoteClient = options.twitchEmoteClient || createTwitchEmoteClient({ twitchClient });
+  const xApiClient = options.xApiClient || createXApiClient();
   const sessions = new Map();
   let ensuredKickSubscriptionKey = "";
   let kickSubscriptionEnsurePromise = null;
@@ -159,6 +160,20 @@ export function createAppServer(options = {}) {
         }
 
         return sendJson(response, 200, await twitchEmoteClient.getEmotes(channel));
+      }
+
+      if (url.pathname === "/api/x-profile" && request.method === "GET") {
+        const handle = url.searchParams.get("handle") || "";
+        if (!handle) {
+          return sendJson(response, 400, { error: "handle is required" });
+        }
+
+        try {
+          return sendJson(response, 200, { profile: await xApiClient.getUserProfile(handle) });
+        } catch {
+          // Unofficial lookup; the popover simply skips its X identity card.
+          return sendJson(response, 200, { profile: null });
+        }
       }
 
       if (url.pathname === "/api/twitch-badges" && request.method === "GET") {

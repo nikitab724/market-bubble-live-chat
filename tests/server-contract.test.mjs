@@ -309,6 +309,19 @@ describe("server contract", () => {
           };
         },
       },
+      xApiClient: {
+        async getUserProfile(handle) {
+          return {
+            avatarUrl: "https://pbs.twimg.com/profile_images/abc/xyz_200x200.jpg",
+            bio: "trader. co-host @MarketBubble.",
+            followers: 937556,
+            handle: String(handle).toLowerCase(),
+            name: "Ansem",
+            url: `https://x.com/${String(handle).toLowerCase()}`,
+            verified: true,
+          };
+        },
+      },
       twitchEmoteClient: {
         async getEmotes(channel) {
           return {
@@ -386,6 +399,14 @@ describe("server contract", () => {
       assert.equal(twitchBadges.status, 200);
       assert.equal(twitchBadges.json.channel, "MarketBubble");
       assert.equal(twitchBadges.json.badges["moderator/1"].imageUrl, "https://static-cdn.jtvnw.net/badges/mod-2.png");
+
+      const xProfile = await request(server, "GET", "/api/x-profile?handle=blknoiz06");
+      assert.equal(xProfile.status, 200);
+      assert.equal(xProfile.json.profile.name, "Ansem");
+      assert.equal(xProfile.json.profile.followers, 937556);
+
+      const xProfileMissingHandle = await request(server, "GET", "/api/x-profile");
+      assert.equal(xProfileMissingHandle.status, 400);
 
       const webhook = await request(
         server,

@@ -38,6 +38,31 @@ export async function loadTwitchEmotes({ fetchImpl = fetch, sources, state, queu
   );
 }
 
+export async function loadXProfiles({ fetchImpl = fetch, sources, state, queueRender }) {
+  const handles = [...new Set(
+    sources
+      .filter((source) => source.platform === "x" && source.sourceHandle)
+      .map((source) => source.sourceHandle.toLowerCase()),
+  )];
+
+  await Promise.all(
+    handles.map(async (handle) => {
+      try {
+        const response = await fetchImpl(`/api/x-profile?handle=${encodeURIComponent(handle)}`, { cache: "no-store" });
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        if (!payload.profile) return;
+
+        state.xProfiles[handle] = payload.profile;
+        queueRender();
+      } catch {
+        // The source popover simply skips its X identity card.
+      }
+    }),
+  );
+}
+
 // Kick chat shares the BTTV/7TV/FFZ emote culture, but those providers key
 // channel sets by Twitch identity. A Kick source borrows its profile-mate
 // Twitch channel when one exists; kick-only profiles resolve through their

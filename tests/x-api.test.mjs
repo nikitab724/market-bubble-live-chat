@@ -106,6 +106,72 @@ describe("x-api bootstrap handshake", () => {
   });
 });
 
+describe("x-api profile lookup", () => {
+  it("resolves an X profile through the guest GraphQL lookup and caches it", async () => {
+    const calls = [];
+    const fetchImpl = async (url, init = {}) => {
+      calls.push({ url, init });
+
+      if (url.includes("guest/activate.json")) {
+        return jsonResponse({ guest_token: "guest-9" });
+      }
+      if (url.includes("UserByScreenName")) {
+        return jsonResponse({
+          data: {
+            user: {
+              result: {
+                is_blue_verified: true,
+                legacy: {
+                  description: "trader. co-host @MarketBubble. not financial advice.",
+                  followers_count: 937556,
+                  name: "Ansem",
+                  profile_image_url_https: "https://pbs.twimg.com/profile_images/abc/xyz_normal.jpg",
+                  screen_name: "blknoiz06",
+                  verified: false,
+                },
+              },
+            },
+          },
+        });
+      }
+      throw new Error(`unexpected url ${url}`);
+    };
+
+    const client = createXApiClient({ fetchImpl });
+    const profile = await client.getUserProfile("@blknoiz06");
+
+    assert.deepEqual(profile, {
+      avatarUrl: "https://pbs.twimg.com/profile_images/abc/xyz_200x200.jpg",
+      bio: "trader. co-host @MarketBubble. not financial advice.",
+      followers: 937556,
+      handle: "blknoiz06",
+      name: "Ansem",
+      url: "https://x.com/blknoiz06",
+      verified: true,
+    });
+
+    const lookupCall = calls.find((call) => call.url.includes("UserByScreenName"));
+    assert.equal(lookupCall.init.headers["x-guest-token"], "guest-9");
+    assert.match(decodeURIComponent(lookupCall.url), /"screen_name":"blknoiz06"/);
+
+    // The second lookup is served from the cache without another fetch.
+    const callCount = calls.length;
+    await client.getUserProfile("blknoiz06");
+    assert.equal(calls.length, callCount);
+  });
+
+  it("throws when the lookup returns no user", async () => {
+    const fetchImpl = async (url) => {
+      if (url.includes("guest/activate.json")) return jsonResponse({ guest_token: "g" });
+      if (url.includes("UserByScreenName")) return jsonResponse({ data: { user: {} } });
+      throw new Error(`unexpected ${url}`);
+    };
+
+    const client = createXApiClient({ fetchImpl });
+    await assert.rejects(() => client.getUserProfile("ghost"), /No X profile/);
+  });
+});
+
 describe("x-api chat socket framing", () => {
   it("builds a ws chatnow URL from the https endpoint", () => {
     assert.equal(

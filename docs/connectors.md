@@ -65,6 +65,8 @@ The broadcast id is stored server-side only, like Kick's `broadcasterUserId`, an
 
 Once a source has a broadcast id it is owned by the server-side connector, so `POST /api/x-chat` ingest from the extension DOM bridge is ignored for that source. This keeps a source on exactly one chat path and prevents the same message arriving twice (once from the connector, once from the bridge).
 
+The same guest-token path powers `GET /api/x-profile?handle=...`: a `UserByScreenName` GraphQL lookup (pinned query id + feature flags from the logged-out web client) that returns the display name, verified mark, bio, follower count, and avatar for the viewer's profile popover X identity card. Results are cached server-side for 15 minutes and any failure returns `{ profile: null }`, which simply hides the card.
+
 Caveats: these are unofficial endpoints (the same ones x.com's web player calls), so they can change without notice, and read-only access is a ToS gray area. Every failure is treated as a soft `disconnected` status with reconnect, never a crash.
 
 ### Chrome extension bridge (fallback)

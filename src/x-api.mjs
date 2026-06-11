@@ -22,15 +22,39 @@ const GUEST_ACTIVATE_URL = "https://api.x.com/1.1/guest/activate.json";
 const BROADCAST_SHOW_URL = "https://x.com/i/api/1.1/broadcasts/show.json";
 const LIVE_STATUS_URL = "https://x.com/i/api/1.1/live_video_stream/status";
 const ACCESS_CHAT_PUBLIC_URL = "https://proxsee-cf.pscp.tv/api/v2/accessChatPublic";
+// GraphQL user lookup used by the logged-out x.com web client. The query id
+// and feature flags are pinned to a combination verified to work with guest
+// tokens; treat failures as soft (no profile card) like the chat handshake.
+const USER_BY_SCREEN_NAME_URL = "https://x.com/i/api/graphql/G3KGOASz96M-Qu0nwmGXNg/UserByScreenName";
+const USER_LOOKUP_FEATURES = JSON.stringify({
+  hidden_profile_likes_enabled: true,
+  hidden_profile_subscriptions_enabled: true,
+  responsive_web_graphql_exclude_directive_enabled: true,
+  verified_phone_label_enabled: false,
+  subscriptions_verification_info_is_identity_verified_enabled: true,
+  subscriptions_verification_info_verified_since_enabled: true,
+  highlights_tweets_tab_ui_enabled: true,
+  responsive_web_twitter_article_notes_tab_enabled: true,
+  creator_subscriptions_tweet_preview_api_enabled: true,
+  responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+  responsive_web_graphql_timeline_navigation_enabled: true,
+});
+const PROFILE_CACHE_TTL_MS = 15 * 60 * 1000;
 const WEB_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
 
-export function createXApiClient({ fetchImpl = globalThis.fetch } = {}) {
+export function createXApiClient({
+  fetchImpl = globalThis.fetch,
+  now = Date.now,
+  profileCacheTtlMs = PROFILE_CACHE_TTL_MS,
+} = {}) {
   if (typeof fetchImpl !== "function") {
     throw new Error("X API client requires a fetch implementation");
   }
 
-  return { bootstrapBroadcast };
+  const profileCache = new Map();
+
+  return { bootstrapBroadcast, getUserProfile };
 
   async function bootstrapBroadcast(input) {
     const broadcastId = extractBroadcastId(input);
@@ -76,6 +100,43 @@ export function createXApiClient({ fetchImpl = globalThis.fetch } = {}) {
       readOnly: access.read_only ?? true,
       url: `https://x.com/i/broadcasts/${broadcastId}`,
     };
+  }
+
+  async function getUserProfile(handle) {
+    const screenName = String(handle || "").replace(/^@/, "").trim().toLowerCase();
+    if (!screenName) {
+      throw new Error("X profile lookup requires a handle");
+    }
+
+    const cached = profileCache.get(screenName);
+    if (cached && cached.expiresAt > now()) {
+      return cached.value;
+    }
+
+    const guestToken = await activateGuestToken();
+    const variables = JSON.stringify({ screen_name: screenName, withSafetyModeUserFields: true });
+    const payload = await requestJson(
+      `${USER_BY_SCREEN_NAME_URL}?variables=${encodeURIComponent(variables)}&features=${encodeURIComponent(USER_LOOKUP_FEATURES)}`,
+      { headers: xApiHeaders(guestToken) },
+    );
+
+    const result = payload?.data?.user?.result;
+    const legacy = result?.legacy;
+    if (!legacy?.screen_name) {
+      throw new Error(`No X profile for @${screenName}`);
+    }
+
+    const value = {
+      avatarUrl: String(legacy.profile_image_url_https || "").replace("_normal.", "_200x200."),
+      bio: String(legacy.description || ""),
+      followers: Number(legacy.followers_count) || 0,
+      handle: legacy.screen_name,
+      name: String(legacy.name || legacy.screen_name),
+      url: `https://x.com/${legacy.screen_name}`,
+      verified: result.is_blue_verified === true || legacy.verified === true,
+    };
+    profileCache.set(screenName, { expiresAt: now() + profileCacheTtlMs, value });
+    return value;
   }
 
   async function activateGuestToken() {

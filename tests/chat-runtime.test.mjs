@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { loadTwitchEmotes } from "../src/chat-runtime.mjs";
+import { loadTwitchEmotes, loadXProfiles } from "../src/chat-runtime.mjs";
 
 describe("chat runtime emote loading", () => {
   it("loads third-party emote maps for Twitch and Kick sources", async () => {
@@ -33,5 +33,32 @@ describe("chat runtime emote loading", () => {
     const channels = requests.map((url) => new URL(url, "http://localhost").searchParams.get("channel")).sort();
     assert.deepEqual(channels, ["nickwhite", "xqc", "xqc"]);
     assert.equal(state.twitchEmotes["kick-xqc"].KEKW.name, "KEKW");
+  });
+
+  it("loads X identity profiles for enabled X sources", async () => {
+    const requests = [];
+    const fetchImpl = async (url) => {
+      requests.push(String(url));
+      return {
+        ok: true,
+        json: async () => ({ profile: { followers: 937556, handle: "banks", name: "Banks" } }),
+      };
+    };
+    const state = { xProfiles: {} };
+    let renders = 0;
+    const sources = [
+      { enabled: true, platform: "x", sourceHandle: "Banks", sourceId: "x-banks" },
+      { enabled: true, platform: "x", sourceHandle: "z", sourceId: "x-z" },
+      { enabled: true, platform: "twitch", sourceHandle: "xqc", sourceId: "twitch-xqc" },
+    ];
+
+    await loadXProfiles({ fetchImpl, sources, state, queueRender: () => { renders += 1; } });
+
+    assert.deepEqual(Object.keys(state.xProfiles).sort(), ["banks", "z"]);
+    assert.equal(renders, 2);
+    assert.deepEqual(
+      requests.map((url) => new URL(url, "http://localhost").searchParams.get("handle")).sort(),
+      ["banks", "z"],
+    );
   });
 });

@@ -515,6 +515,16 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("x-banks"), true);
     assert.equal(app.includes("x-z"), true);
     assert.equal(app.includes("room-marketbubble"), true);
+    // A connected X account enriches the profile popover with a live X
+    // identity card (avatar, name, bio, follower count).
+    assert.equal(app.includes("function renderXProfileCard(profile)"), true);
+    assert.equal(app.includes('class="source-popover-x"'), true);
+    assert.equal(app.includes("state.xProfiles"), true);
+    assert.equal(app.includes("loadXProfiles"), true);
+    assert.equal(app.includes("/api/x-profile"), true);
+    assert.match(styles, /\.source-popover-x\s*\{[^}]*grid-template-columns: 44px minmax\(0, 1fr\) auto/s);
+    assert.match(styles, /\.source-popover-x-avatar\s*\{[^}]*border-radius: 50%/s);
+    assert.match(styles, /\.source-popover-x-follow\s*\{[^}]*border-radius: 999px/s);
   });
 
   it("loads source config from the backend with a static fallback", () => {
@@ -956,6 +966,14 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes('class="admin-root"'), true);
     assert.equal(html.includes('id="addProfileButton"'), true);
     assert.equal(html.includes('id="profileCards"'), true);
+    // The admin header has its own compact brand treatment instead of
+    // borrowing the viewer wordmark (which oversized and masked the logo).
+    assert.equal(html.includes('class="admin-brand"'), true);
+    assert.equal(html.includes('class="admin-brand-logo"'), true);
+    assert.equal(html.includes("brand-mark"), false);
+    assert.match(styles, /\.admin-brand-logo\s*\{[^}]*width: 38px[^}]*height: 38px[^}]*object-fit: cover/s);
+    assert.match(styles, /\.admin-header h1\s*\{[^}]*text-transform: none[^}]*font-style: italic/s);
+    assert.match(styles, /@keyframes admin-header-rise/);
     assert.equal(admin.includes("buildProfilesFromSources"), true);
     assert.equal(admin.includes("toggleProfile"), true);
     assert.equal(admin.includes("profile-toggle-icon"), true);

@@ -102,6 +102,7 @@ export function createChatRenderer({
         viewerCountLocked: source.viewerCountLocked === true,
       })),
       total: viewerSummary.total,
+      xProfiles: state.xProfiles,
     });
   }
 
@@ -442,6 +443,7 @@ export function createChatRenderer({
         <div class="source-popover" role="tooltip">
           <div class="source-popover-kicker">Profile</div>
           <strong>${escapeHtml(profile.name)}</strong>
+          ${renderXProfileCard(profile)}
           <dl>
             <div>
               <dt>Source</dt>
@@ -465,6 +467,29 @@ export function createChatRenderer({
           </div>
         </div>
       </div>
+    `;
+  }
+
+  // A connected X account turns the profile popover into a small identity
+  // card: avatar, display name, bio, and follower count from /api/x-profile.
+  function renderXProfileCard(profile) {
+    const xSource = profile.sources.find((source) => source.platform === "x" && source.sourceHandle);
+    const xProfile = xSource ? state.xProfiles[xSource.sourceHandle.toLowerCase()] : null;
+    if (!xProfile) {
+      return "";
+    }
+
+    return `
+      <a class="source-popover-x" href="${escapeHtml(xProfile.url)}" target="_blank" rel="noreferrer">
+        <img class="source-popover-x-avatar" src="${escapeHtml(xProfile.avatarUrl)}" alt="" loading="lazy" decoding="async" />
+        <span class="source-popover-x-id">
+          <strong>${escapeHtml(xProfile.name)}${xProfile.verified ? '<em class="x-verified" title="Verified" aria-label="Verified"></em>' : ""}</strong>
+          <span>@${escapeHtml(xProfile.handle)}</span>
+        </span>
+        <span class="source-popover-x-follow">Follow</span>
+        ${xProfile.bio ? `<span class="source-popover-x-bio">${escapeHtml(xProfile.bio)}</span>` : ""}
+        <span class="source-popover-x-followers"><b>${formatCompactNumber(xProfile.followers)}</b> Followers</span>
+      </a>
     `;
   }
 
@@ -869,7 +894,12 @@ function renderPlatformLogo(platform, label) {
 }
 
 const NUMBER_FORMAT = new Intl.NumberFormat("en-US");
+const COMPACT_NUMBER_FORMAT = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1, notation: "compact" });
 
 function formatNumber(value) {
   return NUMBER_FORMAT.format(value);
+}
+
+function formatCompactNumber(value) {
+  return COMPACT_NUMBER_FORMAT.format(Number(value) || 0);
 }

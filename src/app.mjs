@@ -7,6 +7,7 @@ import {
   loadPublicConfig,
   loadTwitchBadges,
   loadTwitchEmotes,
+  loadXProfiles,
   refreshLiveState,
   startBackendChatEvents,
 } from "./chat-runtime.mjs";
@@ -52,6 +53,7 @@ function createLiveApp({ document, window }) {
     twitchBadges: {},
     twitchEmotes: {},
     twitchStatuses: {},
+    xProfiles: {},
   };
 
   const elements = {
@@ -95,6 +97,7 @@ function createLiveApp({ document, window }) {
     initStreamPlayer({ document, sources: connectedSources, window });
     loadTwitchBadges({ sources: connectedSources, state, queueRender });
     loadTwitchEmotes({ sources: connectedSources, state, queueRender });
+    loadXProfiles({ sources: connectedSources, state, queueRender });
     startBackendChatEvents({ window, addBackendMessage, updateBackendChatStatus });
     if (isDemoChatEnabled()) {
       startDemoChat({
