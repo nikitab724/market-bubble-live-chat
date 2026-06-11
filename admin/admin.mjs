@@ -4,6 +4,11 @@ import {
   createEmptyProfile,
   profilePlatforms,
 } from "./profile-model.mjs";
+import { describeSourceStatus } from "./status-model.mjs";
+
+const LIVE_STATE_POLL_MS = 15000;
+const STATUS_RENDER_DELAY_MS = 250;
+const STATUS_TICK_MS = 5000;
 
 const elements = {
   addProfileButton: document.querySelector("#addProfileButton"),
@@ -17,6 +22,17 @@ const elements = {
 };
 
 let profiles = [];
+// Snapshot of the last server-confirmed slots, keyed by `${profileId}:${platform}`.
+// Status lines compare live inputs against it to show "Save to connect".
+let savedSlotsByKey = new Map();
+const liveStatus = {
+  connectorBySourceId: new Map(),
+  lastChatBySourceId: new Map(),
+  liveBySourceId: new Map(),
+  providers: null,
+};
+let statusEngine = null;
+let statusRenderTimer = 0;
 
 elements.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -56,17 +72,23 @@ elements.saveSourcesButton.addEventListener("click", async () => {
   }
 
   const body = await response.json();
-  profiles = buildProfilesFromSources(body.sources);
+  adoptServerSources(body.sources);
   renderProfiles();
   showStatus("Saved.");
+  refreshLiveState();
 });
 
 elements.logoutButton.addEventListener("click", async () => {
   await requestApi("/api/admin/logout", { method: "POST" });
   profiles = [];
+  savedSlotsByKey = new Map();
+  stopStatusEngine();
   renderProfiles();
   showLogin();
 });
+
+elements.profileCards.addEventListener("input", handleEditorInput);
+elements.profileCards.addEventListener("change", scheduleStatusRender);
 
 await loadSources();
 
@@ -84,14 +106,33 @@ async function loadSources() {
   }
 
   const body = await response.json();
-  profiles = buildProfilesFromSources(body.sources);
+  adoptServerSources(body.sources);
   if (profiles[0]) profiles[0].expanded = true;
   renderProfiles();
   showEditor();
+  startStatusEngine();
+}
+
+function adoptServerSources(sources) {
+  const expandedById = new Map(profiles.map((profile) => [profile.id, profile.expanded === true]));
+  profiles = buildProfilesFromSources(sources);
+  for (const profile of profiles) {
+    if (expandedById.get(profile.id)) profile.expanded = true;
+  }
+
+  savedSlotsByKey = new Map(
+    profiles.flatMap((profile) =>
+      profilePlatforms.map(({ id: platform }) => [
+        `${profile.id}:${platform}`,
+        { ...profile.sources[platform] },
+      ]),
+    ),
+  );
 }
 
 function renderProfiles() {
   elements.profileCards.replaceChildren(...profiles.map(renderProfileCard));
+  renderStatusLines();
 }
 
 function renderProfileCard(profile, index) {
@@ -174,26 +215,33 @@ function createSocialRow(source, platform) {
   heading.className = "profile-platform";
   heading.append(createEnabledField(source?.enabled), createPlatformName(platform.label));
 
+  const handleField = createTextField(platform.handleLabel, "handle", source?.handle);
+  handleField.querySelector("input").dataset.hadValue = source?.handle ? "true" : "false";
+
   row.append(
     heading,
-    createTextField(platform.handleLabel, "handle", source?.handle),
-    createTextField("Display label", "label", source?.label),
+    handleField,
+    createStatusLine(),
+    createStreamField(source?.showStream),
   );
 
-  if (platform.id === "kick") {
-    row.append(createReadonlyField("Broadcaster user id", "broadcasterUserId", source?.broadcasterUserId));
-  }
-
-  if (platform.id === "x") {
-    row.append(
-      createTextField("Conversation id", "conversationId", source?.conversationId),
-      createTextField("Broadcast id (chat)", "broadcastId", source?.broadcastId, "x.com/i/broadcasts/… or id"),
-    );
-  }
-
-  row.append(createStreamField(source?.showStream));
-
   return row;
+}
+
+function createStatusLine() {
+  const status = document.createElement("p");
+  status.className = "source-status";
+
+  const dot = document.createElement("em");
+  dot.className = "source-status-dot";
+  dot.setAttribute("aria-hidden", "true");
+
+  const text = document.createElement("span");
+  text.className = "source-status-text";
+  text.setAttribute("role", "status");
+
+  status.append(dot, text);
+  return status;
 }
 
 function createEnabledField(checked) {
@@ -250,18 +298,6 @@ function createTextField(labelText, name, value, placeholder) {
   return field;
 }
 
-function createReadonlyField(labelText, name, value) {
-  const field = createField(labelText, "profile-field profile-readonly-field");
-  const input = document.createElement("input");
-  input.name = name;
-  input.readOnly = true;
-  input.type = "text";
-  input.value = value || "";
-  input.placeholder = "Save to resolve";
-  field.append(input);
-  return field;
-}
-
 function createField(labelText, className) {
   const label = document.createElement("label");
   label.className = className;
@@ -311,31 +347,171 @@ function toggleProfile(index) {
 }
 
 function collectProfilesFromDom() {
-  return Array.from(document.querySelectorAll(".profile-editor-card")).map((card) => ({
+  return Array.from(document.querySelectorAll(".profile-editor-card")).map((card, index) => ({
     expanded: card.classList.contains("is-expanded"),
     id: card.dataset.profileId || "",
     name: card.querySelector('[name="profileName"]').value,
     sources: Object.fromEntries(
       profilePlatforms.map((platform) => [
         platform.id,
-        collectSocialSource(card, platform.id),
+        collectSocialSource(card, platform.id, index),
       ]),
     ),
   }));
 }
 
-function collectSocialSource(card, platform) {
+function collectSocialSource(card, platform, index) {
   const row = card.querySelector(`[data-platform="${platform}"]`);
+  // Fields without inputs (labels, broadcast/conversation ids, resolved
+  // broadcaster ids) ride along from the last loaded state so saving the
+  // simplified form never wipes them.
+  const slot = profiles[index]?.sources?.[platform] || {};
 
   return {
-    broadcasterUserId: row.querySelector('[name="broadcasterUserId"]')?.value || "",
-    broadcastId: row.querySelector('[name="broadcastId"]')?.value || "",
-    conversationId: row.querySelector('[name="conversationId"]')?.value || "",
+    broadcasterUserId: slot.broadcasterUserId || "",
+    broadcastId: slot.broadcastId || "",
+    conversationId: slot.conversationId || "",
+    label: slot.label || "",
+    sourceId: slot.sourceId || "",
     enabled: row.querySelector('[name="enabled"]').checked,
     handle: row.querySelector('[name="handle"]').value,
-    label: row.querySelector('[name="label"]').value,
     showStream: row.querySelector('[name="showStream"]').checked,
   };
+}
+
+function handleEditorInput(event) {
+  const input = event.target;
+
+  // Typing a handle into an empty row is intent to connect it, so the row
+  // enables itself; one save is all that is left.
+  if (input?.name === "handle") {
+    const row = input.closest(".profile-social-row");
+    const enabledInput = row?.querySelector('[name="enabled"]');
+    if (enabledInput && !enabledInput.checked && input.value.trim() && input.dataset.hadValue !== "true") {
+      enabledInput.checked = true;
+    }
+    input.dataset.hadValue = input.value.trim() ? "true" : "false";
+  }
+
+  scheduleStatusRender();
+}
+
+function startStatusEngine() {
+  if (statusEngine || !("EventSource" in window)) return;
+
+  const events = new EventSource("/api/chat-events");
+  events.addEventListener("chat", (event) => {
+    const message = parseEventData(event);
+    const sourceId = String(message?.sourceId || "");
+    if (!sourceId) return;
+
+    // Use the message's own timestamp so replayed history does not read as
+    // fresh activity right after the stream connects.
+    const at = Date.parse(message.timestamp || "") || Date.now();
+    if (at > (liveStatus.lastChatBySourceId.get(sourceId) || 0)) {
+      liveStatus.lastChatBySourceId.set(sourceId, at);
+    }
+    scheduleStatusRender();
+  });
+  events.addEventListener("chat-status", (event) => {
+    const status = parseEventData(event);
+    if (!status?.sourceId) return;
+
+    liveStatus.connectorBySourceId.set(String(status.sourceId), String(status.status || ""));
+    scheduleStatusRender();
+  });
+
+  statusEngine = {
+    events,
+    pollTimer: window.setInterval(refreshLiveState, LIVE_STATE_POLL_MS),
+    tickTimer: window.setInterval(renderStatusLines, STATUS_TICK_MS),
+  };
+  refreshLiveState();
+}
+
+function stopStatusEngine() {
+  if (!statusEngine) return;
+
+  statusEngine.events.close();
+  window.clearInterval(statusEngine.pollTimer);
+  window.clearInterval(statusEngine.tickTimer);
+  statusEngine = null;
+}
+
+async function refreshLiveState() {
+  const response = await requestApi("/api/live-state");
+  if (!response.ok) return;
+
+  try {
+    const body = await response.json();
+    liveStatus.providers = body.providers || {};
+    liveStatus.liveBySourceId = new Map(
+      (Array.isArray(body.sources) ? body.sources : []).map((source) => [String(source.sourceId), source]),
+    );
+    renderStatusLines();
+  } catch {
+    // Keep the last known live state when a poll returns malformed data.
+  }
+}
+
+function scheduleStatusRender() {
+  if (statusRenderTimer) return;
+
+  statusRenderTimer = window.setTimeout(() => {
+    statusRenderTimer = 0;
+    renderStatusLines();
+  }, STATUS_RENDER_DELAY_MS);
+}
+
+function renderStatusLines() {
+  const now = Date.now();
+
+  for (const card of document.querySelectorAll(".profile-editor-card")) {
+    const profileId = card.dataset.profileId || "";
+
+    for (const row of card.querySelectorAll(".profile-social-row")) {
+      const platform = row.dataset.platform || "";
+      const saved = savedSlotsByKey.get(`${profileId}:${platform}`);
+      const handle = row.querySelector('[name="handle"]')?.value.trim() || "";
+      const enabled = row.querySelector('[name="enabled"]')?.checked === true;
+      const showStream = row.querySelector('[name="showStream"]')?.checked === true;
+      const sourceId = saved?.sourceId || "";
+
+      const status = describeSourceStatus({
+        platform,
+        enabled,
+        handle,
+        dirty: hasUnsavedEdits({ saved, handle, enabled, showStream }),
+        broadcastId: saved?.broadcastId || "",
+        provider: liveStatus.providers?.[platform] || null,
+        live: (sourceId && liveStatus.liveBySourceId.get(sourceId)) || null,
+        connectorStatus: (sourceId && liveStatus.connectorBySourceId.get(sourceId)) || "",
+        lastChatAt: (sourceId && liveStatus.lastChatBySourceId.get(sourceId)) || 0,
+        now,
+      });
+
+      const dot = row.querySelector(".source-status-dot");
+      const text = row.querySelector(".source-status-text");
+      if (dot) dot.dataset.tone = status.tone;
+      if (text && text.textContent !== status.text) text.textContent = status.text;
+    }
+  }
+}
+
+function hasUnsavedEdits({ saved, handle, enabled, showStream }) {
+  if (!saved) return handle !== "";
+
+  return handle !== String(saved.handle || "")
+    || enabled !== (saved.enabled === true)
+    || showStream !== (saved.showStream === true);
+}
+
+function parseEventData(event) {
+  try {
+    return JSON.parse(event.data);
+  } catch {
+    return null;
+  }
 }
 
 function showLogin() {

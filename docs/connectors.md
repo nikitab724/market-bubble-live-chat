@@ -35,7 +35,7 @@ The Kick app must have webhooks enabled with a public URL pointed at `/api/webho
 
 Kick chat username colors come from `sender.identity.username_color` when Kick includes identity data. Kick chat badges come from `sender.identity.badges` and render as compact text chips because the webhook payload includes badge type/text/count, not image URLs. Missing or invalid colors fall back to the shared deterministic chat palette.
 
-Operators should type only the Kick handle in admin. The read-only broadcaster user id field is filled after save when `KICK_CLIENT_ID` and `KICK_CLIENT_SECRET` can resolve the channel.
+Operators type only the Kick handle in admin. The resolved broadcaster user id is kept server-side state — the admin editor no longer shows it; the row's status line reports the connection instead.
 
 Kick source chips use `/api/live-state` `isLive` data for their live/offline status dot when the provider check succeeds. The dot is profile-aware: it is green when any source in the same profile is live, and orange when no profile source is live but Kick is connected and the Kick channel is offline.
 
@@ -55,10 +55,7 @@ X Live chat is **not** tweet replies; it runs on the legacy Periscope chat servi
 4. `POST proxsee-cf.pscp.tv/api/v2/accessChatPublic` → chat websocket endpoint + access token.
 5. Connect the `chatapi/v1/chatnow` websocket, authenticate (frame kind 3), join the room (frame kind 2), and receive chat frames (kind 1). The connector reconnects with a fresh handshake on disconnect.
 
-Setup: give the X source a broadcast id, two ways:
-
-- **Automatic (extension):** when the Chrome extension is on the broadcaster's own `x.com/i/broadcasts/<id>` page and a source is selected, `extension/content.js` reads the id from the URL and POSTs it to `POST /api/x-broadcast`, which writes it to the matching enabled X source and re-syncs the connector. X mints a new id each time the account goes live, so this keeps the connector pointed at the current broadcast without a manual step. The endpoint only updates `broadcastId` on an existing enabled X source matched by handle.
-- **Manual (admin):** in `/admin/`, the X row has a **Broadcast id (chat)** field — paste the bare id or a full `https://x.com/i/broadcasts/<id>` URL (the server normalizes a URL down to the id on save).
+Setup: the operator only types the X handle in `/admin/`. The broadcast id arrives automatically: when the Chrome extension is on the broadcaster's own `x.com/i/broadcasts/<id>` page and a source is selected, `extension/content.js` reads the id from the URL and POSTs it to `POST /api/x-broadcast`, which writes it to the matching enabled X source and re-syncs the connector. X mints a new id each time the account goes live, so this keeps the connector pointed at the current broadcast without a manual step. The endpoint only updates `broadcastId` on an existing enabled X source matched by handle. The admin X row's status line shows "Go live, then open your X live page in Chrome with the extension" until a broadcast id is known. (There is no manual broadcast id field anymore; a saved `broadcastId` survives admin saves untouched, and `data/sources.json` can still be hand-edited in an emergency.)
 
 The broadcast id is stored server-side only, like Kick's `broadcasterUserId`, and never appears in public config. A numeric post id in `conversationId` is an X post id, not a broadcast id, and is ignored for chat. No env vars or credentials are required. Confirm chat is enabled on the broadcast (X has a per-broadcast chat permission setting).
 

@@ -45,6 +45,8 @@ X chat local testing currently requires the Chrome extension to point at the bac
 
 - Source normalization: `tests/source-config.test.mjs`
 - Admin profile editor: `tests/admin-profile-model.test.mjs`
+- Admin live status lines: `tests/admin-status-model.test.mjs`
+- Offline countdown schedule: `tests/broadcast-schedule.test.mjs`
 - Server routes/contracts: `tests/server-contract.test.mjs`
 - Kick webhook handling: `tests/kick-webhook.test.mjs`
 - Twitch chat/API/emotes: `tests/twitch-*.test.mjs`

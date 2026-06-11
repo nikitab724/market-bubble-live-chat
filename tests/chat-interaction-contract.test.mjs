@@ -182,7 +182,12 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.stream-view:hover\s+\.layout-toggle::before,\s*\.layout-toggle:hover::before,\s*\.layout-toggle:focus-visible::before\s*\{[^}]*opacity: 1/s);
     assert.match(styles, /\.stream-view:hover\s+\.layout-toggle::after,\s*\.layout-toggle:hover::after,\s*\.layout-toggle:focus-visible::after\s*\{[^}]*opacity: 0\.7[^}]*transform: translate\(2px, 2px\)/s);
     assert.match(styles, /\.live-layout-mini\s+\.broadcast-topbar\s*\{[^}]*position: absolute[^}]*top: 50%[^}]*width: 220px[^}]*background: transparent[^}]*box-shadow: none[^}]*animation: none/s);
-    assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100vh[^}]*grid-template-columns: minmax\(520px, 1fr\) minmax\(270px, 320px\)/s);
+    assert.match(styles, /\.live-layout-mini\s+\.viewer-shell\s*\{[^}]*height: 100%[^}]*grid-template-columns: minmax\(520px, 1fr\) minmax\(270px, 320px\)/s);
+    assert.match(styles, /::view-transition-old\(mb-brand\),\s*::view-transition-new\(mb-brand\),\s*::view-transition-old\(mb-count\),\s*::view-transition-new\(mb-count\),\s*::view-transition-old\(mb-sources\),\s*::view-transition-new\(mb-sources\),\s*::view-transition-old\(mb-toggle\),\s*::view-transition-new\(mb-toggle\)\s*\{[^}]*animation-duration: 420ms/s);
+    assert.match(styles, /\.brand-mark\s*\{[^}]*view-transition-name: mb-brand/s);
+    assert.match(styles, /\.viewer-counter\s*\{[^}]*view-transition-name: mb-count/s);
+    assert.match(styles, /\.source-breakdown\s*\{[^}]*view-transition-name: mb-sources/s);
+    assert.match(styles, /\.layout-toggle\s*\{[^}]*view-transition-name: mb-toggle/s);
     assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 32px/s);
     assert.match(styles, /\.live-layout-mini\s+\.chat-view\s*\{[^}]*background: transparent[^}]*box-shadow: none/s);
     assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*--layout-toggle-radius: 18px[^}]*--layout-toggle-size: 58px[^}]*top: 14px[^}]*left: 14px/s);
@@ -401,8 +406,13 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".live-surface::before"), false);
     assert.match(styles, /\.broadcast-topbar\s*\{[^}]*height: 52px[^}]*padding: 8px 14px 7px[^}]*background: linear-gradient/s);
     assert.match(styles, /\.broadcast-metrics\s*\{[^}]*grid-template-columns: auto minmax\(0, 1fr\)[^}]*gap: 7px/s);
-    assert.match(styles, /\.app-shell\s*\{[^}]*height: calc\(100vh - 52px\)[^}]*padding: 10px 12px 56px/s);
+    assert.match(styles, /\.app-shell\s*\{[^}]*flex: 1 1 auto[^}]*min-height: 0[^}]*padding: 10px 12px 56px/s);
     assert.match(styles, /\.viewer-shell\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(360px, 420px\)[^}]*gap: 10px/s);
+    // The viewer surface wraps everything in one rounded inset shell.
+    assert.equal(viewer.includes('className="site-shell"'), true);
+    assert.match(styles, /\.live-surface\[data-surface="viewer"\]\s*\{[^}]*padding: 12px/s);
+    assert.match(styles, /\.site-shell\s*\{[^}]*display: flex[^}]*flex-direction: column[^}]*height: 100%[^}]*overflow: hidden/s);
+    assert.match(styles, /\.live-surface\[data-surface="viewer"\]\s+\.site-shell\s*\{[^}]*border-radius: 22px/s);
     assert.match(styles, /\.brand-mark\s*\{[^}]*display: flex[^}]*height: 36px/s);
     assert.match(styles, /\.brand-wordmark\s*\{[^}]*height: 26px/s);
     assert.match(styles, /\.brand-wordmark-text\s*\{[^}]*font-size: 44px/s);
@@ -841,5 +851,44 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".profile-toggle-icon"), true);
     assert.match(styles, /\.admin-root\s*\{[^}]*height: auto[^}]*overflow-y: auto/s);
     assert.match(styles, /\.admin-root\s+body,\s*body\.admin-body\s*\{[^}]*position: static[^}]*overflow-y: auto/s);
+  });
+
+  it("keeps admin rows handle-only with a live status line per source", () => {
+    const admin = readFileSync(new URL("../admin/admin.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    // Minimum inputs: enabled, handle, show stream. The cryptic ids ride
+    // along from saved state instead of editable fields.
+    assert.equal(admin.includes('input.name = "handle"') || admin.includes('createTextField(platform.handleLabel, "handle"'), true);
+    assert.equal(admin.includes('[name="broadcastId"]'), false);
+    assert.equal(admin.includes('[name="conversationId"]'), false);
+    assert.equal(admin.includes('[name="broadcasterUserId"]'), false);
+    assert.equal(admin.includes("createReadonlyField"), false);
+    assert.equal(admin.includes("slot.broadcastId"), true);
+    assert.equal(admin.includes("slot.conversationId"), true);
+    assert.equal(admin.includes("slot.broadcasterUserId"), true);
+
+    // Live status: the admin reuses the public SSE stream and live-state poll.
+    assert.equal(admin.includes('new EventSource("/api/chat-events")'), true);
+    assert.equal(admin.includes('requestApi("/api/live-state")'), true);
+    assert.equal(admin.includes("describeSourceStatus"), true);
+    assert.equal(admin.includes("renderStatusLines"), true);
+    assert.equal(styles.includes(".source-status-dot"), true);
+    assert.match(styles, /\.source-status-dot\[data-tone="live"\]\s*\{[^}]*#3ddc84/s);
+  });
+
+  it("swaps the stream player to a countdown when the selected source is offline", () => {
+    const app = readAppRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    assert.equal(app.includes("export function updateStreamPresence"), true);
+    assert.equal(app.includes('streamSource.isLive === false'), true);
+    assert.equal(app.includes("getNextBroadcastTime"), true);
+    assert.equal(app.includes("getCountdownParts"), true);
+    assert.equal(app.includes("updateStreamPresence({ document, window, sources: state.sources })"), true);
+    assert.equal(app.includes("dataset.streamMode"), true);
+    assert.match(styles, /\.stream-offline\s*\{[^}]*place-content: center[^}]*height: 100%/s);
+    assert.match(styles, /\.stream-offline-unit strong\s*\{[^}]*font-size: clamp\(44px, 6\.4vw, 92px\)/s);
+    assert.match(styles, /\.stream-offline-title\s*\{[^}]*font-family: var\(--display-font\)[^}]*font-style: italic/s);
   });
 });

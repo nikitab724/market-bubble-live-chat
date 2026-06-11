@@ -14,7 +14,7 @@ The server-side connector needs a broadcast id per X source. The extension fills
 4. Click the Market Bubble extension popup and select the matching X source.
 5. The content script reads the broadcast id from the URL and POSTs it to `POST /api/x-broadcast`. The server writes it to the matching X source and the server-side connector attaches to that broadcast's chat.
 
-X mints a new broadcast id each time the account goes live, so the extension re-reports it whenever the URL changes — no manual paste per stream. You can also set the **Broadcast id (chat)** field in `/admin/` by hand (bare id or `/i/broadcasts/<id>` URL).
+X mints a new broadcast id each time the account goes live, so the extension re-reports it whenever the URL changes — no manual paste per stream. The admin editor has no broadcast id field: the X row's status line reads "Go live, then open your X live page in Chrome with the extension" until the id is captured, then flips to the connector's status. A captured `broadcastId` survives admin saves untouched.
 
 ### Extension DOM bridge (fallback)
 

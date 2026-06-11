@@ -34,6 +34,7 @@ export function buildProfilesFromSources(sources) {
       handle: String(source.sourceHandle || ""),
       label: String(source.sourceLabel || source.sourceName || ""),
       showStream: source.showStream === true,
+      sourceId: String(source.sourceId || ""),
     };
   }
 
@@ -48,7 +49,7 @@ export function buildSourcesFromProfiles(profiles) {
     return profilePlatforms
       .map(({ id: platform }) => {
         const source = profile.sources?.[platform] || {};
-        const sourceHandle = String(source.handle || "").replace(/^@/, "").trim();
+        const sourceHandle = extractHandleInput(source.handle);
         if (!sourceHandle) return null;
 
         const sourceLabel = String(source.label || profileName).trim() || profileName;
@@ -97,9 +98,26 @@ export function createEmptySourceSlots() {
         handle: "",
         label: "",
         showStream: false,
+        sourceId: "",
       },
     ]),
   );
+}
+
+// Handle inputs accept pasted profile URLs and @names. Non-profile URL paths
+// (broadcast/video links) cannot name a handle, so they collapse to empty.
+const RESERVED_URL_SEGMENTS = new Set(["i", "videos", "directory", "category", "status"]);
+
+function extractHandleInput(value) {
+  let handle = String(value || "").trim();
+
+  const withoutProtocol = handle.replace(/^https?:\/\//i, "");
+  const [firstToken, ...pathSegments] = withoutProtocol.split("/").filter(Boolean);
+  if (firstToken?.includes(".") && pathSegments.length > 0) {
+    handle = RESERVED_URL_SEGMENTS.has(pathSegments[0].toLowerCase()) ? "" : pathSegments[0];
+  }
+
+  return handle.replace(/^@/, "").split("?")[0].trim();
 }
 
 function normalizeProfileId(value) {

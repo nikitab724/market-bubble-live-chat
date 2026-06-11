@@ -13,7 +13,7 @@ import {
 import { fallbackSources } from "./client-sources.mjs";
 import { seedDemoMessages, startDemoChat } from "./demo-chat.mjs";
 import { PLATFORM_ORDER, getProfileUrl } from "./platforms.mjs";
-import { initStreamPlayer } from "./viewer-stream.mjs";
+import { initStreamPlayer, updateStreamPresence } from "./viewer-stream.mjs";
 
 const LIVE_STATE_REFRESH_MS = 30_000;
 const CHAT_RENDER_INTERVAL_MS = 80;
@@ -114,8 +114,11 @@ function createLiveApp({ document, window }) {
     return ["1", "true"].includes(String(searchParams.get("demoChat") || "").toLowerCase());
   }
 
-  function refreshLiveStateFromBackend() {
-    return refreshLiveState({ state, queueRender });
+  async function refreshLiveStateFromBackend() {
+    await refreshLiveState({ state, queueRender });
+    // Live-state merges isLive into state.sources; swap the player between
+    // the embed and the offline countdown when the answer changes.
+    updateStreamPresence({ document, window, sources: state.sources });
   }
 
   function addBackendMessage(rawMessage) {

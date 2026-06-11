@@ -1,8 +1,44 @@
+import { getCountdownParts, getNextBroadcastTime } from "./broadcast-schedule.mjs";
 import { escapeHtml, platformMeta } from "./platforms.mjs";
+
+let offlineCountdownTimer = 0;
 
 export function initStreamPlayer({ document, window, sources }) {
   const playerEl = document.querySelector("#streamPlayer");
   if (!playerEl) return;
+
+  renderStreamEmbed(playerEl, { document, window, sources });
+}
+
+// Live-state refreshes call this. The player only re-renders when the
+// selected source flips between a playable embed and the offline countdown,
+// so polling never reloads a healthy iframe.
+export function updateStreamPresence({ document, window, sources }) {
+  const playerEl = document.querySelector("#streamPlayer");
+  if (!playerEl) return;
+
+  const streamSource = getSelectedStreamSource(sources);
+  // Only a definitive provider answer (twitch/kick live-state) counts as
+  // offline; X and room sources have no liveness feed and keep the embed.
+  const offline = Boolean(
+    streamSource
+    && ["twitch", "kick"].includes(streamSource.platform)
+    && streamSource.isLive === false,
+  );
+  const mode = offline ? "offline" : "embed";
+  if (playerEl.dataset.streamMode === mode) return;
+
+  if (mode === "offline") {
+    renderStreamOffline(playerEl, { window });
+    return;
+  }
+
+  renderStreamEmbed(playerEl, { document, window, sources });
+}
+
+function renderStreamEmbed(playerEl, { document, window, sources }) {
+  stopOfflineCountdown(window);
+  playerEl.dataset.streamMode = "embed";
 
   const streamSource = getSelectedStreamSource(sources);
   playerEl.replaceChildren();
@@ -84,6 +120,60 @@ function loadXWidgets({ container, document, window }) {
   script.src = "https://platform.x.com/widgets.js";
   script.addEventListener("load", () => window.twttr?.widgets?.load(container));
   document.head.append(script);
+}
+
+const COUNTDOWN_UNITS = ["days", "hours", "minutes", "seconds"];
+
+function renderStreamOffline(playerEl, { window }) {
+  stopOfflineCountdown(window);
+  playerEl.dataset.streamMode = "offline";
+  playerEl.innerHTML = `
+    <div class="stream-offline">
+      <p class="stream-offline-eyebrow"><em class="stream-offline-dot"></em>Offline</p>
+      <p class="stream-offline-title">Back Thursday <span class="stream-offline-title-dot">·</span> 1PM PST</p>
+      <div class="stream-offline-count" role="timer" aria-hidden="true">
+        ${COUNTDOWN_UNITS.map((unit, index) => `
+          ${index === 0 ? "" : '<span class="stream-offline-sep">:</span>'}
+          <span class="stream-offline-unit" data-unit="${unit}">
+            <strong>0</strong>
+            <span>${unit}</span>
+          </span>
+        `).join("")}
+      </div>
+      <p class="stream-offline-srtext">The stream is offline. Back Thursday at 1PM Pacific.</p>
+    </div>
+  `;
+
+  let target = getNextBroadcastTime();
+  const numberEls = Object.fromEntries(
+    COUNTDOWN_UNITS.map((unit) => [unit, playerEl.querySelector(`[data-unit="${unit}"] strong`)]),
+  );
+
+  function tick() {
+    const now = new Date();
+    if (target.getTime() <= now.getTime()) {
+      target = getNextBroadcastTime(now);
+    }
+
+    const parts = getCountdownParts(target, now);
+    playerEl.querySelector(".stream-offline-count")?.setAttribute("data-days-hidden", String(parts.days === 0));
+    for (const unit of COUNTDOWN_UNITS) {
+      const value = unit === "days" ? String(parts[unit]) : String(parts[unit]).padStart(2, "0");
+      if (numberEls[unit] && numberEls[unit].textContent !== value) {
+        numberEls[unit].textContent = value;
+      }
+    }
+  }
+
+  tick();
+  offlineCountdownTimer = window.setInterval(tick, 1000);
+}
+
+function stopOfflineCountdown(window) {
+  if (offlineCountdownTimer) {
+    window.clearInterval(offlineCountdownTimer);
+    offlineCountdownTimer = 0;
+  }
 }
 
 function renderStreamPlaceholder(playerEl, source = null) {

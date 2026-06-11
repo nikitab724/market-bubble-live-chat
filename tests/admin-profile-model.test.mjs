@@ -166,5 +166,62 @@ describe("admin profile model", () => {
     assert.equal(profile.sources.twitch.enabled, false);
     assert.equal(profile.sources.twitch.handle, "");
     assert.equal(profile.sources.twitch.showStream, false);
+    assert.equal(profile.sources.twitch.sourceId, "");
+  });
+
+  it("keeps the saved sourceId in each platform slot so live status can map SSE events", () => {
+    const [profile] = buildProfilesFromSources([
+      {
+        enabled: true,
+        platform: "twitch",
+        profileId: "marketbubble",
+        profileName: "Market Bubble",
+        sourceHandle: "marketbubble",
+        sourceId: "twitch-marketbubble",
+        sourceLabel: "Market Bubble",
+        sourceName: "Market Bubble",
+      },
+    ]);
+
+    assert.equal(profile.sources.twitch.sourceId, "twitch-marketbubble");
+    // Saving still lets the server derive ids from the (possibly new) handle.
+    const [source] = buildSourcesFromProfiles([profile]);
+    assert.equal("sourceId" in source, false);
+  });
+
+  it("extracts handles from pasted profile URLs and @names", () => {
+    const sources = buildSourcesFromProfiles([
+      {
+        id: "paste",
+        name: "Paste",
+        sources: {
+          twitch: { enabled: true, handle: "https://www.twitch.tv/MarketBubble?ref=tw" },
+          kick: { enabled: true, handle: "kick.com/marketbubble/" },
+          x: { enabled: true, handle: "@MarketBubble" },
+          room: { enabled: true, handle: " marketbubble " },
+        },
+      },
+    ]);
+
+    assert.deepEqual(
+      sources.map((source) => [source.platform, source.sourceHandle]),
+      [
+        ["twitch", "MarketBubble"],
+        ["kick", "marketbubble"],
+        ["x", "MarketBubble"],
+        ["room", "marketbubble"],
+      ],
+    );
+
+    const [fromPostUrl] = buildSourcesFromProfiles([
+      { id: "z", name: "Z", sources: { x: { enabled: true, handle: "https://x.com/Banks/status/123" } } },
+    ]);
+    assert.equal(fromPostUrl.sourceHandle, "Banks");
+
+    // Non-profile URLs (e.g. a broadcast link) cannot name a handle; the row stays unsaved.
+    const broadcastPaste = buildSourcesFromProfiles([
+      { id: "b", name: "B", sources: { x: { enabled: true, handle: "https://x.com/i/broadcasts/1yKAPPboWlDxb" } } },
+    ]);
+    assert.equal(broadcastPaste.length, 0);
   });
 });
