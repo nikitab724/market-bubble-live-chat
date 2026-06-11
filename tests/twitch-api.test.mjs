@@ -141,6 +141,53 @@ describe("twitch api client", () => {
     assert.equal(await client.getUserId("StableRonaldo"), "123");
   });
 
+  it("fetches recent Twitch archive VODs for a channel", async () => {
+    const client = createTwitchApiClient({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      fetchImpl: async (url, options = {}) => {
+        if (String(url).includes("/oauth2/token")) {
+          return jsonResponse({ access_token: "app-token", expires_in: 3600 });
+        }
+
+        if (String(url) === "https://api.twitch.tv/helix/users?login=fazebanks") {
+          return jsonResponse({ data: [{ id: "789", login: "fazebanks" }] });
+        }
+
+        assert.equal(options.headers.Authorization, "Bearer app-token");
+        assert.match(String(url), /^https:\/\/api\.twitch\.tv\/helix\/videos\?/);
+        return jsonResponse({
+          data: [
+            {
+              created_at: "2026-06-08T18:00:00Z",
+              duration: "2h15m30s",
+              id: "vod-1",
+              thumbnail_url: "https://thumb/%{width}x%{height}.jpg",
+              title: "Market Bubble VOD",
+              url: "https://www.twitch.tv/videos/vod-1",
+            },
+          ],
+        });
+      },
+    });
+
+    assert.deepEqual(await client.getVods("fazebanks", 15), [
+      {
+        duration: "2h15m30s",
+        id: "vod-1",
+        published: "2026-06-08",
+        thumbnail: "https://thumb/320x180.jpg",
+        title: "Market Bubble VOD",
+        url: "https://www.twitch.tv/videos/vod-1",
+      },
+    ]);
+    assert.deepEqual(await client.getLatestVod("fazebanks"), {
+      duration: "2h15m30s",
+      id: "vod-1",
+      title: "Market Bubble VOD",
+    });
+  });
+
   it("fetches global and channel Twitch chat badges as a keyed image map", async () => {
     const calls = [];
     const client = createTwitchApiClient({

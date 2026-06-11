@@ -1,4 +1,5 @@
-const grid = document.getElementById("videoGrid");
+const twitchGrid = document.getElementById("twitchGrid");
+const youtubeGrid = document.getElementById("youtubeGrid");
 
 function escapeHtml(value) {
   return String(value)
@@ -15,9 +16,9 @@ function formatDate(isoDate) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function renderVideos(videos) {
+function renderVideoCards(grid, videos, emptyMessage) {
   if (!videos.length) {
-    grid.innerHTML = `<p class="v2-content-status">No videos found.</p>`;
+    grid.innerHTML = `<p class="v2-content-status">${escapeHtml(emptyMessage)}</p>`;
     return;
   }
 
@@ -38,15 +39,27 @@ function renderVideos(videos) {
     .join("");
 }
 
-async function loadVideos() {
+async function loadTwitchVods() {
+  try {
+    const res = await fetch("/api/twitch-vods");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderVideoCards(twitchGrid, data.vods ?? [], "No VODs found.");
+  } catch {
+    twitchGrid.innerHTML = `<p class="v2-content-status">Could not load VODs. Try again later.</p>`;
+  }
+}
+
+async function loadYoutubeVideos() {
   try {
     const res = await fetch("/api/youtube-videos");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    renderVideos(data.videos ?? []);
+    renderVideoCards(youtubeGrid, data.videos ?? [], "No videos found.");
   } catch {
-    grid.innerHTML = `<p class="v2-content-status">Could not load videos. Try again later.</p>`;
+    youtubeGrid.innerHTML = `<p class="v2-content-status">Could not load videos. Try again later.</p>`;
   }
 }
 
-loadVideos();
+loadTwitchVods();
+loadYoutubeVideos();

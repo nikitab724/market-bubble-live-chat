@@ -35,6 +35,7 @@ const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
 
 const YT_CHANNEL_ID = "UC2Yw4-WyejthY7OLpbVX4Ug";
 const YT_RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${YT_CHANNEL_ID}`;
+const TWITCH_CONTENT_CHANNEL = "FaZeBanks";
 const YT_CACHE_TTL_MS = 30 * 60 * 1000;
 let ytCache = null;
 let ytCacheTime = 0;
@@ -168,6 +169,8 @@ export function createAppServer(options = {}) {
   const secureCookies = options.secureCookies ?? process.env.NODE_ENV === "production";
   const kickClient = options.kickClient || createKickApiClient();
   const twitchClient = options.twitchClient || createTwitchApiClient();
+  const twitchVodsCache = new Map();
+  const TWITCH_VODS_CACHE_TTL_MS = 30 * 60 * 1000;
   const twitchChatService = options.twitchChatService === undefined
     ? createTwitchChatService({ chatHub })
     : options.twitchChatService;
@@ -244,6 +247,19 @@ export function createAppServer(options = {}) {
 
         const vod = await twitchClient.getLatestVod(channel);
         return sendJson(response, 200, vod ? { vod } : { vod: null });
+      }
+
+      if (url.pathname === "/api/twitch-vods" && request.method === "GET") {
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 15, 1), 100);
+        const cacheKey = String(limit);
+        const cached = twitchVodsCache.get(cacheKey);
+        if (cached && Date.now() - cached.time < TWITCH_VODS_CACHE_TTL_MS) {
+          return sendJson(response, 200, cached.payload);
+        }
+
+        const payload = { channel: TWITCH_CONTENT_CHANNEL, vods: await twitchClient.getVods(TWITCH_CONTENT_CHANNEL, limit) };
+        twitchVodsCache.set(cacheKey, { payload, time: Date.now() });
+        return sendJson(response, 200, payload);
       }
 
       if (url.pathname === "/api/youtube-videos" && request.method === "GET") {

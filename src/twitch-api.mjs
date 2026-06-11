@@ -59,35 +59,14 @@ export function createTwitchApiClient(options = {}) {
     },
 
     async getLatestVod(channel) {
-      const channelName = String(channel || "").trim().toLowerCase();
-      if (!clientId || !clientSecret || !channelName) return null;
+      const vods = await getArchiveVods(channel, 1);
+      const vod = vods[0];
+      if (!vod) return null;
+      return { id: vod.id, title: vod.title, duration: vod.duration };
+    },
 
-      try {
-        const token = await getAppAccessToken();
-        const userId = await getUserIdByLogin(channelName);
-        if (!userId) return null;
-
-        const url = new URL(videosUrl);
-        url.searchParams.set("user_id", userId);
-        url.searchParams.set("type", "archive");
-        url.searchParams.set("first", "1");
-
-        const response = await fetchImpl(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Client-Id": clientId,
-          },
-        });
-
-        if (!response.ok) return null;
-        const payload = await response.json();
-        const vod = payload.data?.[0];
-        if (!vod) return null;
-
-        return { id: vod.id, title: vod.title || "", duration: vod.duration || "" };
-      } catch {
-        return null;
-      }
+    async getVods(channel, limit = 15) {
+      return getArchiveVods(channel, limit);
     },
 
     async getChatBadges(channel) {
@@ -128,6 +107,36 @@ export function createTwitchApiClient(options = {}) {
       }
     },
   };
+
+  async function getArchiveVods(channel, limit) {
+    const channelName = String(channel || "").trim().toLowerCase();
+    const count = Math.min(Math.max(Number(limit) || 15, 1), 100);
+    if (!clientId || !clientSecret || !channelName) return [];
+
+    try {
+      const token = await getAppAccessToken();
+      const userId = await getUserIdByLogin(channelName);
+      if (!userId) return [];
+
+      const url = new URL(videosUrl);
+      url.searchParams.set("user_id", userId);
+      url.searchParams.set("type", "archive");
+      url.searchParams.set("first", String(count));
+
+      const response = await fetchImpl(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Client-Id": clientId,
+        },
+      });
+
+      if (!response.ok) return [];
+      const payload = await response.json();
+      return (payload.data || []).map(normalizeArchiveVod).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
 
   async function getAppAccessToken() {
     if (cachedToken && tokenExpiresAt > now()) {
@@ -303,4 +312,26 @@ function normalizeViewerCount(value) {
   const count = Number(value || 0);
   if (!Number.isFinite(count)) return 0;
   return Math.max(0, Math.round(count));
+}
+
+function normalizeArchiveVod(vod) {
+  const id = String(vod?.id || "").trim();
+  if (!id) return null;
+
+  const thumbnailTemplate = String(vod.thumbnail_url || "");
+  const thumbnail = thumbnailTemplate
+    ? thumbnailTemplate.replace("%{width}", "320").replace("%{height}", "180")
+    : "";
+
+  const publishedAt = String(vod.created_at || vod.published_at || "");
+  const published = publishedAt ? publishedAt.slice(0, 10) : "";
+
+  return {
+    duration: vod.duration || "",
+    id,
+    published,
+    thumbnail,
+    title: vod.title || "",
+    url: vod.url || `https://www.twitch.tv/videos/${id}`,
+  };
 }

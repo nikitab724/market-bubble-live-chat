@@ -33,13 +33,30 @@
     </header>
 
     <main class="v2-content-main">
-      <div class="v2-content-header">
-        <h1 class="v2-content-title">Videos</h1>
-        <p class="v2-content-subtitle">Latest from <a href="https://www.youtube.com/@MarketBubble" target="_blank" rel="noopener">@MarketBubble</a></p>
-      </div>
+      <div class="v2-content-split">
+        <section class="v2-content-column v2-content-column--twitch" aria-label="Twitch VODs">
+          <header class="v2-content-header">
+            <h1 class="v2-content-title">Twitch VODs</h1>
+            <p class="v2-content-subtitle">
+              <a href="https://www.twitch.tv/FaZeBanks" target="_blank" rel="noopener">FaZeBanks</a>
+            </p>
+          </header>
+          <div id="twitchGrid" class="v2-video-grid v2-video-grid--twitch" aria-live="polite">
+            <p class="v2-content-status">Loading VODs…</p>
+          </div>
+        </section>
 
-      <div id="videoGrid" class="v2-video-grid" aria-live="polite">
-        <p class="v2-content-status">Loading videos…</p>
+        <section class="v2-content-column v2-content-column--youtube" aria-label="YouTube videos">
+          <header class="v2-content-header">
+            <h1 class="v2-content-title">YouTube</h1>
+            <p class="v2-content-subtitle">
+              <a href="https://www.youtube.com/@MarketBubble" target="_blank" rel="noopener">@MarketBubble</a>
+            </p>
+          </header>
+          <div id="youtubeGrid" class="v2-video-grid v2-video-grid--youtube" aria-live="polite">
+            <p class="v2-content-status">Loading videos…</p>
+          </div>
+        </section>
       </div>
     </main>
 
