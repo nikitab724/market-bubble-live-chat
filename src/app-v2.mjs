@@ -67,7 +67,7 @@ const state = {
 const el = {
   chatFeed:          document.querySelector("#chatFeed"),
   jumpToLive:        document.querySelector("#jumpToLive"),
-  footer:            document.querySelector(".v2-footer"),
+  footerCenter:      document.querySelector(".v2-footer-center"),
   mainGrid:          document.querySelector(".v2-main"),
   offlineScreen:     document.querySelector("#offlineScreen"),
   platformBreakdown: document.querySelector("#platformBreakdown"),
@@ -273,7 +273,7 @@ function updateStreamHeader() {
   }
 
   if (el.mainGrid) el.mainGrid.classList.toggle("v2-hidden", !nowLive);
-  if (el.footer) el.footer.classList.toggle("v2-hidden", !nowLive);
+  if (el.footerCenter) el.footerCenter.classList.toggle("v2-hidden", !nowLive);
   if (el.offlineScreen) el.offlineScreen.hidden = nowLive;
 
   // Reload the player if live status changed since last check
