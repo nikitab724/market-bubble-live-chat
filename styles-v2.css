@@ -730,7 +730,7 @@ a { color: inherit; text-decoration: none; }
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 32px 40px 40px;
+  padding: 32px 30px 40px;
 }
 
 .v2-content-main::-webkit-scrollbar { width: 4px; }
@@ -739,13 +739,13 @@ a { color: inherit; text-decoration: none; }
 .v2-content-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr) minmax(140px, 200px);
-  gap: 28px;
+  gap: 18px;
   align-items: start;
 }
 
 .v2-content-column--twitch,
 .v2-content-column--longform {
-  padding-right: 28px;
+  padding-right: 18px;
   border-right: 1px solid var(--line-soft);
 }
 
