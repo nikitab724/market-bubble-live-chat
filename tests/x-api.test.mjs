@@ -6,6 +6,7 @@ import {
   buildChatSubscribeFrames,
   createXApiClient,
   extractBroadcastId,
+  extractBroadcastOccupancy,
   getSourceBroadcastId,
   normalizeXBroadcastMessage,
 } from "../src/x-api.mjs";
@@ -182,6 +183,22 @@ describe("x-api message normalization", () => {
     assert.equal(message.timestamp, new Date(1700000000000).toISOString());
   });
 
+  it("normalizes nanosecond and second epoch scales to wall-clock milliseconds", () => {
+    // Periscope mixes scales by field/server: ns stamps would land in year
+    // ~55k and second stamps in 1970, both of which break chat freshness.
+    const nanoseconds = buildChatFrame({ body: "hi", username: "a", uuid: "u-ns", timestamp: 1700000000000000000 });
+    assert.equal(
+      normalizeXBroadcastMessage(nanoseconds, source).timestamp,
+      new Date(1700000000000).toISOString(),
+    );
+
+    const seconds = buildChatFrame({ body: "hi", username: "a", uuid: "u-s", timestamp: 1700000000 });
+    assert.equal(
+      normalizeXBroadcastMessage(seconds, source).timestamp,
+      new Date(1700000000000).toISOString(),
+    );
+  });
+
   // Fixtures captured from a real X broadcast (id 1yKAPPboWlDxb). Control frames
   // share the chat envelope but carry no human text, so they must be filtered.
   it("filters real join and occupancy control frames", () => {
@@ -205,6 +222,36 @@ describe("x-api message normalization", () => {
 
     assert.equal(normalizeXBroadcastMessage(joinFrame, source), null);
     assert.equal(normalizeXBroadcastMessage(occupancyFrame, source), null);
+  });
+
+  it("extracts viewer occupancy from a real occupancy control frame", () => {
+    const occupancyFrame = {
+      kind: 2,
+      payload: JSON.stringify({
+        kind: 4,
+        sender: { user_id: "" },
+        body: JSON.stringify({ room: "1yKAPPboWlDxb", occupancy: 108, total_participants: 132 }),
+      }),
+    };
+
+    assert.deepEqual(extractBroadcastOccupancy(occupancyFrame), { occupancy: 108, totalParticipants: 132 });
+  });
+
+  it("returns null occupancy for chat, join, and malformed frames", () => {
+    const chatFrame = buildChatFrame({ body: "send it", username: "a", uuid: "u", timestamp: 1700000000000 });
+    const joinFrame = {
+      kind: 2,
+      payload: JSON.stringify({
+        kind: 1,
+        sender: { username: "Asmali77" },
+        body: JSON.stringify({ room: "1yKAPPboWlDxb", following: false, unlimited: false }),
+      }),
+    };
+
+    assert.equal(extractBroadcastOccupancy(chatFrame), null);
+    assert.equal(extractBroadcastOccupancy(joinFrame), null);
+    assert.equal(extractBroadcastOccupancy({ kind: 2 }), null);
+    assert.equal(extractBroadcastOccupancy(null), null);
   });
 
   it("accepts a chat frame regardless of the outer envelope kind", () => {

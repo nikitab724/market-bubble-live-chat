@@ -12,7 +12,8 @@
 `server.mjs` owns the HTTP server. It serves Vite-built static assets from `dist/client` first, falls back to the explicit source allowlist for tests/local inspection, and provides these API routes:
 
 - `GET /api/public-config`: enabled source config for browsers and the X extension popup.
-- `GET /api/live-state`: Twitch and Kick live state/viewer count aggregation.
+- `GET /api/live-state`: live state/viewer count aggregation — Twitch and Kick via their HTTP APIs, X via the chat connector's in-memory occupancy (no extra polling).
+- `GET /api/twitch-vod?channel=...`: latest Twitch VOD lookup (used by the offline player states).
 - `GET /api/twitch-emotes?channel=...`: Twitch third-party emote cache.
 - `GET /api/twitch-badges?channel=...`: Twitch global/channel chat badge image cache.
 - `GET /api/chat-events`: database-backed replaying server-sent events stream for normalized chat and connector status events.

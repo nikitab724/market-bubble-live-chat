@@ -354,7 +354,7 @@ describe("server contract", () => {
       const liveState = await request(server, "GET", "/api/live-state");
       assert.equal(liveState.status, 200);
       assert.deepEqual(liveState.json, {
-        providers: { kick: { status: "connected" }, twitch: { status: "connected" } },
+        providers: { kick: { status: "connected" }, twitch: { status: "connected" }, x: { status: "no_sources" } },
         sources: [
           {
             isLive: true,
@@ -460,6 +460,74 @@ describe("server contract", () => {
       const saved = JSON.parse(await readFile(configPath, "utf8"));
       assert.equal(saved.sources[1].sourceId, "x-banks");
       assert.equal(saved.sources[1].viewerCount, 0);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("merges X connector occupancy into /api/live-state", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-live-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [
+          { platform: "x", sourceName: "Banks", sourceHandle: "banks", broadcastId: "1yKAPPboWlDxb" },
+        ],
+      }),
+    );
+
+    const server = createAppServer({
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      twitchClient: {
+        async getLiveState() {
+          return { providers: { twitch: { status: "no_sources" } }, sources: [] };
+        },
+      },
+      kickClient: {
+        async getLiveState() {
+          return { providers: { kick: { status: "no_sources" } }, sources: [] };
+        },
+      },
+      xChatService: {
+        syncSources() {},
+        stop() {},
+        getLiveState() {
+          return {
+            providers: { x: { status: "connected" } },
+            sources: [
+              {
+                isLive: true,
+                platform: "x",
+                sourceHandle: "banks",
+                sourceId: "x-banks",
+                sourceLabel: "Banks",
+                viewerCount: 108,
+              },
+            ],
+          };
+        },
+      },
+    });
+    await listen(server);
+
+    try {
+      const liveState = await request(server, "GET", "/api/live-state");
+      assert.equal(liveState.status, 200);
+      assert.deepEqual(liveState.json.providers.x, { status: "connected" });
+      assert.deepEqual(liveState.json.sources, [
+        {
+          isLive: true,
+          platform: "x",
+          sourceHandle: "banks",
+          sourceId: "x-banks",
+          sourceLabel: "Banks",
+          viewerCount: 108,
+        },
+      ]);
     } finally {
       await close(server);
     }

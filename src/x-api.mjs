@@ -217,6 +217,57 @@ export function normalizeXBroadcastMessage(rawFrame, source = {}) {
 // Walk the nested body chain to the innermost object, collecting identity along
 // the way. Returns chat fields only when a non-empty leaf text body is found.
 export function extractBroadcastChat(rawFrame) {
+  const walked = walkFrameBodyChain(rawFrame);
+  if (!walked) {
+    return null;
+  }
+
+  const { levels, bodyText } = walked;
+  if (!bodyText) {
+    return null;
+  }
+
+  const username = String(pickFromLevels(levels, ["username"]) || pickSender(levels, "username") || "")
+    .replace(/^@/, "")
+    .trim();
+  const displayName = String(
+    pickFromLevels(levels, ["displayName"]) || pickSender(levels, "display_name") || username || "X viewer",
+  ).trim();
+  const uuid = String(pickFromLevels(levels, ["uuid"]) || "");
+
+  return {
+    body: bodyText,
+    displayName,
+    timestampMs: resolveTimestampMs(levels),
+    username,
+    uuid,
+  };
+}
+
+// Occupancy control frames share the chat envelope but their deepest body is
+// {room, occupancy, total_participants} — the broadcast's live viewer count.
+export function extractBroadcastOccupancy(rawFrame) {
+  const walked = walkFrameBodyChain(rawFrame);
+  if (!walked) {
+    return null;
+  }
+
+  const occupancy = pickFromLevels(walked.levels, ["occupancy"]);
+  if (typeof occupancy !== "number" || !Number.isFinite(occupancy)) {
+    return null;
+  }
+
+  const totalParticipants = pickFromLevels(walked.levels, ["total_participants"]);
+
+  return {
+    occupancy,
+    totalParticipants: typeof totalParticipants === "number" && Number.isFinite(totalParticipants)
+      ? totalParticipants
+      : occupancy,
+  };
+}
+
+function walkFrameBodyChain(rawFrame) {
   if (!rawFrame || !rawFrame.payload) {
     return null;
   }
@@ -253,25 +304,7 @@ export function extractBroadcastChat(rawFrame) {
     break;
   }
 
-  if (!bodyText) {
-    return null;
-  }
-
-  const username = String(pickFromLevels(levels, ["username"]) || pickSender(levels, "username") || "")
-    .replace(/^@/, "")
-    .trim();
-  const displayName = String(
-    pickFromLevels(levels, ["displayName"]) || pickSender(levels, "display_name") || username || "X viewer",
-  ).trim();
-  const uuid = String(pickFromLevels(levels, ["uuid"]) || "");
-
-  return {
-    body: bodyText,
-    displayName,
-    timestampMs: resolveTimestampMs(levels),
-    username,
-    uuid,
-  };
+  return { bodyText, levels };
 }
 
 function pickFromLevels(levels, keys) {
@@ -300,9 +333,8 @@ function pickSender(levels, key) {
 
 function resolveTimestampMs(levels) {
   const timestamp = pickFromLevels(levels, ["timestamp"]);
-  if (typeof timestamp === "number" && Number.isFinite(timestamp)) {
-    // Periscope timestamps are sometimes microseconds; clamp to milliseconds.
-    return timestamp > 1e14 ? Math.round(timestamp / 1000) : timestamp;
+  if (typeof timestamp === "number" && Number.isFinite(timestamp) && timestamp > 0) {
+    return normalizeEpochMs(timestamp);
   }
 
   const programDateTime = pickFromLevels(levels, ["programDateTime"]);
@@ -314,6 +346,20 @@ function resolveTimestampMs(levels) {
   }
 
   return Date.now();
+}
+
+// Periscope frames mix epoch scales by field and server (seconds, ms, µs, ns).
+// Normalize by magnitude so chat freshness and ordering use wall-clock ms.
+function normalizeEpochMs(value) {
+  let ms = value;
+  while (ms > 1e14) {
+    ms /= 1000;
+  }
+  if (ms < 1e11) {
+    ms *= 1000;
+  }
+
+  return Math.round(ms);
 }
 
 function safeJsonParse(value) {

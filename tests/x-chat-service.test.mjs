@@ -135,6 +135,70 @@ describe("x chat service", () => {
     assert.deepEqual(service.connectedSourceIds, []);
   });
 
+  it("tracks occupancy frames into live state without spamming the hub", async () => {
+    const chatHub = createChatHubSpy();
+    const apiClient = {
+      bootstrapBroadcast: async () => ({ accessToken: "t", broadcastId: "1abc", endpoint: "https://c.pscp.tv" }),
+    };
+    const service = createXChatService({ chatHub, apiClient, WebSocketImpl: FakeSocket });
+
+    service.syncSources([xSource]);
+    await Promise.resolve();
+    await Promise.resolve();
+    const socket = FakeSocket.instances[0];
+    socket.emit("open");
+
+    socket.emit("message", {
+      data: JSON.stringify({
+        kind: 2,
+        payload: JSON.stringify({
+          kind: 4,
+          sender: { user_id: "" },
+          body: JSON.stringify({ room: "1abc", occupancy: 108, total_participants: 132 }),
+        }),
+      }),
+    });
+
+    assert.deepEqual(service.getLiveState(), {
+      providers: { x: { status: "connected" } },
+      sources: [
+        {
+          isLive: true,
+          platform: "x",
+          sourceHandle: "banks",
+          sourceId: "x-banks",
+          sourceLabel: "Banks",
+          viewerCount: 108,
+        },
+      ],
+    });
+
+    // Occupancy ticks stay in memory; they are not chat messages and must not
+    // pollute the persisted chat-status event log.
+    assert.equal(chatHub.events.filter((event) => event.eventName === "chat").length, 0);
+    assert.deepEqual(
+      chatHub.events.filter((event) => event.eventName === "chat-status").map((event) => event.payload.status),
+      ["connecting", "connected"],
+    );
+
+    service.stop();
+  });
+
+  it("reports connecting before the socket opens and no_sources when idle", async () => {
+    const chatHub = createChatHubSpy();
+    const apiClient = {
+      bootstrapBroadcast: async () => ({ accessToken: "t", broadcastId: "1abc", endpoint: "https://c.pscp.tv" }),
+    };
+    const service = createXChatService({ chatHub, apiClient, WebSocketImpl: FakeSocket });
+
+    assert.deepEqual(service.getLiveState(), { providers: { x: { status: "no_sources" } }, sources: [] });
+
+    service.syncSources([xSource]);
+    assert.deepEqual(service.getLiveState(), { providers: { x: { status: "connecting" } }, sources: [] });
+
+    service.stop();
+  });
+
   it("schedules a reconnect with a fresh bootstrap when the socket closes", async () => {
     const chatHub = createChatHubSpy();
     let bootstrapCount = 0;

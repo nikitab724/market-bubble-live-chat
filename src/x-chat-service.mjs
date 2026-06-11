@@ -2,6 +2,7 @@ import {
   buildChatSocketUrl,
   buildChatSubscribeFrames,
   createXApiClient,
+  extractBroadcastOccupancy,
   getSourceBroadcastId,
   normalizeXBroadcastMessage,
 } from "./x-api.mjs";
@@ -24,6 +25,26 @@ export function createXChatService({
   return {
     get connectedSourceIds() {
       return [...connections.keys()].sort();
+    },
+
+    // Live-state provider interface, like the Twitch/Kick API clients, fed
+    // from the chat socket's occupancy frames instead of an HTTP poll.
+    getLiveState() {
+      const entries = [...connections.values()];
+      const connected = entries.filter((entry) => entry.socketOpen);
+      const status = connected.length > 0 ? "connected" : entries.length > 0 ? "connecting" : "no_sources";
+
+      return {
+        providers: { x: { status } },
+        sources: connected.map((entry) => ({
+          isLive: true,
+          platform: "x",
+          sourceHandle: entry.source.sourceHandle,
+          sourceId: entry.source.sourceId,
+          sourceLabel: entry.source.sourceLabel || entry.source.sourceName,
+          viewerCount: entry.occupancy || 0,
+        })),
+      };
     },
 
     stop() {
@@ -54,8 +75,11 @@ export function createXChatService({
     const entry = {
       active: true,
       key: getSourceConnectionKey(source),
+      occupancy: 0,
       reconnectTimer: null,
       socket: null,
+      socketOpen: false,
+      source,
     };
     connections.set(source.sourceId, entry);
     broadcastStatus(source, "connecting");
@@ -78,11 +102,12 @@ export function createXChatService({
         for (const frame of buildChatSubscribeFrames(bootstrap)) {
           socket.send(frame);
         }
+        entry.socketOpen = true;
         broadcastStatus(source, "connected");
       });
 
       socket.addEventListener("message", (event) => {
-        handleSocketMessage(source, event);
+        handleSocketMessage(source, entry, event);
       });
 
       socket.addEventListener("error", () => {
@@ -91,6 +116,7 @@ export function createXChatService({
 
       socket.addEventListener("close", () => {
         entry.socket = null;
+        entry.socketOpen = false;
         if (entry.active) {
           scheduleReconnect(source, entry);
         }
@@ -102,7 +128,7 @@ export function createXChatService({
     }
   }
 
-  function handleSocketMessage(source, event) {
+  function handleSocketMessage(source, entry, event) {
     const raw = typeof event.data === "string" ? event.data : String(event.data || "");
 
     let frame;
@@ -115,6 +141,14 @@ export function createXChatService({
     const message = normalizeXBroadcastMessage(frame, source);
     if (message) {
       chatHub?.broadcast("chat", message);
+      return;
+    }
+
+    // Occupancy ticks stay in memory for getLiveState; broadcasting them
+    // would write noise into the persisted chat event log.
+    const occupancy = extractBroadcastOccupancy(frame);
+    if (occupancy) {
+      entry.occupancy = occupancy.occupancy;
     }
   }
 

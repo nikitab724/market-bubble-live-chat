@@ -406,8 +406,9 @@ function startStatusEngine() {
     if (!sourceId) return;
 
     // Use the message's own timestamp so replayed history does not read as
-    // fresh activity right after the stream connects.
-    const at = Date.parse(message.timestamp || "") || Date.now();
+    // fresh activity right after the stream connects — but never trust a
+    // timestamp from the future, or "Chat active" would stick forever.
+    const at = Math.min(Date.parse(message.timestamp || "") || Date.now(), Date.now());
     if (at > (liveStatus.lastChatBySourceId.get(sourceId) || 0)) {
       liveStatus.lastChatBySourceId.set(sourceId, at);
     }

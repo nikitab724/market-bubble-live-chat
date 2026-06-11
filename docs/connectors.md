@@ -47,6 +47,8 @@ X has two chat paths. The preferred path is a server-side connector; the Chrome 
 
 `src/x-chat-service.mjs` manages one connection per enabled X source that resolves to a broadcast id, mirroring the Twitch chat service and fanning normalized messages and `connecting`/`connected`/`disconnected` status into the same `/api/chat-events` stream. `src/x-api.mjs` does the access handshake.
 
+The connector is also the X live-state provider: occupancy control frames on the chat socket (`{room, occupancy, total_participants}`) are tracked in memory and merged into `GET /api/live-state` as `isLive: true` plus a `viewerCount` for each connected X source, so the admin status line shows "Live · N watching" and viewer counts include X — no extra HTTP polling and no writes to the chat event log. Periscope frames mix epoch scales (seconds/ms/µs/ns) per field, so chat timestamps are normalized by magnitude to wall-clock milliseconds; without that, admin chat freshness ("Chat active") and viewer ordering break.
+
 X Live chat is **not** tweet replies; it runs on the legacy Periscope chat service. The connector reaches it through the same guest-token handshake the public web player uses — no login and no paid X API:
 
 1. `POST api.x.com/1.1/guest/activate.json` → guest token.

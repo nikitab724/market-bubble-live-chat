@@ -143,7 +143,13 @@ export function createAppServer(options = {}) {
         const sources = await readSources(configPath);
         syncChatConnectorSources(sources);
         await ensureKickChatSubscriptionsOnce(sources);
-        return sendJson(response, 200, await getLiveState(sources, [twitchClient, kickClient]));
+        // The X chat connector doubles as the X live-state provider: it
+        // reports occupancy from the broadcast chat socket, no HTTP poll.
+        return sendJson(
+          response,
+          200,
+          await getLiveState(sources, [twitchClient, kickClient, xChatService].filter((client) => client?.getLiveState)),
+        );
       }
 
       if (url.pathname === "/api/twitch-emotes" && request.method === "GET") {
