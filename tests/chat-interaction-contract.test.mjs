@@ -508,6 +508,12 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.brand-mark\s*\{[^}]*display: flex[^}]*height: 36px/s);
     assert.match(styles, /\.brand-wordmark\s*\{[^}]*height: 26px/s);
     assert.match(styles, /\.brand-wordmark-text\s*\{[^}]*font-size: 44px/s);
+    // The brand is the full wordmark at every viewport width. The old square
+    // mobile .brand-mark (34px/32px) cropped the SVG to "Ma…" — the
+    // wordmark-write mask clips painting to the border box, so the
+    // container's overflow: visible cannot save it.
+    assert.doesNotMatch(styles, /\.brand-mark\s*\{[^}]*width: 3[24]px/s);
+    assert.match(styles, /\.live-layout-full \.brand-mark\s*\{[^}]*height: 26px/s);
     assert.match(styles, /@keyframes wordmark-write/);
     assert.equal(styles.includes("brand-liquid-in"), false);
     assert.equal(viewer.includes("brand-threshold-filter"), false);

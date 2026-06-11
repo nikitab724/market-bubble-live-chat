@@ -2594,11 +2594,6 @@ button:hover {
     grid-auto-columns: minmax(0, 1fr);
   }
 
-  .brand-mark {
-    width: 34px;
-    height: 34px;
-  }
-
   h1,
   h2 {
     font-size: 27px;
@@ -2665,9 +2660,12 @@ button:hover {
     overflow-x: auto;
   }
 
-  .brand-mark {
-    width: 32px;
-    height: 32px;
+  /* The brand stays the full wordmark — a fixed-width box crops the SVG to
+     "Ma…" because the wordmark-write mask clips painting to the border box.
+     26px hugs the SVG so the brand row leaves the 94px topbar headroom for
+     the metrics row below it. Mini keeps its own auto-sized brand rules. */
+  .live-layout-full .brand-mark {
+    height: 26px;
   }
 
   h1 {
