@@ -271,7 +271,7 @@ function updateStreamHeader() {
     if (el.liveBadge) { el.liveBadge.textContent = "Offline"; el.liveBadge.dataset.state = "offline"; }
   }
 
-  if (el.mainGrid) el.mainGrid.hidden = !nowLive;
+  if (el.mainGrid) el.mainGrid.classList.toggle("v2-hidden", !nowLive);
   if (el.offlineScreen) el.offlineScreen.hidden = nowLive;
 
   // Reload the player if live status changed since last check
