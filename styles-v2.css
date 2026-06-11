@@ -629,7 +629,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 80px;
+  padding-bottom: 110px;
 }
 
 .v2-offline-screen[hidden] { display: none !important; }
