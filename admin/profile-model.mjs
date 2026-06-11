@@ -2,7 +2,6 @@ export const profilePlatforms = [
   { id: "twitch", label: "Twitch", handleLabel: "Twitch handle" },
   { id: "kick", label: "Kick", handleLabel: "Kick handle" },
   { id: "x", label: "X", handleLabel: "X handle" },
-  { id: "room", label: "MarketBubble.com", handleLabel: "Site chat slug" },
 ];
 
 export function buildProfilesFromSources(sources) {

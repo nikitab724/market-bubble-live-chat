@@ -85,7 +85,7 @@ X chat messages do not currently include provider username colors, so the shared
 
 ## Native MarketBubble.com Room
 
-The `room` platform is a source boundary for future first-party chat on `marketbubble.com`. It currently behaves as a configured chat/source identity, not a live external connector.
+The `room` platform is a source boundary for future first-party chat on `marketbubble.com`. It currently behaves as a configured chat/source identity, not a live external connector. It is not part of the admin profile editor: profiles only manage Twitch/Kick/X, so an admin save writes only those platforms and drops any stored room sources. `src/source-config.mjs` still normalizes the platform and the default seed includes a room source.
 
 ## Viewer Counts
 

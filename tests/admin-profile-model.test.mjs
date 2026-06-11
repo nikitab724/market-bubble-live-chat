@@ -82,7 +82,7 @@ describe("admin profile model", () => {
     assert.equal("broadcastId" in noId, false);
   });
 
-  it("collects expanded profile data back into source rows without blank socials", () => {
+  it("collects expanded profile data back into source rows", () => {
     const sources = buildSourcesFromProfiles([
       {
         id: "market-bubble",
@@ -97,7 +97,6 @@ describe("admin profile model", () => {
             showStream: true,
           },
           x: { enabled: true, handle: "MarketBubble", label: "X Desk", conversationId: "123" },
-          room: { enabled: true, handle: "", label: "Site Chat" },
         },
       },
     ]);
@@ -162,7 +161,7 @@ describe("admin profile model", () => {
     assert.equal(profile.id, "profile-4");
     assert.equal(profile.name, "New Profile 4");
     assert.equal(profile.expanded, true);
-    assert.deepEqual(Object.keys(profile.sources), ["twitch", "kick", "x", "room"]);
+    assert.deepEqual(Object.keys(profile.sources), ["twitch", "kick", "x"]);
     assert.equal(profile.sources.twitch.enabled, false);
     assert.equal(profile.sources.twitch.handle, "");
     assert.equal(profile.sources.twitch.showStream, false);
@@ -198,7 +197,6 @@ describe("admin profile model", () => {
           twitch: { enabled: true, handle: "https://www.twitch.tv/MarketBubble?ref=tw" },
           kick: { enabled: true, handle: "kick.com/marketbubble/" },
           x: { enabled: true, handle: "@MarketBubble" },
-          room: { enabled: true, handle: " marketbubble " },
         },
       },
     ]);
@@ -209,7 +207,6 @@ describe("admin profile model", () => {
         ["twitch", "MarketBubble"],
         ["kick", "marketbubble"],
         ["x", "MarketBubble"],
-        ["room", "marketbubble"],
       ],
     );
 
