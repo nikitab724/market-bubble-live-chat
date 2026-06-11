@@ -30,6 +30,7 @@ import { createTwitchChatService } from "./src/twitch-chat-service.mjs";
 import { createTwitchEmoteClient } from "./src/twitch-emotes.mjs";
 import { createXChatService } from "./src/x-chat-service.mjs";
 import { createXApiClient, extractBroadcastId } from "./src/x-api.mjs";
+import { createYoutubeApiClient } from "./src/youtube-api.mjs";
 
 const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -37,15 +38,25 @@ const YT_CHANNEL_ID = "UC2Yw4-WyejthY7OLpbVX4Ug";
 const YT_RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${YT_CHANNEL_ID}`;
 const TWITCH_CONTENT_CHANNEL = "FaZeBanks";
 const YT_CACHE_TTL_MS = 30 * 60 * 1000;
+const YT_CONTENT_LIMIT = 15;
 let ytCache = null;
 let ytCacheTime = 0;
+const youtubeClient = createYoutubeApiClient();
 
-async function getYoutubeVideos() {
-  if (ytCache && Date.now() - ytCacheTime < YT_CACHE_TTL_MS) return ytCache;
+function decodeXmlEntities(value) {
+  return String(value || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'");
+}
+
+async function getYoutubeVideosFromRss() {
   const res = await fetch(YT_RSS_URL);
-  if (!res.ok) return ytCache ?? { videos: [] };
+  if (!res.ok) return { longform: [], shorts: [] };
   const xml = await res.text();
-  const videos = [];
+  const longform = [];
   const entries = xml.split("<entry>");
   for (let i = 1; i < entries.length; i++) {
     const entry = entries[i];
@@ -53,16 +64,33 @@ async function getYoutubeVideos() {
     const title = (entry.match(/<title>([^<]+)<\/title>/) || [])[1];
     const published = (entry.match(/<published>([^<]+)<\/published>/) || [])[1];
     if (videoId && title) {
-      videos.push({
+      longform.push({
         videoId,
-        title: title.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">"),
+        title: decodeXmlEntities(title),
         published: published ? published.slice(0, 10) : "",
         thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
         url: `https://www.youtube.com/watch?v=${videoId}`,
       });
     }
   }
-  ytCache = { videos };
+  return { longform, shorts: [] };
+}
+
+async function getYoutubeVideos() {
+  if (ytCache && Date.now() - ytCacheTime < YT_CACHE_TTL_MS) return ytCache;
+
+  let payload = { longform: [], shorts: [] };
+  if (youtubeClient.isConfigured()) {
+    try {
+      payload = await youtubeClient.getChannelVideos(YT_CHANNEL_ID, { limitPerType: YT_CONTENT_LIMIT });
+    } catch {
+      payload = ytCache ?? { longform: [], shorts: [] };
+    }
+  } else {
+    payload = await getYoutubeVideosFromRss();
+  }
+
+  ytCache = payload;
   ytCacheTime = Date.now();
   return ytCache;
 }

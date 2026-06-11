@@ -1,5 +1,6 @@
 const twitchGrid = document.getElementById("twitchGrid");
-const youtubeGrid = document.getElementById("youtubeGrid");
+const longformGrid = document.getElementById("longformGrid");
+const shortsGrid = document.getElementById("shortsGrid");
 
 function escapeHtml(value) {
   return String(value)
@@ -16,7 +17,7 @@ function formatDate(isoDate) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function renderVideoCards(grid, videos, emptyMessage) {
+function renderVideoCards(grid, videos, emptyMessage, { vertical = false } = {}) {
   if (!videos.length) {
     grid.innerHTML = `<p class="v2-content-status">${escapeHtml(emptyMessage)}</p>`;
     return;
@@ -25,8 +26,8 @@ function renderVideoCards(grid, videos, emptyMessage) {
   grid.innerHTML = videos
     .map(
       (video) => `
-        <a class="v2-video-card" href="${escapeHtml(video.url)}" target="_blank" rel="noopener">
-          <div class="v2-video-thumb">
+        <a class="v2-video-card${vertical ? " v2-video-card--vertical" : ""}" href="${escapeHtml(video.url)}" target="_blank" rel="noopener">
+          <div class="v2-video-thumb${vertical ? " v2-video-thumb--vertical" : ""}">
             <img src="${escapeHtml(video.thumbnail)}" alt="" loading="lazy" decoding="async" />
           </div>
           <div class="v2-video-meta">
@@ -55,9 +56,11 @@ async function loadYoutubeVideos() {
     const res = await fetch("/api/youtube-videos");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    renderVideoCards(youtubeGrid, data.videos ?? [], "No videos found.");
+    renderVideoCards(longformGrid, data.longform ?? [], "No longform videos found.");
+    renderVideoCards(shortsGrid, data.shorts ?? [], "No shorts found.", { vertical: true });
   } catch {
-    youtubeGrid.innerHTML = `<p class="v2-content-status">Could not load videos. Try again later.</p>`;
+    longformGrid.innerHTML = `<p class="v2-content-status">Could not load videos. Try again later.</p>`;
+    shortsGrid.innerHTML = `<p class="v2-content-status">Could not load shorts. Try again later.</p>`;
   }
 }
 

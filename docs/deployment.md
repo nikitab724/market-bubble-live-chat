@@ -47,6 +47,7 @@ Common env vars:
 - `ADMIN_PASSWORD_HASH`
 - `TWITCH_CLIENT_ID`
 - `TWITCH_CLIENT_SECRET`
+- `YOUTUBE_API_KEY` (YouTube Data API v3 key for `/content` longform + Shorts)
 - `KICK_CLIENT_ID`
 - `KICK_CLIENT_SECRET`
 - `KICK_REDIRECT_URI`
