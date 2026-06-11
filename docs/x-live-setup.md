@@ -28,6 +28,10 @@ https://marketbubble.192-210-192-116.sslip.io
 
 The extension popup includes a Backend URL field. Change it there when the deployed backend URL changes, then click Apply. The value is stored in Chrome extension storage and used for both `/api/public-config` and `/api/x-chat`.
 
+### Bridge token (required in production)
+
+When the server has `ADMIN_PASSWORD_HASH` set, `/api/x-chat` and `/api/x-broadcast` reject anonymous posts — the extension must present a bridge token. Get it after logging into the admin page: open `/admin/`, unlock, expand **X Bridge token**, and copy the value. Paste it into the extension popup's **Bridge token** field and click Apply (stored in Chrome extension storage, sent as `Authorization: Bearer`). The token is derived from the admin password, so it stays valid until the password changes; rotating the admin password invalidates the old token and you re-copy the new one. Without a valid token the X tab console shows the bridge posting and the server replying `401`.
+
 ## How Chat Is Captured
 
 `extension/content.js` watches `document.body` with a `MutationObserver`. It tries to identify X live chat rows by the `UserAvatar-Container-*` test id, extracts author/handle/body, dedupes recent fingerprints, and posts:

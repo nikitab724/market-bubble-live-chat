@@ -37,6 +37,8 @@ If the tunnel hostname changes, update the extension URLs and reload the unpacke
 
 Do not commit secrets. Provider credentials and admin password hash belong in environment variables on the server.
 
+Generate the admin password hash with `node scripts/hash-admin-password.mjs 'your-passphrase'` (or `ADMIN_PASSWORD=... node scripts/hash-admin-password.mjs`) and paste the printed `ADMIN_PASSWORD_HASH=...` line into the server `.env`. When `ADMIN_PASSWORD_HASH` is set, the admin panel requires login, failed logins are rate-limited (8 attempts per client, then a 15-minute lockout), and the X bridge ingest routes (`/api/x-chat`, `/api/x-broadcast`) require the bridge token. When it is unset (local dev), the admin panel and ingest routes are open.
+
 Common env vars:
 
 - `PORT`

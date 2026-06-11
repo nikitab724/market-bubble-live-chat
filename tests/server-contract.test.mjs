@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { hashPassword } from "../src/admin-auth.mjs";
+import { createLoginThrottle, hashPassword } from "../src/admin-auth.mjs";
 import { createAppServer, getChatRetentionHours } from "../server.mjs";
 
 describe("server contract", () => {
@@ -649,6 +649,98 @@ describe("server contract", () => {
       assert.equal((await request(server, "POST", "/api/x-broadcast", { sourceHandle: "banks", broadcastId: "1yKAPPboWlDxb" })).status, 200);
       assert.equal((await post()).status, 204);
       assert.equal(chatEvents.filter((e) => e.eventName === "chat").length, 1);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("gates X ingest routes behind the admin ingest token when a password is configured", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-gate-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({ sources: [{ platform: "x", sourceHandle: "banks", sourceLabel: "Banks", enabled: true }] }),
+    );
+
+    const chatEvents = [];
+    const server = createAppServer({
+      adminPasswordHash: await hashPassword("secret", { iterations: 1200, salt: "00112233445566778899aabbccddeeff" }),
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: { syncSources() {}, stop() {} },
+      chatHub: {
+        broadcast(eventName, payload) {
+          chatEvents.push({ eventName, payload });
+        },
+        connect() {},
+      },
+    });
+    await listen(server);
+
+    try {
+      // Anonymous ingest is rejected once a password is configured.
+      const anonChat = await request(server, "POST", "/api/x-chat", { sourceHandle: "banks", author: "Spoofer", handle: "spoofer", body: "fake" });
+      assert.equal(anonChat.status, 401);
+      const anonBroadcast = await request(server, "POST", "/api/x-broadcast", { sourceHandle: "banks", broadcastId: "1yKAPPboWlDxb" });
+      assert.equal(anonBroadcast.status, 401);
+      assert.equal(chatEvents.filter((e) => e.eventName === "chat").length, 0);
+
+      // The ingest token is only reachable behind a valid admin session.
+      const tokenBlocked = await request(server, "GET", "/api/admin/x-ingest-token");
+      assert.equal(tokenBlocked.status, 401);
+
+      const login = await request(server, "POST", "/api/admin/login", { password: "secret" });
+      assert.equal(login.status, 204);
+      const cookie = login.headers.get("set-cookie").split(";")[0];
+
+      const tokenResponse = await request(server, "GET", "/api/admin/x-ingest-token", null, cookie);
+      assert.equal(tokenResponse.status, 200);
+      const token = tokenResponse.json.token;
+      assert.equal(typeof token, "string");
+      assert.equal(token.length >= 32, true);
+
+      // A wrong token is still rejected.
+      const wrongToken = await request(server, "POST", "/api/x-chat", { sourceHandle: "banks", author: "Spoofer", handle: "spoofer", body: "fake" }, "", { authorization: "Bearer not-the-token" });
+      assert.equal(wrongToken.status, 401);
+
+      // The minted token authorizes both ingest routes.
+      const okChat = await request(server, "POST", "/api/x-chat", { sourceHandle: "banks", author: "Nuckelx", handle: "nuckelx", body: "hello" }, "", { authorization: `Bearer ${token}` });
+      assert.equal(okChat.status, 204);
+      assert.equal(chatEvents.filter((e) => e.eventName === "chat").length, 1);
+
+      const okBroadcast = await request(server, "POST", "/api/x-broadcast", { sourceHandle: "banks", broadcastId: "1yKAPPboWlDxb" }, "", { authorization: `Bearer ${token}` });
+      assert.equal(okBroadcast.status, 200);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("locks out repeated failed admin logins", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-login-throttle-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(configPath, JSON.stringify({ sources: [] }));
+
+    const server = createAppServer({
+      adminPasswordHash: await hashPassword("secret", { iterations: 1200, salt: "00112233445566778899aabbccddeeff" }),
+      configPath,
+      loginThrottle: createLoginThrottle({ maxAttempts: 2, lockoutMs: 60_000 }),
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: null,
+    });
+    await listen(server);
+
+    try {
+      assert.equal((await request(server, "POST", "/api/admin/login", { password: "wrong" })).status, 401);
+      assert.equal((await request(server, "POST", "/api/admin/login", { password: "wrong" })).status, 401);
+
+      // The client is now locked out — even the correct password is refused.
+      const locked = await request(server, "POST", "/api/admin/login", { password: "secret" });
+      assert.equal(locked.status, 429);
+      assert.equal(Number(locked.headers.get("retry-after")) > 0, true);
     } finally {
       await close(server);
     }

@@ -42,6 +42,15 @@
           <button id="saveSourcesButton" type="button">Save Profiles</button>
           <button id="logoutButton" type="button">Logout</button>
         </div>
+        <details id="bridgeTokenPanel" class="admin-bridge-token">
+          <summary>X Bridge token</summary>
+          <p>Paste this into the Market Bubble X Bridge extension popup. It authorizes the extension to send X chat; without it the backend rejects bridged chat. Treat it like a password.</p>
+          <div class="admin-bridge-token-row">
+            <input id="bridgeToken" type="password" readonly value="" aria-label="X Bridge token" />
+            <button id="revealBridgeToken" type="button">Show</button>
+            <button id="copyBridgeToken" type="button">Copy</button>
+          </div>
+        </details>
         <div id="profileCards" class="profile-editor"></div>
       </section>
 

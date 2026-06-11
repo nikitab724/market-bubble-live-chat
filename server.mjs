@@ -6,10 +6,13 @@ import { fileURLToPath } from "node:url";
 import {
   buildExpiredSessionCookie,
   buildSessionCookie,
+  createLoginThrottle,
   createSessionToken,
+  deriveIngestToken,
   getSessionCookieName,
   hashPassword,
   parseCookies,
+  verifyIngestToken,
   verifyPassword,
 } from "./src/admin-auth.mjs";
 import { createChatEventHub } from "./src/chat-events.mjs";
@@ -97,6 +100,7 @@ export function createAppServer(options = {}) {
   const rootDir = options.rootDir || ROOT_DIR;
   const configPath = options.configPath || DEFAULT_CONFIG_PATH;
   const adminPasswordHash = options.adminPasswordHash || process.env.ADMIN_PASSWORD_HASH || "";
+  const loginThrottle = options.loginThrottle || createLoginThrottle();
   const chatReplayLimit = getPositiveNumber(
     options.chatReplayLimit ?? process.env.CHAT_REPLAY_LIMIT,
     DEFAULT_CHAT_REPLAY_LIMIT,
@@ -202,11 +206,15 @@ export function createAppServer(options = {}) {
       if (url.pathname === "/api/x-chat") {
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-MB-Ingest-Token");
 
         if (request.method === "OPTIONS") {
           response.writeHead(204);
           return response.end();
+        }
+
+        if (!isIngestAuthorized(request, adminPasswordHash)) {
+          return sendJson(response, 401, { error: "Unauthorized" });
         }
 
         if (request.method === "POST") {
@@ -234,11 +242,15 @@ export function createAppServer(options = {}) {
       if (url.pathname === "/api/x-broadcast") {
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-MB-Ingest-Token");
 
         if (request.method === "OPTIONS") {
           response.writeHead(204);
           return response.end();
+        }
+
+        if (!isIngestAuthorized(request, adminPasswordHash)) {
+          return sendJson(response, 401, { error: "Unauthorized" });
         }
 
         if (request.method === "POST") {
@@ -305,12 +317,23 @@ export function createAppServer(options = {}) {
           return response.end();
         }
 
+        // Brute-force guard: lock a client out after repeated failures before
+        // spending a PBKDF2 verification on the attempt.
+        const clientKey = getClientKey(request);
+        const gate = loginThrottle.check(clientKey);
+        if (!gate.allowed) {
+          response.setHeader("Retry-After", String(Math.ceil(gate.retryAfterMs / 1000)));
+          return sendJson(response, 429, { error: "Too many attempts. Try again later." });
+        }
+
         const body = await readJsonBody(request);
         const valid = await verifyPassword(body.password || "", adminPasswordHash);
         if (!valid) {
+          loginThrottle.recordFailure(clientKey);
           return sendJson(response, 401, { error: "Invalid password" });
         }
 
+        loginThrottle.recordSuccess(clientKey);
         const token = createSessionToken();
         sessions.set(token, Date.now() + SESSION_TTL_MS);
         response.writeHead(204, {
@@ -320,6 +343,14 @@ export function createAppServer(options = {}) {
           }),
         });
         return response.end();
+      }
+
+      if (url.pathname === "/api/admin/x-ingest-token" && request.method === "GET") {
+        if (adminPasswordHash && !isAuthenticated(request, sessions, secureCookies)) {
+          return sendJson(response, 401, { error: "Unauthorized" });
+        }
+
+        return sendJson(response, 200, { token: deriveIngestToken(adminPasswordHash) });
       }
 
       if (url.pathname === "/api/admin/logout" && request.method === "POST") {
@@ -590,6 +621,33 @@ export async function writeSources(configPath, sources) {
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(`${configPath}.tmp`, `${JSON.stringify({ sources }, null, 2)}\n`);
   await rename(`${configPath}.tmp`, configPath);
+}
+
+function isIngestAuthorized(request, adminPasswordHash) {
+  // No admin password configured means local/dev: ingest stays open so the
+  // bridge works without setup. Once a password exists, the X bridge must
+  // present the ingest token minted behind the admin session.
+  if (!adminPasswordHash) {
+    return true;
+  }
+
+  return verifyIngestToken(getIngestToken(request), adminPasswordHash);
+}
+
+function getIngestToken(request) {
+  const header = request.headers["x-mb-ingest-token"];
+  if (typeof header === "string" && header) {
+    return header.trim();
+  }
+
+  const authorization = request.headers.authorization || "";
+  const match = /^Bearer\s+(.+)$/i.exec(authorization);
+  return match ? match[1].trim() : "";
+}
+
+function getClientKey(request) {
+  const forwarded = String(request.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return forwarded || request.socket?.remoteAddress || "unknown";
 }
 
 function isAuthenticated(request, sessions, secureCookies) {

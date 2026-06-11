@@ -17,14 +17,21 @@
 - `GET /api/twitch-emotes?channel=...`: Twitch third-party emote cache.
 - `GET /api/twitch-badges?channel=...`: Twitch global/channel chat badge image cache.
 - `GET /api/x-profile?handle=...`: guest-token X profile lookup (display name, verified mark, bio, follower count, avatar) cached server-side for 15 minutes; failures return `{ profile: null }`.
+- `GET /api/admin/x-ingest-token`: returns the X bridge ingest token; requires a valid admin session.
 - `GET /api/chat-events`: database-backed replaying server-sent events stream for normalized chat and connector status events.
-- `POST /api/x-chat`: X extension chat ingest, ignored for any X source that has a `broadcastId` (owned by the server-side connector) so messages are not delivered twice.
-- `POST /api/x-broadcast`: X extension reports the current live broadcast id, which the server writes to the matching enabled X source so the server-side X chat connector attaches without a manual paste.
+- `POST /api/x-chat`: X extension chat ingest, ignored for any X source that has a `broadcastId` (owned by the server-side connector) so messages are not delivered twice. Requires the bridge ingest token (`Authorization: Bearer` or `X-MB-Ingest-Token`) when `ADMIN_PASSWORD_HASH` is set.
+- `POST /api/x-broadcast`: X extension reports the current live broadcast id, which the server writes to the matching enabled X source so the server-side X chat connector attaches without a manual paste. Requires the bridge ingest token when `ADMIN_PASSWORD_HASH` is set.
 - `POST /api/webhooks/kick`: Kick webhook chat ingest with signature verification.
 - `POST /api/dev/kick-chat`: local development injector outside production.
 - `/api/admin/*`: admin login/logout and source config reads/writes.
 
 API request bodies are capped at 1 MB, and X chat ingest truncates author/handle to 120 characters and message bodies to 2000 characters before broadcast.
+
+## Admin Auth & X Bridge Ingest
+
+`src/admin-auth.mjs` owns the auth primitives. Passwords are hashed with PBKDF2-HMAC-SHA256 (600,000 iterations, per-hash random salt, iteration count embedded in the stored string so older hashes keep verifying) and verified in constant time. Sessions are random 256-bit tokens in a `__Host-`-prefixed (or `mb_admin` on localhost), `HttpOnly`, `SameSite=Strict`, `Secure` cookie with a sliding 12-hour TTL, held server-side in memory. Login is rate-limited per client by `createLoginThrottle` (default 8 failed attempts → 15-minute lockout; the gate is checked before the PBKDF2 verification, so lockout also blocks correct passwords during the window). A successful login clears the client's failure count.
+
+The X bridge cannot send the admin cookie (the extension runs cross-origin), so `/api/x-chat` and `/api/x-broadcast` authenticate with a bearer **ingest token** instead. The token is derived as `HMAC-SHA256(ADMIN_PASSWORD_HASH, "mb-x-ingest-v1")`: stable across restarts, rotating whenever the password changes, never stored separately, and only obtainable by someone who can already log in. The admin editor fetches it from `GET /api/admin/x-ingest-token` (session-gated) and shows it in a reveal/copy panel; the operator pastes it into the extension popup, which stores it in `chrome.storage` (never in code) and sends it as `Authorization: Bearer`. When `ADMIN_PASSWORD_HASH` is unset (local dev), both the admin routes and the ingest routes stay open so the bridge works without setup.
 
 ## Source Config
 

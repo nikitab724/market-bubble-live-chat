@@ -469,8 +469,13 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.includes('href="https://x.com/MarketBubble"'), true);
     assert.equal(viewer.includes('href="https://www.instagram.com/marketbubble/"'), true);
     assert.equal(viewer.includes('href="https://www.tiktok.com/@marketbubble"'), true);
+    // Spotify podcast link rounds out the social pill (URL is a swappable const).
+    assert.equal(viewer.includes("SPOTIFY_PODCAST_URL"), true);
+    assert.equal(viewer.includes('aria-label="Market Bubble podcast on Spotify"'), true);
     assert.match(styles, /\.stream-socials\s*\{[^}]*position: absolute[^}]*top: 10px[^}]*left: 50%[^}]*transform: translateX\(-50%\)/s);
     assert.match(styles, /\.stream-socials\s*\{[^}]*border-radius: 999px/s);
+    // Mini layout lifts the pill into the gap above the floating player.
+    assert.match(styles, /\.live-layout-mini\s+\.stream-socials\s*\{[^}]*top: auto[^}]*bottom: calc\(100% \+ 12px\)/s);
     assert.equal(viewer.includes('className="brand-wordmark"'), true);
     assert.equal(viewer.includes('className="brand-wordmark-text"'), true);
     assert.equal(viewer.includes("Market Bubble"), true);

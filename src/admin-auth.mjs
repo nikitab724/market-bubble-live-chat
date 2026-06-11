@@ -1,13 +1,16 @@
-import { pbkdf2 as pbkdf2Callback, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, pbkdf2 as pbkdf2Callback, randomBytes, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
 const pbkdf2 = promisify(pbkdf2Callback);
 const PASSWORD_ALGORITHM = "pbkdf2";
 const PASSWORD_DIGEST = "sha256";
 const PASSWORD_KEY_LENGTH = 32;
-const DEFAULT_ITERATIONS = 210000;
+// OWASP 2023 guidance for PBKDF2-HMAC-SHA256. Stored hashes embed their own
+// iteration count, so older hashes keep verifying after this default rises.
+const DEFAULT_ITERATIONS = 600000;
 const SECURE_SESSION_COOKIE_NAME = "__Host-mb_admin";
 const LOCAL_SESSION_COOKIE_NAME = "mb_admin";
+const INGEST_TOKEN_CONTEXT = "mb-x-ingest-v1";
 
 export async function hashPassword(password, options = {}) {
   const iterations = Number(options.iterations || DEFAULT_ITERATIONS);
@@ -31,6 +34,74 @@ export async function verifyPassword(password, storedHash) {
 
 export function createSessionToken() {
   return randomBytes(32).toString("base64url");
+}
+
+// In-memory per-client brute-force guard for the login route. Pure and clock-
+// injectable so it can be unit tested. Keyed by client identifier (IP).
+export function createLoginThrottle({
+  maxAttempts = 8,
+  lockoutMs = 15 * 60 * 1000,
+  now = Date.now,
+} = {}) {
+  const records = new Map();
+
+  function read(key) {
+    const record = records.get(key);
+    if (!record) return null;
+    if (record.lockedUntil && record.lockedUntil <= now()) {
+      records.delete(key);
+      return null;
+    }
+    return record;
+  }
+
+  return {
+    check(key) {
+      const record = read(key);
+      if (record?.lockedUntil && record.lockedUntil > now()) {
+        return { allowed: false, retryAfterMs: record.lockedUntil - now() };
+      }
+      return { allowed: true, retryAfterMs: 0 };
+    },
+
+    recordFailure(key) {
+      const record = read(key) || { failures: 0, lockedUntil: 0 };
+      record.failures += 1;
+      if (record.failures >= maxAttempts) {
+        record.lockedUntil = now() + lockoutMs;
+      }
+      records.set(key, record);
+    },
+
+    recordSuccess(key) {
+      records.delete(key);
+    },
+  };
+}
+
+// The X chat bridge cannot send the admin session cookie (it runs cross-origin
+// from the extension), so it authenticates with a bearer token. The token is
+// derived from the admin password hash: stable across restarts, rotates when
+// the password changes, and only obtainable by someone who can already log in
+// (the admin UI surfaces it behind the session). Knowing the public config is
+// not enough to forge it.
+export function deriveIngestToken(adminPasswordHash) {
+  if (!adminPasswordHash) {
+    return "";
+  }
+
+  return createHmac("sha256", String(adminPasswordHash)).update(INGEST_TOKEN_CONTEXT).digest("hex");
+}
+
+export function verifyIngestToken(provided, adminPasswordHash) {
+  const expected = deriveIngestToken(adminPasswordHash);
+  if (!expected || !provided) {
+    return false;
+  }
+
+  const providedBuffer = Buffer.from(String(provided));
+  const expectedBuffer = Buffer.from(expected);
+  return providedBuffer.length === expectedBuffer.length && timingSafeEqual(providedBuffer, expectedBuffer);
 }
 
 export function parseCookies(cookieHeader = "") {

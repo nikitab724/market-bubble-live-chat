@@ -12,11 +12,14 @@ const STATUS_TICK_MS = 5000;
 
 const elements = {
   addProfileButton: document.querySelector("#addProfileButton"),
+  bridgeToken: document.querySelector("#bridgeToken"),
+  copyBridgeToken: document.querySelector("#copyBridgeToken"),
   editorPanel: document.querySelector("#editorPanel"),
   loginForm: document.querySelector("#loginForm"),
   loginPanel: document.querySelector("#loginPanel"),
   logoutButton: document.querySelector("#logoutButton"),
   profileCards: document.querySelector("#profileCards"),
+  revealBridgeToken: document.querySelector("#revealBridgeToken"),
   saveSourcesButton: document.querySelector("#saveSourcesButton"),
   status: document.querySelector("#adminStatus"),
 };
@@ -90,6 +93,25 @@ elements.logoutButton.addEventListener("click", async () => {
 elements.profileCards.addEventListener("input", handleEditorInput);
 elements.profileCards.addEventListener("change", scheduleStatusRender);
 
+elements.revealBridgeToken.addEventListener("click", () => {
+  const revealed = elements.bridgeToken.type === "text";
+  elements.bridgeToken.type = revealed ? "password" : "text";
+  elements.revealBridgeToken.textContent = revealed ? "Show" : "Hide";
+});
+
+elements.copyBridgeToken.addEventListener("click", async () => {
+  if (!elements.bridgeToken.value) return;
+  try {
+    await navigator.clipboard.writeText(elements.bridgeToken.value);
+    showStatus("Bridge token copied.");
+  } catch {
+    elements.bridgeToken.type = "text";
+    elements.revealBridgeToken.textContent = "Hide";
+    elements.bridgeToken.select();
+    showStatus("Copy failed — select and copy manually.");
+  }
+});
+
 await loadSources();
 
 async function loadSources() {
@@ -110,7 +132,19 @@ async function loadSources() {
   if (profiles[0]) profiles[0].expanded = true;
   renderProfiles();
   showEditor();
+  loadBridgeToken();
   startStatusEngine();
+}
+
+async function loadBridgeToken() {
+  try {
+    const response = await requestApi("/api/admin/x-ingest-token");
+    if (!response.ok) return;
+    const body = await response.json();
+    elements.bridgeToken.value = body.token || "";
+  } catch {
+    // Non-fatal: the editor still works, the token panel just stays empty.
+  }
 }
 
 function adoptServerSources(sources) {
@@ -521,6 +555,9 @@ function parseEventData(event) {
 function showLogin() {
   elements.loginPanel.hidden = false;
   elements.editorPanel.hidden = true;
+  elements.bridgeToken.value = "";
+  elements.bridgeToken.type = "password";
+  elements.revealBridgeToken.textContent = "Show";
   showStatus("");
 }
 

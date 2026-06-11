@@ -708,6 +708,14 @@ h2 {
   fill: currentColor;
 }
 
+/* In mini layout the player floats centered with breathing room around it, so
+   the pill sits in the gap above the panel rather than over the video. */
+.live-layout-mini .stream-socials {
+  top: auto;
+  bottom: calc(100% + 12px);
+  opacity: 1;
+}
+
 .stream-player {
   width: 100%;
   height: 100%;
@@ -2179,6 +2187,52 @@ h2 {
 .admin-actions {
   flex-wrap: wrap;
   margin-bottom: 14px;
+}
+
+.admin-bridge-token {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-bridge-token summary {
+  cursor: pointer;
+  font-family: var(--label-font);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.admin-bridge-token p {
+  margin: 8px 0 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.admin-bridge-token-row {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-bridge-token-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: #0c0c0c;
+  color: var(--text);
+  font-family: var(--label-font);
+  font-size: 12px;
+}
+
+.admin-bridge-token-row button {
+  flex-shrink: 0;
 }
 
 .profile-editor {

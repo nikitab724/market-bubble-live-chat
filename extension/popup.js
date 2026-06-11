@@ -11,6 +11,7 @@ const FALLBACK_X_SOURCES = [
 
 const DEFAULT_BACKEND_BASE_URL = "https://marketbubble.192-210-192-116.sslip.io";
 const BACKEND_BASE_URL_STORAGE_KEY = "marketBubbleBackendBaseUrl";
+const INGEST_TOKEN_STORAGE_KEY = "marketBubbleIngestToken";
 
 async function getBackendBaseUrl() {
   const stored = await chrome.storage.local.get({
@@ -24,6 +25,17 @@ async function saveBackendBaseUrl(value) {
   const backendBaseUrl = normalizeBackendBaseUrl(value);
   await chrome.storage.local.set({ [BACKEND_BASE_URL_STORAGE_KEY]: backendBaseUrl });
   return backendBaseUrl;
+}
+
+async function getIngestToken() {
+  const stored = await chrome.storage.local.get({ [INGEST_TOKEN_STORAGE_KEY]: "" });
+  return String(stored[INGEST_TOKEN_STORAGE_KEY] || "").trim();
+}
+
+async function saveIngestToken(value) {
+  const token = String(value || "").trim();
+  await chrome.storage.local.set({ [INGEST_TOKEN_STORAGE_KEY]: token });
+  return token;
 }
 
 function buildBackendUrl(path, backendBaseUrl) {
@@ -78,9 +90,11 @@ async function init() {
   const statusText = document.querySelector("#statusText");
   const sourceSelect = document.querySelector("#sourceSelect");
   const backendUrlInput = document.querySelector("#backendUrlInput");
+  const ingestTokenInput = document.querySelector("#ingestTokenInput");
 
   const backendBaseUrl = await getBackendBaseUrl();
   backendUrlInput.value = backendBaseUrl;
+  ingestTokenInput.value = await getIngestToken();
 
   // Load X sources from backend
   const sources = await getXSources(backendBaseUrl);
@@ -111,6 +125,7 @@ async function init() {
 
   document.querySelector("#applyBtn").addEventListener("click", async () => {
     await saveBackendBaseUrl(backendUrlInput.value);
+    await saveIngestToken(ingestTokenInput.value);
     const handle = sourceSelect.value;
     if (handle) {
       await sendToContent(tab, { type: "set-source", sourceHandle: handle });

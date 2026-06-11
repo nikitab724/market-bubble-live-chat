@@ -11,6 +11,7 @@
 
 const DEFAULT_BACKEND_BASE_URL = "https://marketbubble.192-210-192-116.sslip.io";
 const BACKEND_BASE_URL_STORAGE_KEY = "marketBubbleBackendBaseUrl";
+const INGEST_TOKEN_STORAGE_KEY = "marketBubbleIngestToken";
 
 // Selectors tried in order to find the scrollable chat container.
 // X uses data-testid attributes that are relatively stable across releases.
@@ -97,7 +98,7 @@ async function reportBroadcastId() {
     const backendBaseUrl = await getBackendBaseUrl();
     await fetch(buildBackendUrl("/api/x-broadcast", backendBaseUrl), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await buildIngestHeaders(),
       body: JSON.stringify({ sourceHandle: currentSourceHandle, broadcastId }),
     });
     console.log(`[MB X Bridge] reported broadcast ${broadcastId} for @${currentSourceHandle}`);
@@ -194,7 +195,7 @@ async function sendMessage(author, handle, body) {
     const backendBaseUrl = await getBackendBaseUrl();
     await fetch(buildBackendUrl("/api/x-chat", backendBaseUrl), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await buildIngestHeaders(),
       body: JSON.stringify(payload),
     });
   } catch {
@@ -208,6 +209,19 @@ async function getBackendBaseUrl() {
   });
 
   return normalizeBackendBaseUrl(stored[BACKEND_BASE_URL_STORAGE_KEY]);
+}
+
+// The backend requires this token once an admin password is set; the operator
+// pastes it into the popup after logging into the admin page. The token is the
+// only secret the bridge holds, and it lives in extension storage, not code.
+async function buildIngestHeaders() {
+  const stored = await chrome.storage.local.get({ [INGEST_TOKEN_STORAGE_KEY]: "" });
+  const token = String(stored[INGEST_TOKEN_STORAGE_KEY] || "").trim();
+  const headers = { "Content-Type": "application/json" };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 function buildBackendUrl(path, backendBaseUrl) {
