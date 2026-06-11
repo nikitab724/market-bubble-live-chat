@@ -738,7 +738,7 @@ a { color: inherit; text-decoration: none; }
 
 .v2-content-split {
   display: grid;
-  grid-template-columns: minmax(0, calc(1fr - 100px)) minmax(0, calc(2.4fr + 100px)) minmax(140px, 200px);
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr) minmax(140px, 200px);
   gap: 18px;
   align-items: start;
 }
@@ -747,6 +747,10 @@ a { color: inherit; text-decoration: none; }
 .v2-content-column--longform {
   padding-right: 18px;
   border-right: 1px solid var(--line-soft);
+}
+
+.v2-content-column--twitch {
+  max-width: 280px;
 }
 
 .v2-content-column {
@@ -901,6 +905,7 @@ a { color: inherit; text-decoration: none; }
 
   .v2-content-column--twitch,
   .v2-content-column--longform {
+    max-width: none;
     padding-right: 0;
     padding-bottom: 28px;
     border-right: none;
