@@ -659,6 +659,55 @@ h2 {
   background: #080808;
 }
 
+/* Floating social pill centered over the top edge of the stream player. */
+.stream-socials {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid rgba(228, 228, 228, 0.08);
+  border-radius: 999px;
+  background: rgba(5, 5, 5, 0.55);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  opacity: 0.82;
+  transition: opacity 180ms ease;
+}
+
+.stream-socials:hover,
+.stream-socials:focus-within {
+  opacity: 1;
+}
+
+.stream-socials a {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: rgba(228, 228, 228, 0.66);
+  transition:
+    color 160ms ease,
+    background 160ms ease;
+}
+
+.stream-socials a:hover,
+.stream-socials a:focus-visible {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.stream-socials svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
 .stream-player {
   width: 100%;
   height: 100%;

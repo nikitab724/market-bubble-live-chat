@@ -461,6 +461,16 @@ describe("chat interaction contract", () => {
     assert.equal(html.includes('data-surface="viewer"'), true);
     assert.equal(viewer.includes("broadcast-topbar"), true);
     assert.equal(viewer.includes("broadcast-metrics"), true);
+    // Market Bubble social links float as a centered pill over the top of
+    // the stream player (stream-view only, so /chat/ OBS embeds stay clean).
+    assert.equal(viewer.includes('className="stream-socials"'), true);
+    assert.equal(viewer.indexOf('className="stream-socials"') > viewer.indexOf('className="stream-view"'), true);
+    assert.equal(viewer.indexOf('className="stream-socials"') < viewer.indexOf('className="video-frame"'), true);
+    assert.equal(viewer.includes('href="https://x.com/MarketBubble"'), true);
+    assert.equal(viewer.includes('href="https://www.instagram.com/marketbubble/"'), true);
+    assert.equal(viewer.includes('href="https://www.tiktok.com/@marketbubble"'), true);
+    assert.match(styles, /\.stream-socials\s*\{[^}]*position: absolute[^}]*top: 10px[^}]*left: 50%[^}]*transform: translateX\(-50%\)/s);
+    assert.match(styles, /\.stream-socials\s*\{[^}]*border-radius: 999px/s);
     assert.equal(viewer.includes('className="brand-wordmark"'), true);
     assert.equal(viewer.includes('className="brand-wordmark-text"'), true);
     assert.equal(viewer.includes("Market Bubble"), true);
