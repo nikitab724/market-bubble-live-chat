@@ -434,7 +434,7 @@ function createLiveApp({ document, window }) {
   }
 
   function getTwitchEmoteMap(message) {
-    if (message.platform !== "twitch") {
+    if (!["twitch", "kick"].includes(message.platform)) {
       return {};
     }
 

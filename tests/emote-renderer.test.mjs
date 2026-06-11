@@ -34,7 +34,37 @@ describe("emote renderer", () => {
     );
   });
 
-  it("escapes non-Twitch messages without emote replacement", () => {
+  it("renders Kick native emotes by range and third-party emotes by token", () => {
+    const html = renderMessageBody(
+      {
+        body: "KEKW nice catJAM",
+        emotes: [
+          {
+            end: 3,
+            name: "KEKW",
+            provider: "kick",
+            start: 0,
+            url: "https://files.kick.com/emotes/37226/fullsize",
+          },
+        ],
+        platform: "kick",
+      },
+      {
+        catJAM: {
+          name: "catJAM",
+          provider: "bttv",
+          url: "https://cdn.betterttv.net/emote/catjam/2x",
+        },
+      },
+    );
+
+    assert.equal(
+      html,
+      '<img class="chat-emote kick-emote" src="https://files.kick.com/emotes/37226/fullsize" alt="KEKW" title="KEKW · Kick" loading="lazy" decoding="async" /> nice <img class="chat-emote bttv-emote" src="https://cdn.betterttv.net/emote/catjam/2x" alt="catJAM" title="catJAM · BTTV" loading="lazy" decoding="async" />',
+    );
+  });
+
+  it("escapes messages from platforms without emote support", () => {
     assert.equal(renderMessageBody({ body: "<hello> KEKW", platform: "x" }, {}), "&lt;hello&gt; KEKW");
   });
 });

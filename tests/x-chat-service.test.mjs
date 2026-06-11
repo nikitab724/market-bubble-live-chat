@@ -199,6 +199,68 @@ describe("x chat service", () => {
     service.stop();
   });
 
+  it("does not open replay chat for an ended broadcast and reports it offline", async () => {
+    const chatHub = createChatHubSpy();
+    const apiClient = {
+      bootstrapBroadcast: async () => ({ accessToken: "t", broadcastId: "1abc", endpoint: "https://c.pscp.tv", isLive: false }),
+    };
+    const service = createXChatService({ chatHub, apiClient, WebSocketImpl: FakeSocket });
+
+    service.syncSources([xSource]);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Ended broadcasts keep a joinable replay chat room with occupancy, so
+    // connecting would report stale replay watchers as a live stream.
+    assert.equal(FakeSocket.instances.length, 0);
+    assert.deepEqual(service.getLiveState().sources, [
+      {
+        isLive: false,
+        platform: "x",
+        sourceHandle: "banks",
+        sourceId: "x-banks",
+        sourceLabel: "Banks",
+        viewerCount: 0,
+      },
+    ]);
+
+    service.stop();
+  });
+
+  it("flips live-state offline when a live broadcast ends and the socket drops", async () => {
+    const chatHub = createChatHubSpy();
+    let live = true;
+    const apiClient = {
+      bootstrapBroadcast: async () => ({ accessToken: "t", broadcastId: "1abc", endpoint: "https://c.pscp.tv", isLive: live }),
+    };
+    const service = createXChatService({ apiClient, chatHub, reconnectDelayMs: 1, WebSocketImpl: FakeSocket });
+
+    service.syncSources([xSource]);
+    await Promise.resolve();
+    await Promise.resolve();
+    const socket = FakeSocket.instances[0];
+    socket.emit("open");
+    assert.equal(service.getLiveState().sources[0].isLive, true);
+
+    live = false;
+    socket.close();
+    await new Promise((resolve) => setTimeout(resolve, 15));
+
+    assert.equal(FakeSocket.instances.length, 1);
+    assert.deepEqual(service.getLiveState().sources, [
+      {
+        isLive: false,
+        platform: "x",
+        sourceHandle: "banks",
+        sourceId: "x-banks",
+        sourceLabel: "Banks",
+        viewerCount: 0,
+      },
+    ]);
+
+    service.stop();
+  });
+
   it("schedules a reconnect with a fresh bootstrap when the socket closes", async () => {
     const chatHub = createChatHubSpy();
     let bootstrapCount = 0;

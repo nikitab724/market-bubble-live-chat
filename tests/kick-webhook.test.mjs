@@ -64,7 +64,38 @@ describe("kick webhook", () => {
         { count: 3, id: "subscriber", label: "Subscriber", title: "Subscriber · 3", version: "" },
       ],
       sentiment: "positive",
+      emotes: [
+        { end: 14, name: "HYPERCLAP", provider: "kick", start: 6, url: "https://files.kick.com/emotes/4148074/fullsize" },
+        { end: 19, name: "KEKW", provider: "kick", start: 16, url: "https://files.kick.com/emotes/37226/fullsize" },
+      ],
     });
+  });
+
+  it("keeps Kick emote positions aligned with the trimmed body", () => {
+    const message = normalizeKickChatWebhook({
+      payload: {
+        message_id: "m2",
+        broadcaster: { username: "Market Bubble", channel_slug: "marketbubble" },
+        sender: { username: "sender_name", channel_slug: "sender_channel" },
+        content: "  [emote:37226:KEKW] hi  ",
+        created_at: "2026-06-05T18:00:00Z",
+      },
+      sources: [
+        {
+          platform: "kick",
+          sourceHandle: "marketbubble",
+          sourceId: "kick-marketbubble",
+          sourceLabel: "Market Bubble",
+          sourceName: "Market Bubble",
+          sourceUrl: "https://kick.com/marketbubble",
+        },
+      ],
+    });
+
+    assert.equal(message.body, "KEKW hi");
+    assert.deepEqual(message.emotes, [
+      { end: 3, name: "KEKW", provider: "kick", start: 0, url: "https://files.kick.com/emotes/37226/fullsize" },
+    ]);
   });
 
   it("verifies Kick webhook signatures over message id, timestamp, and raw body", () => {

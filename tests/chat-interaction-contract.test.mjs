@@ -971,13 +971,15 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.admin-root\s+body,\s*body\.admin-body\s*\{[^}]*position: static[^}]*overflow-y: auto/s);
   });
 
-  it("keeps admin rows handle-only with a live status line per source", () => {
+  it("keeps admin rows lean with handle, chat label, and a live status line per source", () => {
     const admin = readFileSync(new URL("../admin/admin.mjs", import.meta.url), "utf8");
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
-    // Minimum inputs: enabled, handle, show stream. The cryptic ids ride
-    // along from saved state instead of editable fields.
+    // Minimum inputs: enabled, handle, chat label, show stream. The cryptic
+    // ids ride along from saved state instead of editable fields.
     assert.equal(admin.includes('input.name = "handle"') || admin.includes('createTextField(platform.handleLabel, "handle"'), true);
+    assert.equal(admin.includes('createTextField("Chat label", "label"'), true);
+    assert.equal(admin.includes("row.querySelector('[name=\"label\"]')"), true);
     assert.equal(admin.includes('[name="broadcastId"]'), false);
     assert.equal(admin.includes('[name="conversationId"]'), false);
     assert.equal(admin.includes('[name="broadcasterUserId"]'), false);

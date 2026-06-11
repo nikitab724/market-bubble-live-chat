@@ -74,6 +74,13 @@ describe("admin source status model", () => {
     );
   });
 
+  it("shows a definitively offline stream as offline even while its chat is busy", () => {
+    assert.deepEqual(
+      statusFor({ connectorStatus: "connected", lastChatAt: NOW - 30_000, live: { isLive: false, viewerCount: 0 } }),
+      { tone: "muted", text: "Offline" },
+    );
+  });
+
   it("maps connector states to plain language", () => {
     assert.deepEqual(
       statusFor({ connectorStatus: "connected" }),

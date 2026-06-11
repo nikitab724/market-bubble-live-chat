@@ -17,12 +17,13 @@ export async function loadPublicConfig({ fetchImpl = fetch, fallbackSources }) {
 }
 
 export async function loadTwitchEmotes({ fetchImpl = fetch, sources, state, queueRender }) {
-  const twitchSources = sources.filter((source) => source.platform === "twitch");
+  const emoteSources = sources.filter((source) => ["twitch", "kick"].includes(source.platform));
 
   await Promise.all(
-    twitchSources.map(async (source) => {
+    emoteSources.map(async (source) => {
       try {
-        const response = await fetchImpl(`/api/twitch-emotes?channel=${encodeURIComponent(source.sourceHandle)}`, {
+        const channel = resolveEmoteChannel(source, sources);
+        const response = await fetchImpl(`/api/twitch-emotes?channel=${encodeURIComponent(channel)}`, {
           cache: "no-store",
         });
         if (!response.ok) return;
@@ -35,6 +36,22 @@ export async function loadTwitchEmotes({ fetchImpl = fetch, sources, state, queu
       }
     }),
   );
+}
+
+// Kick chat shares the BTTV/7TV/FFZ emote culture, but those providers key
+// channel sets by Twitch identity. A Kick source borrows its profile-mate
+// Twitch channel when one exists; kick-only profiles resolve through their
+// own handle, which effectively yields the global emote sets.
+function resolveEmoteChannel(source, sources) {
+  if (source.platform === "twitch") {
+    return source.sourceHandle;
+  }
+
+  const profileId = String(source.profileId || "").trim();
+  const twitchMate = profileId
+    ? sources.find((candidate) => candidate.platform === "twitch" && candidate.profileId === profileId)
+    : null;
+  return twitchMate?.sourceHandle || source.sourceHandle;
 }
 
 export async function loadTwitchBadges({ fetchImpl = fetch, sources, state, queueRender }) {

@@ -30,6 +30,12 @@ export function describeSourceStatus({
     return { tone: "live", text: `Live · ${NUMBER_FORMAT.format(live.viewerCount || 0)} watching` };
   }
 
+  if (live && live.isLive === false) {
+    // The provider definitively says offline; chat activity or a healthy
+    // connector must not dress the row up as live.
+    return { tone: "muted", text: "Offline" };
+  }
+
   if (lastChatAt && now - lastChatAt <= CHAT_ACTIVE_WINDOW_MS) {
     return { tone: "live", text: "Chat active" };
   }

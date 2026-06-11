@@ -2,6 +2,7 @@ const PROVIDER_LABELS = {
   "7TV": "7TV",
   bttv: "BTTV",
   ffz: "FFZ",
+  kick: "Kick",
   twitch: "Twitch",
 };
 
@@ -9,11 +10,14 @@ const PROVIDER_CLASSES = {
   "7TV": "seventv",
   bttv: "bttv",
   ffz: "ffz",
+  kick: "kick",
   twitch: "twitch",
 };
 
+const EMOTE_PLATFORMS = new Set(["twitch", "kick"]);
+
 export function renderMessageBody(message, thirdPartyEmotes = {}) {
-  if (message.platform !== "twitch") {
+  if (!EMOTE_PLATFORMS.has(message.platform)) {
     return escapeHtml(message.body || "");
   }
 

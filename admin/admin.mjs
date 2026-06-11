@@ -221,6 +221,7 @@ function createSocialRow(source, platform) {
   row.append(
     heading,
     handleField,
+    createTextField("Chat label", "label", source?.label, "Shown in chat"),
     createStatusLine(),
     createStreamField(source?.showStream),
   );
@@ -362,16 +363,16 @@ function collectProfilesFromDom() {
 
 function collectSocialSource(card, platform, index) {
   const row = card.querySelector(`[data-platform="${platform}"]`);
-  // Fields without inputs (labels, broadcast/conversation ids, resolved
-  // broadcaster ids) ride along from the last loaded state so saving the
-  // simplified form never wipes them.
+  // Fields without inputs (broadcast/conversation ids, resolved broadcaster
+  // ids) ride along from the last loaded state so saving the simplified form
+  // never wipes them.
   const slot = profiles[index]?.sources?.[platform] || {};
 
   return {
     broadcasterUserId: slot.broadcasterUserId || "",
     broadcastId: slot.broadcastId || "",
     conversationId: slot.conversationId || "",
-    label: slot.label || "",
+    label: row.querySelector('[name="label"]').value,
     sourceId: slot.sourceId || "",
     enabled: row.querySelector('[name="enabled"]').checked,
     handle: row.querySelector('[name="handle"]').value,
@@ -474,6 +475,7 @@ function renderStatusLines() {
       const platform = row.dataset.platform || "";
       const saved = savedSlotsByKey.get(`${profileId}:${platform}`);
       const handle = row.querySelector('[name="handle"]')?.value.trim() || "";
+      const label = row.querySelector('[name="label"]')?.value.trim() || "";
       const enabled = row.querySelector('[name="enabled"]')?.checked === true;
       const showStream = row.querySelector('[name="showStream"]')?.checked === true;
       const sourceId = saved?.sourceId || "";
@@ -482,7 +484,7 @@ function renderStatusLines() {
         platform,
         enabled,
         handle,
-        dirty: hasUnsavedEdits({ saved, handle, enabled, showStream }),
+        dirty: hasUnsavedEdits({ saved, handle, enabled, showStream, label }),
         broadcastId: saved?.broadcastId || "",
         provider: liveStatus.providers?.[platform] || null,
         live: (sourceId && liveStatus.liveBySourceId.get(sourceId)) || null,
@@ -499,10 +501,11 @@ function renderStatusLines() {
   }
 }
 
-function hasUnsavedEdits({ saved, handle, enabled, showStream }) {
+function hasUnsavedEdits({ saved, handle, enabled, showStream, label }) {
   if (!saved) return handle !== "";
 
   return handle !== String(saved.handle || "")
+    || label !== String(saved.label || "").trim()
     || enabled !== (saved.enabled === true)
     || showStream !== (saved.showStream === true);
 }

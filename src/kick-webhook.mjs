@@ -17,6 +17,7 @@ export function normalizeKickChatWebhook({ payload, sources }) {
   const sender = payload.sender || {};
   const author = String(sender.username || "Unknown").trim();
   const handle = String(sender.channel_slug || sender.username || author).replace(/^@/, "").trim();
+  const content = normalizeKickContent(payload.content);
 
   return normalizeMessage({
     id: payload.message_id ? `kick-${payload.message_id}` : undefined,
@@ -25,7 +26,8 @@ export function normalizeKickChatWebhook({ payload, sources }) {
     authorColor: sender.identity?.username_color || "",
     badges: normalizeKickBadges(sender.identity?.badges),
     handle,
-    body: normalizeKickContent(payload.content),
+    body: content.body,
+    emotes: content.emotes,
     timestamp: payload.created_at,
     sourceUrl: handle ? `https://kick.com/${handle}` : "",
     sourceId: source.sourceId,
@@ -108,11 +110,32 @@ function toBadgeLabel(id) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+const KICK_EMOTE_PATTERN = /\[emote:([^:\]]+):([^\]]+)\]/g;
+
 function normalizeKickContent(content) {
-  return String(content || "")
-    .replace(/\[emote:[^:\]]+:([^\]]+)\]/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
+  // Whitespace is collapsed and trimmed before positions are computed so the
+  // emote ranges stay aligned with the body normalizeMessage stores.
+  const raw = String(content || "").replace(/\s+/g, " ").trim();
+  const emotes = [];
+  let body = "";
+  let cursor = 0;
+
+  for (const match of raw.matchAll(KICK_EMOTE_PATTERN)) {
+    body += raw.slice(cursor, match.index);
+    const name = match[2];
+    emotes.push({
+      end: body.length + name.length - 1,
+      name,
+      provider: "kick",
+      start: body.length,
+      url: `https://files.kick.com/emotes/${match[1]}/fullsize`,
+    });
+    body += name;
+    cursor = match.index + match[0].length;
+  }
+
+  body += raw.slice(cursor);
+  return { body, emotes };
 }
 
 function getHeader(headers, name) {

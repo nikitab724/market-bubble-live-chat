@@ -36,14 +36,20 @@ export function createXChatService({
 
       return {
         providers: { x: { status } },
-        sources: connected.map((entry) => ({
-          isLive: true,
-          platform: "x",
-          sourceHandle: entry.source.sourceHandle,
-          sourceId: entry.source.sourceId,
-          sourceLabel: entry.source.sourceLabel || entry.source.sourceName,
-          viewerCount: entry.occupancy || 0,
-        })),
+        sources: entries
+          .filter((entry) => entry.socketOpen || entry.broadcastLive === false)
+          .map((entry) => {
+            const isLive = entry.socketOpen && entry.broadcastLive === true;
+
+            return {
+              isLive,
+              platform: "x",
+              sourceHandle: entry.source.sourceHandle,
+              sourceId: entry.source.sourceId,
+              sourceLabel: entry.source.sourceLabel || entry.source.sourceName,
+              viewerCount: isLive ? entry.occupancy || 0 : 0,
+            };
+          }),
       };
     },
 
@@ -74,6 +80,7 @@ export function createXChatService({
   function startSource(source) {
     const entry = {
       active: true,
+      broadcastLive: null,
       key: getSourceConnectionKey(source),
       occupancy: 0,
       reconnectTimer: null,
@@ -92,6 +99,14 @@ export function createXChatService({
     try {
       const bootstrap = await apiClient.bootstrapBroadcast(broadcastId);
       if (!entry.active) {
+        return;
+      }
+
+      entry.broadcastLive = bootstrap.isLive !== false;
+      if (!entry.broadcastLive) {
+        // An ended broadcast id never goes live again, and its replay chat
+        // room still reports occupancy; connecting would surface replay
+        // watchers as a live stream. Stay disconnected and report offline.
         return;
       }
 
