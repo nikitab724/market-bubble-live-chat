@@ -633,8 +633,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .v2-offline-screen[hidden] { display: none !important; }
-.v2-main.v2-hidden,
-.v2-footer-center.v2-hidden { display: none !important; }
+.v2-main.v2-hidden { display: none !important; }
+.v2-footer-center.v2-hidden { visibility: hidden; }
 
 .v2-offline-content {
   display: flex;
