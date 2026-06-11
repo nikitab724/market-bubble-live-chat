@@ -232,6 +232,10 @@ export function createAppServer(options = {}) {
           const sources = await readSources(configPath);
           const message = normalizeXChatMessage(body, sources);
 
+          if (!message) {
+            return sendJson(response, 404, { error: "No matching X source" });
+          }
+
           // A source with a broadcast id is served by the server-side X chat
           // connector. Ignore the extension DOM bridge for it so its messages
           // are not delivered twice (once from each path).
@@ -299,6 +303,15 @@ export function createAppServer(options = {}) {
           payload: JSON.parse(rawBody),
           sources: await readSources(configPath),
         });
+
+        // A signed webhook for an unconfigured broadcaster (a stale app
+        // subscription) is acknowledged with 2xx so Kick does not retry or
+        // disable the webhook, but it never enters the chat stream.
+        if (!message) {
+          response.writeHead(204);
+          return response.end();
+        }
+
         chatHub.broadcast("chat", message);
 
         response.writeHead(204);
@@ -316,6 +329,11 @@ export function createAppServer(options = {}) {
           payload: buildDevKickChatPayload(body, sources),
           sources,
         });
+
+        if (!message) {
+          return sendJson(response, 404, { error: "No matching Kick source" });
+        }
+
         chatHub.broadcast("chat", message);
 
         return sendJson(response, 200, { message });
@@ -432,11 +450,16 @@ export function createAppServer(options = {}) {
 
         if (request.method === "PUT") {
           const body = await readJsonBody(request);
+          const previousSources = await readSources(configPath);
           const sources = await resolveKickBroadcasterUserIds(
-            normalizeSources(stripEditableViewerCounts(body.sources || [])),
+            dropStaleXBroadcastIds(normalizeSources(stripEditableViewerCounts(body.sources || [])), previousSources),
             kickClient,
           );
           await ensureKickChatSubscriptions(sources, kickClient);
+          await removeKickChatSubscriptions(
+            getRemovedKickBroadcasterUserIds(previousSources, sources),
+            kickClient,
+          );
           ensuredKickSubscriptionKey = getKickSubscriptionKey(sources);
           await writeSources(configPath, sources);
           syncChatConnectorSources(sources);
@@ -555,10 +578,16 @@ function getDevKickSource(body, sources) {
 function normalizeXChatMessage(body, sources) {
   const requestedHandle = String(body.sourceHandle || "").replace(/^@/, "").toLowerCase().trim();
   const xSources = (Array.isArray(sources) ? sources : []).filter((s) => s.platform === "x");
-  const source = xSources.find((s) => s.sourceHandle === requestedHandle) || xSources[0];
+  // A named handle must match its configured source: after an admin handle
+  // change, an extension still watching the previous account keeps posting
+  // with the old handle, and a first-source fallback would leak that stream's
+  // chat into the new one.
+  const source = requestedHandle
+    ? xSources.find((s) => s.sourceHandle === requestedHandle)
+    : xSources[0];
 
   if (!source) {
-    throw new Error("No X source configured");
+    return null;
   }
 
   const handle = String(body.handle || body.author || "viewer")
@@ -609,6 +638,33 @@ function applyXBroadcastId(body, sources) {
   return { ok: true, changed, sourceId: source.sourceId, broadcastId };
 }
 
+// An extension-captured broadcast id identifies one account's live stream. If
+// an admin save changes a source's X handle, the riding-along id would keep
+// the server-side connector attached to the previous account's broadcast, so
+// it is dropped and the connector disconnects until the new handle's id is
+// captured.
+function dropStaleXBroadcastIds(sources, previousSources) {
+  const previousHandlesBySourceId = new Map(
+    previousSources
+      .filter((source) => source.platform === "x")
+      .map((source) => [source.sourceId, source.sourceHandle]),
+  );
+
+  return sources.map((source) => {
+    if (source.platform !== "x" || !source.broadcastId) {
+      return source;
+    }
+
+    const previousHandle = previousHandlesBySourceId.get(source.sourceId);
+    if (!previousHandle || previousHandle === source.sourceHandle) {
+      return source;
+    }
+
+    const { broadcastId, ...rest } = source;
+    return rest;
+  });
+}
+
 function stripEditableViewerCounts(sources) {
   return (Array.isArray(sources) ? sources : []).map(({ viewerCount, ...source }) => source);
 }
@@ -651,6 +707,43 @@ async function ensureKickChatSubscriptions(sources, kickClient) {
   }
 
   return kickClient.ensureChatEventSubscriptions(sources);
+}
+
+// Only the broadcasters this save drops are unsubscribed — never "everything
+// not in the config" — so one environment's save cannot tear down chat
+// subscriptions another environment created on the same Kick app.
+function getRemovedKickBroadcasterUserIds(previousSources, sources) {
+  const keptIds = new Set(
+    sources
+      .filter((source) => source.platform === "kick" && source.broadcasterUserId)
+      .map((source) => Number(source.broadcasterUserId)),
+  );
+
+  return [...new Set(
+    previousSources
+      .filter((source) => source.platform === "kick" && source.broadcasterUserId)
+      .map((source) => Number(source.broadcasterUserId))
+      .filter((broadcasterUserId) => !keptIds.has(broadcasterUserId)),
+  )];
+}
+
+async function removeKickChatSubscriptions(broadcasterUserIds, kickClient) {
+  if (broadcasterUserIds.length === 0) {
+    return null;
+  }
+
+  if (typeof kickClient.removeChatEventSubscriptions !== "function") {
+    return null;
+  }
+
+  try {
+    return await kickClient.removeChatEventSubscriptions(broadcasterUserIds);
+  } catch (error) {
+    // A failed cleanup must not block saving config; webhook attribution
+    // drops events from unconfigured broadcasters either way.
+    console.warn(`[kick] chat subscription cleanup failed: ${error.message || error}`);
+    return null;
+  }
 }
 
 function getKickSubscriptionKey(sources) {

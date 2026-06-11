@@ -93,6 +93,34 @@ export function createKickApiClient(options = {}) {
 
       return result;
     },
+
+    async removeChatEventSubscriptions(broadcasterUserIds) {
+      const targetIds = new Set(
+        (Array.isArray(broadcasterUserIds) ? broadcasterUserIds : [])
+          .map((id) => normalizeBroadcasterUserId(id))
+          .filter(Boolean),
+      );
+      const result = { removed: [] };
+
+      if (targetIds.size === 0) {
+        return result;
+      }
+
+      const token = await getAppAccessToken();
+      const subscriptions = await getEventSubscriptions(token);
+
+      for (const subscription of subscriptions) {
+        const broadcasterUserId = normalizeBroadcasterUserId(subscription.broadcaster_user_id);
+        if (subscription.event !== KICK_CHAT_EVENT_NAME || !targetIds.has(broadcasterUserId)) {
+          continue;
+        }
+
+        await deleteEventSubscription(subscription.id, token);
+        result.removed.push({ broadcasterUserId, subscriptionId: subscription.id });
+      }
+
+      return result;
+    },
   };
 
   async function getAppAccessToken() {
@@ -228,6 +256,20 @@ export function createKickApiClient(options = {}) {
     }
 
     return subscription;
+  }
+
+  async function deleteEventSubscription(subscriptionId, token) {
+    const url = new URL(eventSubscriptionsUrl);
+    url.searchParams.set("id", subscriptionId);
+
+    const response = await fetchImpl(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Kick chat subscription delete failed with ${response.status}`);
+    }
   }
 }
 

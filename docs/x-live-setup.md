@@ -14,7 +14,7 @@ The server-side connector needs a broadcast id per X source. The extension fills
 4. Click the Market Bubble extension popup and select the matching X source.
 5. The content script reads the broadcast id from the URL and POSTs it to `POST /api/x-broadcast`. The server writes it to the matching X source and the server-side connector attaches to that broadcast's chat.
 
-X mints a new broadcast id each time the account goes live, so the extension re-reports it whenever the URL changes — no manual paste per stream. The admin editor has no broadcast id field: the X row's status line reads "Go live, then open your X live page in Chrome with the extension" until the id is captured, then flips to the connector's status. A captured `broadcastId` survives admin saves untouched.
+X mints a new broadcast id each time the account goes live, so the extension re-reports it whenever the URL changes — no manual paste per stream. The admin editor has no broadcast id field: the X row's status line reads "Go live, then open your X live page in Chrome with the extension" until the id is captured, then flips to the connector's status. A captured `broadcastId` survives admin saves untouched — unless the save changes the source's X handle. The id belongs to the previous account's broadcast, so a handle change drops it and disconnects the connector from that stream; the row returns to the "Go live..." prompt until the new handle's id is captured. Bridge chat posts that name a handle with no matching X source are rejected (404), so an extension tab still watching the old account cannot leak its chat into the new source — reselect the source in the popup on the new account's live page.
 
 ### Extension DOM bridge (fallback)
 

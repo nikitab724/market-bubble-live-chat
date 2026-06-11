@@ -596,3 +596,18 @@ Append-only timeline for ingests, queries, lint passes, and repo-changing runs. 
 - `src/source-config.mjs` is unchanged: `room` stays a supported platform, the default seed still includes a room source, and chat still renders room messages (viewer profile popovers already excluded room).
 - Touched: `admin/profile-model.mjs`, `tests/admin-profile-model.test.mjs`, `docs/connectors.md`, `docs/wiki/log.md`.
 - Verification: `node --test tests/admin-profile-model.test.mjs` (6 passed, slot keys now `["twitch","kick","x"]`); `node --test tests/*.test.mjs` (184 passed).
+
+## [2026-06-11] connector | Disconnect the old X broadcast when an admin save changes the handle
+
+- A handle change in `/admin/` now drops the source's extension-captured `broadcastId` (`dropStaleXBroadcastIds` in `server.mjs`, applied in `PUT /api/admin/sources` against the previously saved sources, matched by `sourceId`). The id identified the previous account's broadcast, so the re-sync disconnects the server-side X connector from that stream and the row returns to the "Go live..." prompt until the new handle's id is captured. Saves that keep the handle still ride the id along untouched.
+- `POST /api/x-chat` no longer falls back to the first X source when the posted `sourceHandle` matches nothing — it returns 404, so an extension tab still watching the old account cannot leak that stream's chat into the new source. Posts without a handle keep the first-source fallback.
+- Touched: `server.mjs`, `tests/server-contract.test.mjs`, `docs/connectors.md`, `docs/x-live-setup.md`, `docs/architecture.md`, `docs/wiki/log.md`.
+- Verification: two new contract tests red→green (`drops the captured broadcast id when an admin save changes the X handle`, `rejects extension DOM-bridge chat when its handle no longer matches an X source`); `npm test` 186/186.
+
+## [2026-06-11] connector | Stop foreign Kick chat from masquerading as the first Kick source
+
+- Incident: the production feed flooded with another channel's chat labeled "kick banks". The Kick app held `chat.message.sent` subscriptions for previously configured broadcasters (xqc, nickwhite, kaneljoseph) — `ensureChatEventSubscriptions` never deletes — and xqc went live (~11k viewers); `findKickSource` attributed every unmatched webhook to `kickSources[0]`. Same bug family as the X first-source leak fixed in the entry above.
+- Treatment: `src/kick-webhook.mjs` matches by resolved `broadcasterUserId` first (the slug can differ from the operator-typed handle: kick.com/fazebanks saved as "banks"), then slug, and returns null instead of the first-source/fabricated fallbacks; `POST /api/webhooks/kick` acks unmatched events with 204 without broadcasting (the dev injector returns 404). `PUT /api/admin/sources` now deletes chat subscriptions for the broadcasters the save drops (`removeChatEventSubscriptions` in `src/kick-api.mjs`) — only save-removed broadcasters, so one environment cannot tear down another's subscriptions on a shared Kick app; cleanup failure warns and never blocks the save.
+- Ops: deleted the three stray subscriptions from the Kick app via API (kept fazebanks 81630 and ansem 110326750). The code fix needs a deploy to take effect on the Firecrawl server.
+- Touched: `src/kick-webhook.mjs`, `src/kick-api.mjs`, `server.mjs`, `tests/kick-webhook.test.mjs`, `tests/kick-api.test.mjs`, `tests/server-contract.test.mjs`, `docs/connectors.md`, `docs/architecture.md`, `docs/wiki/log.md`.
+- Verification: six new tests red→green (three webhook attribution units, one kick-api unsubscribe unit, two server contracts: unmatched-broadcaster drop and save-removal unsubscribe); `npm test` 192/192.
