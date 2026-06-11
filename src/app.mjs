@@ -14,7 +14,7 @@ import {
 import { fallbackSources } from "./client-sources.mjs";
 import { seedDemoMessages, startDemoChat } from "./demo-chat.mjs";
 import { PLATFORM_ORDER, getProfileUrl } from "./platforms.mjs";
-import { initStreamPlayer, updateStreamPresence } from "./viewer-stream.mjs";
+import { getStreamSelectionKey, initStreamPlayer, updateStreamPresence } from "./viewer-stream.mjs";
 
 const LIVE_STATE_REFRESH_MS = 30_000;
 const CHAT_RENDER_INTERVAL_MS = 80;
@@ -34,6 +34,7 @@ export function mountLiveApp({ document: documentRef = document, window: windowR
 function createLiveApp({ document, window }) {
   let connectedSources = fallbackSources.map((source) => ({ ...source }));
   let sourceById = buildSourceMap(connectedSources);
+  let configVersion = "";
   let lastRenderAt = 0;
   let queuedRenderFrame = 0;
   let queuedRenderTimer = 0;
@@ -83,7 +84,9 @@ function createLiveApp({ document, window }) {
   }
 
   async function initializeApp() {
-    connectedSources = await loadPublicConfig({ fallbackSources });
+    const config = await loadPublicConfig({ fallbackSources });
+    connectedSources = config.sources;
+    configVersion = config.configVersion;
     sourceById = buildSourceMap(connectedSources);
     state.sources = connectedSources.map((source) => ({ ...source }));
     state.twitchStatuses = Object.fromEntries(
@@ -98,7 +101,7 @@ function createLiveApp({ document, window }) {
     loadTwitchBadges({ sources: connectedSources, state, queueRender });
     loadTwitchEmotes({ sources: connectedSources, state, queueRender });
     loadXProfiles({ sources: connectedSources, state, queueRender });
-    startBackendChatEvents({ window, addBackendMessage, updateBackendChatStatus });
+    startBackendChatEvents({ window, addBackendMessage, updateBackendChatStatus, onConfigEvent: handleConfigEvent });
     if (isDemoChatEnabled()) {
       startDemoChat({
         addMessage,
@@ -122,6 +125,84 @@ function createLiveApp({ document, window }) {
     // Live-state merges isLive into state.sources; swap the player between
     // the embed and the offline countdown when the answer changes.
     updateStreamPresence({ document, window, sources: state.sources });
+  }
+
+  // Admin saves push a config event over the chat stream; re-fetch and apply
+  // the new source config so open pages never need a manual reload. The
+  // version check makes replayed events after an SSE reconnect no-ops.
+  async function handleConfigEvent(payload) {
+    const version = String(payload?.version || "");
+    if (version && version === configVersion) {
+      return;
+    }
+
+    const config = await loadPublicConfig({ fallbackSources: connectedSources });
+    if (config.configVersion) {
+      configVersion = config.configVersion;
+    }
+    applySources(config.sources);
+  }
+
+  // Apply refreshed source config in place: update chips/filters, prune state
+  // for removed sources, warm caches for new or re-pointed ones, and re-render
+  // the player only when the selected stream actually changed.
+  function applySources(nextSources) {
+    const previousSelectionKey = getStreamSelectionKey(state.sources);
+    const previousStateById = new Map(state.sources.map((source) => [source.sourceId, source]));
+    const previousConfigById = sourceById;
+
+    connectedSources = nextSources;
+    sourceById = buildSourceMap(connectedSources);
+
+    // Sources that persist keep their live-state overlay; config fields come
+    // from the fresh source. The provider-locked viewer count must not be
+    // clobbered by the config's placeholder zero.
+    state.sources = connectedSources.map((source) => {
+      const previous = previousStateById.get(source.sourceId);
+      if (!previous) {
+        return { ...source };
+      }
+
+      const merged = { ...previous, ...source };
+      if (previous.viewerCountLocked) {
+        merged.viewerCount = previous.viewerCount;
+      }
+      return merged;
+    });
+
+    for (const sourceId of previousStateById.keys()) {
+      if (sourceById.has(sourceId)) continue;
+      delete state.twitchStatuses[sourceId];
+      delete state.twitchBadges[sourceId];
+      delete state.twitchEmotes[sourceId];
+    }
+
+    // New sources and re-pointed handles/profiles need fresh emotes, badges,
+    // and X identity cards. The loaders get the full list because Kick emote
+    // maps resolve through profile-mate Twitch channels.
+    const changedSources = connectedSources.filter((source) => {
+      const previous = previousConfigById.get(source.sourceId);
+      return !previous || previous.sourceHandle !== source.sourceHandle || previous.profileId !== source.profileId;
+    });
+
+    for (const source of changedSources) {
+      if (source.platform === "twitch" && !state.twitchStatuses[source.sourceId]) {
+        state.twitchStatuses[source.sourceId] = "connecting";
+      }
+    }
+
+    if (changedSources.length > 0) {
+      loadTwitchBadges({ sources: connectedSources, state, queueRender });
+      loadTwitchEmotes({ sources: connectedSources, state, queueRender });
+      loadXProfiles({ sources: connectedSources, state, queueRender });
+    }
+
+    if (getStreamSelectionKey(state.sources) !== previousSelectionKey) {
+      initStreamPlayer({ document, sources: state.sources, window });
+    }
+
+    queueRender();
+    refreshLiveStateFromBackend();
   }
 
   function addBackendMessage(rawMessage) {

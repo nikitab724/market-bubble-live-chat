@@ -836,6 +836,64 @@ describe("server contract", () => {
     }
   });
 
+  it("versions public config and broadcasts a config event on admin saves", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-config-version-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [{ platform: "twitch", sourceId: "twitch-xqc", sourceHandle: "xqc", sourceLabel: "Xtwin", enabled: true }],
+      }),
+    );
+
+    const broadcasts = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: { syncSources() {}, stop() {} },
+      chatHub: {
+        broadcast(eventName, payload) {
+          broadcasts.push({ eventName, payload });
+        },
+        connect() {},
+      },
+    });
+    await listen(server);
+
+    try {
+      const initial = await request(server, "GET", "/api/public-config");
+      assert.equal(initial.status, 200);
+      assert.match(initial.json.configVersion, /^[0-9a-f]{12}$/);
+
+      // A save that changes the public config bumps the version and pushes a
+      // config event so open pages refresh without a reload.
+      const editorSource = { platform: "twitch", sourceId: "twitch-xqc", sourceHandle: "xqc", sourceLabel: "Xtwin v2", enabled: true };
+      const changed = await request(server, "PUT", "/api/admin/sources", { sources: [editorSource] });
+      assert.equal(changed.status, 200);
+
+      const configEvents = broadcasts.filter((event) => event.eventName === "config");
+      assert.equal(configEvents.length, 1);
+      assert.match(configEvents[0].payload.version, /^[0-9a-f]{12}$/);
+      assert.notEqual(configEvents[0].payload.version, initial.json.configVersion);
+
+      const after = await request(server, "GET", "/api/public-config");
+      assert.equal(after.json.configVersion, configEvents[0].payload.version);
+
+      // Saving identical content keeps the version stable, so client-side
+      // version dedupe makes the repeat event a no-op.
+      const repeat = await request(server, "PUT", "/api/admin/sources", { sources: [editorSource] });
+      assert.equal(repeat.status, 200);
+      const repeatEvents = broadcasts.filter((event) => event.eventName === "config");
+      assert.equal(repeatEvents.length, 2);
+      assert.equal(repeatEvents[1].payload.version, configEvents[0].payload.version);
+    } finally {
+      await close(server);
+    }
+  });
+
   it("keeps the captured broadcast id when an admin save omits it (stale admin page)", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-x-stale-save-"));
     const configPath = join(tempDir, "sources.json");

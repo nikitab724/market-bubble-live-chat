@@ -11,7 +11,7 @@
 
 `server.mjs` owns the HTTP server. It serves Vite-built static assets from `dist/client` first, falls back to the explicit source allowlist for tests/local inspection, and provides these API routes:
 
-- `GET /api/public-config`: enabled source config for browsers and the X extension popup.
+- `GET /api/public-config`: enabled source config for browsers and the X extension popup, plus `configVersion` for live config refresh.
 - `GET /api/live-state`: live state/viewer count aggregation — Twitch and Kick via their HTTP APIs, X via the chat connector's in-memory occupancy gated by the broadcast's live state (an ended broadcast reports `isLive: false` with zero viewers; no extra polling).
 - `GET /api/twitch-vod?channel=...`: latest Twitch VOD lookup (used by the offline player states).
 - `GET /api/twitch-emotes?channel=...`: Twitch third-party emote cache.
@@ -109,6 +109,10 @@ The admin editor allows one `showStream` source. The viewer resolves the stream 
 4. first configured source
 
 Twitch and Kick use iframe embeds. X uses the X widgets script when `conversationId` exists; otherwise the page shows an open-stream placeholder link.
+
+## Live Config Refresh
+
+Open viewer pages follow admin saves without a reload. `GET /api/public-config` carries a `configVersion` (a short hash of the public projection, so server-only fields like broadcast ids never bump it), and a successful `PUT /api/admin/sources` broadcasts a `config {version}` event on `/api/chat-events`. `src/app.mjs` listens for it, re-fetches the public config when the version is new, and applies it in place: source chips and filters rebuild, per-source caches prune (removed sources) or warm (new or re-pointed handles/profiles), live-state overlay fields survive the merge, and the player re-renders only when the *selected stream identity* changed (`getStreamSelectionKey` in `src/viewer-stream.mjs`) — label edits never reload a healthy embed. Config events persist and replay like chat, and the version check makes replays no-ops, so reconnecting tabs cannot miss a change. Removed sources keep their already-rendered messages (messages carry their own labels); their connections are torn down server-side by the save itself.
 
 ## Offline State
 
