@@ -113,6 +113,16 @@ export function getSelectedStreamSource(sources) {
     || sources[0];
 }
 
+// Identity of what the player should be showing. A config refresh re-renders
+// the player only when this changes, so label edits and other unrelated saves
+// never reload a healthy embed.
+export function getStreamSelectionKey(sources) {
+  const source = getSelectedStreamSource(sources || []);
+  if (!source) return "";
+
+  return [source.sourceId, source.platform, source.sourceHandle, source.conversationId || ""].join("|");
+}
+
 function createTwitchStreamFrame({ source, window }) {
   const parent = window.location.hostname || "localhost";
   const iframe = window.document.createElement("iframe");

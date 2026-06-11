@@ -7,13 +7,13 @@ export async function loadPublicConfig({ fetchImpl = fetch, fallbackSources }) {
 
     const config = await response.json();
     if (Array.isArray(config.sources) && config.sources.length > 0) {
-      return config.sources;
+      return { sources: config.sources, configVersion: String(config.configVersion || "") };
     }
   } catch {
-    return fallbackSources.map((source) => ({ ...source }));
+    // Fall through to the fallback copy below.
   }
 
-  return fallbackSources.map((source) => ({ ...source }));
+  return { sources: fallbackSources.map((source) => ({ ...source })), configVersion: "" };
 }
 
 export async function loadTwitchEmotes({ fetchImpl = fetch, sources, state, queueRender }) {
@@ -100,7 +100,7 @@ export async function loadTwitchBadges({ fetchImpl = fetch, sources, state, queu
   );
 }
 
-export function startBackendChatEvents({ window, addBackendMessage, updateBackendChatStatus }) {
+export function startBackendChatEvents({ window, addBackendMessage, updateBackendChatStatus, onConfigEvent }) {
   if (!("EventSource" in window)) return null;
 
   const events = new window.EventSource("/api/chat-events");
@@ -110,6 +110,13 @@ export function startBackendChatEvents({ window, addBackendMessage, updateBacken
   events.addEventListener("chat-status", (event) => {
     updateBackendChatStatus(JSON.parse(event.data));
   });
+  if (onConfigEvent) {
+    // Admin saves push a config event so open pages refresh source config
+    // without a reload.
+    events.addEventListener("config", (event) => {
+      onConfigEvent(JSON.parse(event.data));
+    });
+  }
 
   return events;
 }

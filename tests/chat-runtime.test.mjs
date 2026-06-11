@@ -1,7 +1,58 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { loadTwitchEmotes, loadXProfiles } from "../src/chat-runtime.mjs";
+import { loadPublicConfig, loadTwitchEmotes, loadXProfiles, startBackendChatEvents } from "../src/chat-runtime.mjs";
+
+describe("chat runtime public config", () => {
+  it("returns sources and the config version from the backend", async () => {
+    const fetchImpl = async () => ({
+      ok: true,
+      json: async () => ({ sources: [{ sourceId: "twitch-xqc" }], configVersion: "abc123def456" }),
+    });
+
+    const config = await loadPublicConfig({ fetchImpl, fallbackSources: [] });
+    assert.deepEqual(config.sources, [{ sourceId: "twitch-xqc" }]);
+    assert.equal(config.configVersion, "abc123def456");
+  });
+
+  it("falls back to copies of the provided sources when the backend is unavailable", async () => {
+    const fallbackSources = [{ sourceId: "twitch-fallback" }];
+    const config = await loadPublicConfig({
+      fetchImpl: async () => {
+        throw new Error("down");
+      },
+      fallbackSources,
+    });
+
+    assert.deepEqual(config.sources, fallbackSources);
+    assert.notEqual(config.sources[0], fallbackSources[0]);
+    assert.equal(config.configVersion, "");
+  });
+
+  it("invokes the config callback for SSE config events", () => {
+    const listeners = new Map();
+    class FakeEventSource {
+      constructor(url) {
+        this.url = url;
+      }
+
+      addEventListener(name, handler) {
+        listeners.set(name, handler);
+      }
+    }
+
+    const seen = [];
+    startBackendChatEvents({
+      window: { EventSource: FakeEventSource },
+      addBackendMessage: () => {},
+      updateBackendChatStatus: () => {},
+      onConfigEvent: (payload) => seen.push(payload),
+    });
+
+    listeners.get("config")({ data: JSON.stringify({ version: "abc123def456" }) });
+    assert.deepEqual(seen, [{ version: "abc123def456" }]);
+  });
+});
 
 describe("chat runtime emote loading", () => {
   it("loads third-party emote maps for Twitch and Kick sources", async () => {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
@@ -223,7 +224,10 @@ export function createAppServer(options = {}) {
         const sources = await readSources(configPath);
         syncChatConnectorSources(sources);
         await ensureKickChatSubscriptionsOnce(sources);
-        return sendJson(response, 200, toPublicConfig(sources));
+        return sendJson(response, 200, {
+          ...toPublicConfig(sources),
+          configVersion: getPublicConfigVersion(sources),
+        });
       }
 
       if (url.pathname === "/api/live-state" && request.method === "GET") {
@@ -552,6 +556,9 @@ export function createAppServer(options = {}) {
           ensuredKickSubscriptionKey = getKickSubscriptionKey(sources);
           await writeSources(configPath, sources);
           syncChatConnectorSources(sources);
+          // Open viewer pages refresh their config on this event instead of
+          // waiting for a manual reload; the version lets them dedupe replays.
+          chatHub.broadcast("config", { version: getPublicConfigVersion(sources) });
           return sendJson(response, 200, { sources });
         }
       }
@@ -735,6 +742,13 @@ function applyXBroadcastId(body, sources) {
   source.broadcastId = broadcastId;
 
   return { ok: true, changed, sourceId: source.sourceId, broadcastId };
+}
+
+// Version of the viewer-facing config, derived from the public projection so
+// server-only fields (broadcast ids, resolved broadcaster ids) do not bump it.
+// Open pages compare it to decide whether to re-fetch /api/public-config.
+function getPublicConfigVersion(sources) {
+  return createHash("sha256").update(JSON.stringify(toPublicConfig(sources))).digest("hex").slice(0, 12);
 }
 
 // The X broadcast id is server-captured state: the extension reports it while
