@@ -467,7 +467,7 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.indexOf('className="stream-socials"') > viewer.indexOf('className="stream-view"'), true);
     assert.equal(viewer.indexOf('className="stream-socials"') < viewer.indexOf('className="video-frame"'), true);
     assert.equal(viewer.includes('href="https://x.com/MarketBubble"'), true);
-    assert.equal(viewer.includes('href="https://www.instagram.com/marketbubble/"'), true);
+    assert.equal(viewer.includes('href="https://www.instagram.com/themarketbubble/"'), true);
     assert.equal(viewer.includes('href="https://www.tiktok.com/@marketbubble"'), true);
     // Spotify podcast link rounds out the social pill (URL is a swappable const).
     assert.equal(viewer.includes("SPOTIFY_PODCAST_URL"), true);

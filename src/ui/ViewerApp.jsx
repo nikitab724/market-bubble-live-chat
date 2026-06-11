@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 
 const LAYOUT_STORAGE_KEY = "market-bubble-viewer-layout";
-// TODO: swap to the real Spotify show URL once provided; this search link is a
-// placeholder so the icon never points at a dead page.
-const SPOTIFY_PODCAST_URL = "https://open.spotify.com/search/Market%20Bubble/shows";
+const SPOTIFY_PODCAST_URL = "https://open.spotify.com/show/00yWnJPE80LSBglGwCrjZI";
 const layoutModes = new Set(["full", "mini"]);
 const ENTRANCE_ANIMATIONS_MS = 1200;
 // Gecko's view-transition morph still drops frames over live video on
@@ -143,7 +141,7 @@ export function ViewerApp({ surface = "viewer" }) {
                   </svg>
                 </a>
                 <a
-                  href="https://www.instagram.com/marketbubble/"
+                  href="https://www.instagram.com/themarketbubble/"
                   target="_blank"
                   rel="noreferrer"
                   aria-label="Market Bubble on Instagram"
