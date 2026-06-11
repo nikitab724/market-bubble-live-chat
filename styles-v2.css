@@ -103,6 +103,7 @@ a { color: inherit; text-decoration: none; }
 .v2-main {
   display: grid;
   grid-template-columns: 240px 1fr 280px;
+  grid-template-rows: 1fr;
   flex: 1;
   min-height: 0;
   overflow: hidden;
