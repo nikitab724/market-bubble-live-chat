@@ -155,6 +155,7 @@ export function ViewerApp({ surface = "viewer" }) {
               If no one sees the vision, go alone
               <span className="corner-quote-mark">&rdquo;</span>
             </p>
+            <div id="offlineCountdown" className="corner-countdown" hidden />
             <p className="corner-schedule">
               <span>Live</span>
               <span className="corner-dot" />

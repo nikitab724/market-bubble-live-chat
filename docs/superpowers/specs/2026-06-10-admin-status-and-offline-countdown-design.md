@@ -3,6 +3,8 @@
 Date: 2026-06-10
 Status: approved by operator in chat (decisions quoted below), implemented same day.
 
+Amendment (same day): the operator asked that the countdown not cover the player ("can i bypass the timer thing overlayed over the stream? want to show vods"). Section C's takeover panel was replaced by: offline player shows the latest Twitch VOD (shared `GET /api/twitch-vod`) or the channel embed, and a compact countdown sits bottom-center in the footer. `docs/architecture.md` is the current reference.
+
 ## Goals
 
 1. Make "am I connected?" obvious in `/admin/`: one status dot + plain-English line per platform source, updating live.

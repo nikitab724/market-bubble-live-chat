@@ -2,7 +2,70 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { getProfileSourceStatus, getSourceStatus, shouldRenderSourceStatusDot } from "../src/chat-renderer.mjs";
+import { createChatRenderer, getProfileSourceStatus, getSourceStatus, shouldRenderSourceStatusDot } from "../src/chat-renderer.mjs";
+
+function createChatRendererHarness({ followingChat, inspectingProfile, scrollHeight = 0 }) {
+  const chatStack = {
+    html: "",
+    insertAdjacentHTML(_position, html) {
+      this.html += html;
+    },
+  };
+
+  const elements = {
+    chatFeed: {
+      clientHeight: 200,
+      querySelector: (selector) => (selector === ".chat-stack" ? chatStack : null),
+      scrollHeight,
+      scrollTop: 0,
+    },
+    chatFilters: { innerHTML: "" },
+    jumpToLive: { hidden: true },
+    sourceBreakdown: { innerHTML: "", querySelectorAll: () => [] },
+    viewerCount: { classList: { add() {} }, dataset: {}, isConnected: true, textContent: "" },
+  };
+
+  const state = {
+    chatFilterMenuOpen: false,
+    disabledChatSourceIds: new Set(),
+    followingChat,
+    inspectingProfile,
+    messages: [],
+    pendingChatRender: false,
+    pinnedProfileMessageId: "",
+    queueRender() {},
+    sources: [],
+    twitchStatuses: {},
+  };
+
+  const renderer = createChatRenderer({
+    elements,
+    getAuthorProfile: (message) => ({
+      author: message.author,
+      displayHandle: `@${message.handle}`,
+      sourceLabel: message.sourceLabel,
+      sourceUrl: "https://example.com/profile",
+    }),
+    getTwitchEmoteMap: () => ({}),
+    state,
+    window: { cancelAnimationFrame() {}, requestAnimationFrame: () => 0 },
+  });
+
+  return { chatStack, elements, renderer, state };
+}
+
+function buildHarnessMessage(id, body) {
+  return {
+    author: `Author ${id}`,
+    authorColor: "#a3e635",
+    body,
+    handle: `author-${id}`,
+    id,
+    platform: "room",
+    sourceId: "room-main",
+    sourceLabel: "Main Room",
+  };
+}
 
 function readAppRuntime() {
   return [
@@ -209,7 +272,7 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes(".chat-message:focus"), false);
     assert.equal(app.includes("pendingChatRender"), true);
     assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), false);
-    assert.match(app, /if \(state\.inspectingProfile\) \{\s*state\.pendingChatRender = true;[\s\S]*updateJumpToLive\(\);[\s\S]*return;[\s\S]*\}/);
+    assert.equal(app.includes("if (state.inspectingProfile)"), false);
     assert.equal(app.includes("state.pendingChatRender = true"), true);
     assert.equal(app.includes("state.pendingChatRender = false"), true);
     assert.equal(app.includes("renderChatFeed"), true);
@@ -537,18 +600,52 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.jump-to-live\[hidden\]\s*\{[^}]*display: none/s);
   });
 
-  it("freezes chat DOM updates while inspecting profile hovers and renders pending chat on jump to live", () => {
+  it("freezes chat DOM updates only while away from live and renders pending chat on jump to live", () => {
     const app = readAppRuntime();
 
     assert.equal(app.includes("shouldPauseChatRender"), true);
     assert.equal(app.includes("if (state.inspectingProfile && !shouldFollowChat)"), false);
-    assert.equal(app.includes("if (state.inspectingProfile)"), true);
-    assert.match(app, /if \(state\.inspectingProfile\) \{\s*state\.pendingChatRender = true;[\s\S]*updateJumpToLive\(\);[\s\S]*return;[\s\S]*\}/);
+    assert.equal(app.includes("if (state.inspectingProfile)"), false);
     assert.match(app, /if \(shouldPauseChatRender\(shouldFollowChat\)\)\s*\{/);
     assert.match(app, /state\.pendingChatRender = true;[\s\S]*updateJumpToLive\(\);[\s\S]*return;/);
     assert.equal(app.includes("renderPendingChat"), true);
     assert.match(app, /elements\.jumpToLive\.addEventListener\("click", \(\) => \{[\s\S]*renderer\.renderPendingChat\(\);/);
     assert.match(app, /if \(state\.followingChat && state\.pendingChatRender\) \{[\s\S]*state\.queueRender\(\);/);
+  });
+
+  it("renders the initial replayed chat while the pointer rests over a live feed", () => {
+    const { chatStack, renderer, state } = createChatRendererHarness({
+      followingChat: true,
+      inspectingProfile: true,
+    });
+    state.messages = [buildHarnessMessage("m-1", "first"), buildHarnessMessage("m-2", "second")];
+
+    renderer.render();
+
+    assert.equal(chatStack.html.includes('data-message-id="m-1"'), true);
+    assert.equal(chatStack.html.includes('data-message-id="m-2"'), true);
+    assert.equal(state.pendingChatRender, false);
+
+    state.messages.push(buildHarnessMessage("m-3", "third"));
+    renderer.render();
+
+    assert.equal(chatStack.html.includes('data-message-id="m-3"'), true);
+    assert.equal(state.pendingChatRender, false);
+  });
+
+  it("keeps hovered chat frozen with jump-to-live shown while scrolled away from live", () => {
+    const { chatStack, elements, renderer, state } = createChatRendererHarness({
+      followingChat: false,
+      inspectingProfile: true,
+      scrollHeight: 1000,
+    });
+    state.messages = [buildHarnessMessage("m-1", "first")];
+
+    renderer.render();
+
+    assert.equal(chatStack.html, "");
+    assert.equal(state.pendingChatRender, true);
+    assert.equal(elements.jumpToLive.hidden, false);
   });
 
   it("coalesces bursty chat updates while keeping native scrolling locked down", () => {
@@ -877,8 +974,9 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.source-status-dot\[data-tone="live"\]\s*\{[^}]*#3ddc84/s);
   });
 
-  it("swaps the stream player to a countdown when the selected source is offline", () => {
+  it("keeps the offline player free for VODs and puts the countdown bottom-center", () => {
     const app = readAppRuntime();
+    const viewer = readViewerRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(app.includes("export function updateStreamPresence"), true);
@@ -887,8 +985,18 @@ describe("chat interaction contract", () => {
     assert.equal(app.includes("getCountdownParts"), true);
     assert.equal(app.includes("updateStreamPresence({ document, window, sources: state.sources })"), true);
     assert.equal(app.includes("dataset.streamMode"), true);
-    assert.match(styles, /\.stream-offline\s*\{[^}]*place-content: center[^}]*height: 100%/s);
-    assert.match(styles, /\.stream-offline-unit strong\s*\{[^}]*font-size: clamp\(44px, 6\.4vw, 92px\)/s);
-    assert.match(styles, /\.stream-offline-title\s*\{[^}]*font-family: var\(--display-font\)[^}]*font-style: italic/s);
+
+    // Offline keeps content in the player: latest VOD when one exists,
+    // otherwise the normal channel embed — never a takeover panel.
+    assert.equal(app.includes("/api/twitch-vod?channel="), true);
+    assert.equal(app.includes("player.twitch.tv/?video="), true);
+    assert.equal(styles.includes(".stream-offline"), false);
+
+    // The clock lives in the footer slot, centered at the bottom.
+    assert.equal(viewer.includes('id="offlineCountdown"'), true);
+    assert.equal(app.includes('querySelector("#offlineCountdown")'), true);
+    assert.match(styles, /\.corner-countdown\s*\{[^}]*position: absolute[^}]*left: 50%[^}]*bottom: 16px/s);
+    assert.match(styles, /\.corner-countdown-clock\s*\{[^}]*font-variant-numeric: tabular-nums/s);
+    assert.match(styles, /\.corner-countdown\[hidden\]\s*\{[^}]*display: none/s);
   });
 });

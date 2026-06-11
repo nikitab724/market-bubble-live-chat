@@ -50,12 +50,6 @@ export function createChatRenderer({
       return;
     }
 
-    if (state.inspectingProfile) {
-      state.pendingChatRender = true;
-      updateJumpToLive();
-      return;
-    }
-
     if (shouldPauseChatRender(shouldFollowChat)) {
       state.pendingChatRender = true;
       updateJumpToLive();
