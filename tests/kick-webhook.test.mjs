@@ -98,6 +98,78 @@ describe("kick webhook", () => {
     ]);
   });
 
+  it("matches the webhook broadcaster by resolved broadcaster user id before slug", () => {
+    const message = normalizeKickChatWebhook({
+      payload: {
+        message_id: "m3",
+        broadcaster: { user_id: 81630, username: "BanksKick", channel_slug: "fazebanks" },
+        sender: { username: "viewer_one", channel_slug: "viewer_one" },
+        content: "hello banks",
+        created_at: "2026-06-11T18:00:00Z",
+      },
+      sources: [
+        {
+          broadcasterUserId: 110326750,
+          platform: "kick",
+          sourceHandle: "ansem",
+          sourceId: "kick-ansem",
+          sourceLabel: "Ansem",
+          sourceName: "Ansem",
+        },
+        {
+          broadcasterUserId: 81630,
+          platform: "kick",
+          sourceHandle: "banks",
+          sourceId: "kick-banks",
+          sourceLabel: "Banks",
+          sourceName: "Banks",
+        },
+      ],
+    });
+
+    assert.equal(message.sourceId, "kick-banks");
+    assert.equal(message.sourceLabel, "Banks");
+  });
+
+  it("drops webhooks for broadcasters that match no configured Kick source", () => {
+    const message = normalizeKickChatWebhook({
+      payload: {
+        message_id: "m4",
+        broadcaster: { user_id: 676, username: "xQc", channel_slug: "xqc" },
+        sender: { username: "foreign_viewer", channel_slug: "foreign_viewer" },
+        content: "foreign chat",
+        created_at: "2026-06-11T18:00:00Z",
+      },
+      sources: [
+        {
+          broadcasterUserId: 81630,
+          platform: "kick",
+          sourceHandle: "banks",
+          sourceId: "kick-banks",
+          sourceLabel: "Banks",
+          sourceName: "Banks",
+        },
+      ],
+    });
+
+    assert.equal(message, null);
+  });
+
+  it("drops webhooks when no Kick sources are configured", () => {
+    const message = normalizeKickChatWebhook({
+      payload: {
+        message_id: "m5",
+        broadcaster: { user_id: 676, username: "xQc", channel_slug: "xqc" },
+        sender: { username: "foreign_viewer", channel_slug: "foreign_viewer" },
+        content: "foreign chat",
+        created_at: "2026-06-11T18:00:00Z",
+      },
+      sources: [{ platform: "twitch", sourceHandle: "marketbubble", sourceId: "twitch-marketbubble" }],
+    });
+
+    assert.equal(message, null);
+  });
+
   it("verifies Kick webhook signatures over message id, timestamp, and raw body", () => {
     const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
     const rawBody = JSON.stringify({ content: "hello" });

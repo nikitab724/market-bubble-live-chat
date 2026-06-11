@@ -4,6 +4,18 @@ const STATUS_LABELS = {
   "no-container": "Live page detected — chat not found yet",
 };
 
+// One actionable line about what the backend said. "Watching chat" above only
+// means the DOM observer is attached; this is the part that breaks silently.
+const BRIDGE_LABELS = {
+  linked: { tone: "ok", text: "Linked — server is watching this broadcast's chat" },
+  "chat-ok": { tone: "ok", text: "Backend is accepting bridged chat" },
+  unauthorized: { tone: "err", text: "Token rejected — copy it from this backend's admin page" },
+  "no-source": { tone: "err", text: "Backend has no X source for the selected handle" },
+  error: { tone: "err", text: "Backend unreachable — check the Backend URL" },
+  "no-broadcast-url": { tone: "warn", text: "Open the stream's x.com/i/broadcasts/… page to link it" },
+  "no-source-selected": { tone: "warn", text: "Pick a source below, then Apply" },
+};
+
 const FALLBACK_X_SOURCES = [
   { sourceHandle: "banks", sourceLabel: "Banks" },
   { sourceHandle: "z", sourceLabel: "Z" },
@@ -88,9 +100,36 @@ async function init() {
 
   const dot = document.querySelector("#dot");
   const statusText = document.querySelector("#statusText");
+  const bridgeText = document.querySelector("#bridgeText");
   const sourceSelect = document.querySelector("#sourceSelect");
   const backendUrlInput = document.querySelector("#backendUrlInput");
   const ingestTokenInput = document.querySelector("#ingestTokenInput");
+
+  function renderState(state) {
+    if (!state) {
+      dot.className = "dot idle";
+      statusText.innerHTML = "<strong>Bridge not running in this tab</strong>";
+      bridgeText.hidden = false;
+      bridgeText.className = "bridge-text warn";
+      bridgeText.textContent = "Reload the X tab, then reopen this popup";
+      return;
+    }
+
+    const s = state.status || "idle";
+    dot.className = `dot ${s}`;
+    statusText.innerHTML = `<strong>${STATUS_LABELS[s] || s}</strong>`;
+
+    const verdict = BRIDGE_LABELS[state.bridge?.state];
+    bridgeText.hidden = !verdict;
+    if (verdict) {
+      bridgeText.className = `bridge-text ${verdict.tone}`;
+      bridgeText.textContent = verdict.text;
+    }
+
+    if (state.sourceHandle) {
+      sourceSelect.value = state.sourceHandle;
+    }
+  }
 
   const backendBaseUrl = await getBackendBaseUrl();
   backendUrlInput.value = backendBaseUrl;
@@ -105,22 +144,12 @@ async function init() {
     sourceSelect.appendChild(opt);
   }
 
-  // Get current status from content script
-  const state = await sendToContent(tab, { type: "get-status" });
+  renderState(await sendToContent(tab, { type: "get-status" }));
 
-  if (state) {
-    const s = state.status || "idle";
-    dot.className = `dot ${s}`;
-    statusText.innerHTML = `<strong>${STATUS_LABELS[s] || s}</strong>`;
-
-    if (state.sourceHandle) {
-      sourceSelect.value = state.sourceHandle;
-    }
-  }
-
+  // Both buttons keep the popup open and re-render the backend's verdict —
+  // closing it was how token/handle rejections went unseen.
   document.querySelector("#retryBtn").addEventListener("click", async () => {
-    await sendToContent(tab, { type: "retry" });
-    window.close();
+    renderState(await sendToContent(tab, { type: "retry" }));
   });
 
   document.querySelector("#applyBtn").addEventListener("click", async () => {
@@ -128,9 +157,10 @@ async function init() {
     await saveIngestToken(ingestTokenInput.value);
     const handle = sourceSelect.value;
     if (handle) {
-      await sendToContent(tab, { type: "set-source", sourceHandle: handle });
+      renderState(await sendToContent(tab, { type: "set-source", sourceHandle: handle }));
+    } else {
+      renderState(await sendToContent(tab, { type: "get-status" }));
     }
-    window.close();
   });
 }
 

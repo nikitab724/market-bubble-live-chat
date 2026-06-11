@@ -32,6 +32,12 @@ export function createMemoryChatEventStore({
       return toPublicEvent(event);
     },
 
+    // nextId is intentionally not reset: replay ids must stay monotonic so a
+    // browser reconnecting with a pre-clear Last-Event-ID misses nothing.
+    clear() {
+      events.length = 0;
+    },
+
     close() {},
 
     getEventsAfter(lastEventId, options = {}) {
@@ -113,6 +119,7 @@ export function createSqliteChatEventStore({
     ORDER BY id ASC
   `);
   const deleteOld = db.prepare("DELETE FROM chat_events WHERE created_at < ?");
+  const deleteAll = db.prepare("DELETE FROM chat_events");
   const retentionMs = getRetentionMilliseconds({ retentionDays, retentionHours });
   prune(now());
 
@@ -127,6 +134,12 @@ export function createSqliteChatEventStore({
         eventName,
         payload,
       };
+    },
+
+    // AUTOINCREMENT keeps allocating past the deleted rows, so replay ids stay
+    // monotonic and a pre-clear Last-Event-ID reconnect misses nothing.
+    clear() {
+      deleteAll.run();
     },
 
     close() {

@@ -2194,6 +2194,7 @@ h2 {
 }
 
 .admin-bridge-token,
+.admin-clear-chat,
 .admin-password-panel {
   margin-bottom: 14px;
   padding: 12px 14px;
@@ -2203,6 +2204,7 @@ h2 {
 }
 
 .admin-bridge-token summary,
+.admin-clear-chat summary,
 .admin-password-panel summary {
   cursor: pointer;
   font-family: var(--label-font);
@@ -2214,6 +2216,7 @@ h2 {
 }
 
 .admin-bridge-token p,
+.admin-clear-chat p,
 .admin-password-panel p {
   margin: 8px 0 10px;
   font-size: 12px;

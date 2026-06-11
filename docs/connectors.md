@@ -24,14 +24,16 @@ Kick has three pieces:
 - Video embed: browser iframe in `src/app.mjs`.
 - Live state/viewer count: server-side Kick API calls in `src/kick-api.mjs`.
 - Chat: signed webhooks into `POST /api/webhooks/kick`, normalized by `src/kick-webhook.mjs`.
-- Admin setup: when `/api/admin/sources` saves Kick rows, the backend resolves each Kick handle through the Kick Channels API, persists `broadcasterUserId`, and ensures a `chat.message.sent` webhook subscription exists for each Kick broadcaster. Existing configs with saved broadcaster IDs are also checked once when the public app loads config or live state.
+- Admin setup: when `/api/admin/sources` saves Kick rows, the backend resolves each Kick handle through the Kick Channels API, persists `broadcasterUserId`, and ensures a `chat.message.sent` webhook subscription exists for each Kick broadcaster. Existing configs with saved broadcaster IDs are also checked once when the public app loads config or live state. A save that drops a Kick source also deletes that broadcaster's chat webhook subscription — only the broadcasters the save removes, so a save never tears down subscriptions it did not manage.
 
 Required env vars for live state:
 
 - `KICK_CLIENT_ID`
 - `KICK_CLIENT_SECRET`
 
-The Kick app must have webhooks enabled with a public URL pointed at `/api/webhooks/kick`; localhost cannot receive real Kick webhooks without a tunnel. The same app credentials must be allowed to manage event subscriptions so admin saves can create missing chat subscriptions.
+The Kick app must have webhooks enabled with a public URL pointed at `/api/webhooks/kick`; localhost cannot receive real Kick webhooks without a tunnel. The same app credentials must be allowed to manage event subscriptions so admin saves can create and delete chat subscriptions.
+
+Incoming chat webhooks are matched to a configured Kick source by resolved `broadcasterUserId` first, then channel slug. The slug can differ from the operator-typed handle (kick.com/fazebanks saved as `banks`), and the app can hold stale subscriptions for channels that are no longer configured — an event that matches no source is acknowledged with 204 and dropped, never attributed to another source.
 
 Kick chat username colors come from `sender.identity.username_color` when Kick includes identity data. Kick chat badges come from `sender.identity.badges` and render as compact text chips because the webhook payload includes badge type/text/count, not image URLs. Missing or invalid colors fall back to the shared deterministic chat palette.
 
@@ -59,7 +61,7 @@ X Live chat is **not** tweet replies; it runs on the legacy Periscope chat servi
 4. `POST proxsee-cf.pscp.tv/api/v2/accessChatPublic` → chat websocket endpoint + access token.
 5. Connect the `chatapi/v1/chatnow` websocket, authenticate (frame kind 3), join the room (frame kind 2), and receive chat frames (kind 1). The connector reconnects with a fresh handshake on disconnect.
 
-Setup: the operator only types the X handle in `/admin/`. The broadcast id arrives automatically: when the Chrome extension is on the broadcaster's own `x.com/i/broadcasts/<id>` page and a source is selected, `extension/content.js` reads the id from the URL and POSTs it to `POST /api/x-broadcast`, which writes it to the matching enabled X source and re-syncs the connector. X mints a new id each time the account goes live, so this keeps the connector pointed at the current broadcast without a manual step. The endpoint only updates `broadcastId` on an existing enabled X source matched by handle. The admin X row's status line shows "Go live, then open your X live page in Chrome with the extension" until a broadcast id is known. (There is no manual broadcast id field anymore; a saved `broadcastId` survives admin saves untouched, and `data/sources.json` can still be hand-edited in an emergency.)
+Setup: the operator only types the X handle in `/admin/`. The broadcast id arrives automatically: when the Chrome extension is on the broadcaster's own `x.com/i/broadcasts/<id>` page and a source is selected, `extension/content.js` reads the id from the URL and POSTs it to `POST /api/x-broadcast`, which writes it to the matching enabled X source and re-syncs the connector. X mints a new id each time the account goes live, so this keeps the connector pointed at the current broadcast without a manual step. The endpoint only updates `broadcastId` on an existing enabled X source matched by handle. The admin X row's status line shows "Go live, then open your X live page in Chrome with the extension" until a broadcast id is known. (There is no manual broadcast id field anymore. `broadcastId` is server-owned across admin saves: the save handler restores each X source's stored id and ignores whatever the admin client echoes, so a save from an admin page loaded before the capture cannot wipe it and a client cannot invent one — unless the save changes that source's handle, in which case the id belongs to the previous account's broadcast, so the save drops it and the connector disconnects until the new handle's id is captured. `data/sources.json` can still be hand-edited in an emergency.)
 
 The broadcast id is stored server-side only, like Kick's `broadcasterUserId`, and never appears in public config. A numeric post id in `conversationId` is an X post id, not a broadcast id, and is ignored for chat. No env vars or credentials are required. Confirm chat is enabled on the broadcast (X has a per-broadcast chat permission setting).
 
@@ -75,8 +77,9 @@ For X sources without a broadcast id (or when the handshake is unavailable):
 
 - `extension/content.js` watches X live page DOM mutations.
 - `extension/popup.js` lets the operator choose which configured X source the current tab belongs to.
-- The extension popup stores the backend base URL used for public config and X chat ingest.
-- The extension posts normalized messages to `POST /api/x-chat`.
+- The extension popup stores the backend base URL used for public config and X chat ingest, plus the per-backend bridge token.
+- The extension posts normalized messages to `POST /api/x-chat`, checks every response, and surfaces the backend's verdict (linked / 401 token rejected / 404 no source / unreachable) on the popup's second status line and in the X tab console. A popup-selected source survives SPA navigations on `/i/broadcasts/<id>` URLs, which carry no handle of their own.
+- A post that names a `sourceHandle` must match a configured X source; otherwise it is rejected with 404, so a bridge still watching a previous account after an admin handle change cannot leak that stream's chat into another source. A post without a handle falls back to the first X source.
 - The backend broadcasts those messages through the replaying `/api/chat-events` stream.
 
 X stream viewing on `/` uses `conversationId` from source config to load X widgets. Without `conversationId`, it falls back to an open-stream link.

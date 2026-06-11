@@ -775,6 +775,159 @@ describe("server contract", () => {
     }
   });
 
+  it("drops the captured broadcast id when an admin save changes the X handle", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-handle-change-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [
+          { platform: "x", sourceHandle: "banks", sourceLabel: "Banks", enabled: true, broadcastId: "1yKAPPboWlDxb" },
+        ],
+      }),
+    );
+
+    const syncedBroadcastIds = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: {
+        syncSources(sources) {
+          syncedBroadcastIds.push(sources.find((source) => source.platform === "x")?.broadcastId);
+        },
+        stop() {},
+      },
+    });
+    await listen(server);
+
+    try {
+      // The admin client may echo broadcastId from loaded state; the server
+      // restores the stored id either way (see the stale-save test below).
+      const editorSource = {
+        platform: "x",
+        sourceId: "x-banks",
+        sourceLabel: "Banks",
+        sourceHandle: "banks",
+        broadcastId: "1yKAPPboWlDxb",
+        enabled: true,
+      };
+
+      // Saving without a handle change keeps the captured broadcast id.
+      const unchanged = await request(server, "PUT", "/api/admin/sources", { sources: [editorSource] });
+      assert.equal(unchanged.status, 200);
+      assert.equal(unchanged.json.sources[0].broadcastId, "1yKAPPboWlDxb");
+
+      // Changing the handle drops the id: it identifies the previous account's
+      // broadcast, and keeping it would leave the connector watching that stream.
+      const changed = await request(server, "PUT", "/api/admin/sources", {
+        sources: [{ ...editorSource, sourceHandle: "z" }],
+      });
+      assert.equal(changed.status, 200);
+      assert.equal(changed.json.sources[0].broadcastId, undefined);
+
+      const saved = JSON.parse(await readFile(configPath, "utf8"));
+      assert.equal(saved.sources[0].broadcastId, undefined);
+      assert.deepEqual(syncedBroadcastIds, ["1yKAPPboWlDxb", undefined]);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("keeps the captured broadcast id when an admin save omits it (stale admin page)", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-stale-save-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [
+          { platform: "x", sourceId: "x-banks", sourceHandle: "banks", sourceLabel: "Banks", enabled: true, broadcastId: "1yKAPPboWlDxb" },
+          { platform: "x", sourceId: "x-z", sourceHandle: "z", sourceLabel: "Z", enabled: true },
+        ],
+      }),
+    );
+
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: { syncSources() {}, stop() {} },
+    });
+    await listen(server);
+
+    try {
+      // An admin page loaded before the extension captured the id sends stale
+      // editor state without it. The id is server-captured, so the save must
+      // restore it rather than trust the echo.
+      const staleSave = await request(server, "PUT", "/api/admin/sources", {
+        sources: [
+          { platform: "x", sourceId: "x-banks", sourceHandle: "banks", sourceLabel: "Banks", enabled: true },
+          // The client also cannot invent an id for a source the server never
+          // captured one for.
+          { platform: "x", sourceId: "x-z", sourceHandle: "z", sourceLabel: "Z", enabled: true, broadcastId: "1fabricated" },
+        ],
+      });
+      assert.equal(staleSave.status, 200);
+      assert.equal(staleSave.json.sources[0].broadcastId, "1yKAPPboWlDxb");
+      assert.equal(staleSave.json.sources[1].broadcastId, undefined);
+
+      const saved = JSON.parse(await readFile(configPath, "utf8"));
+      assert.equal(saved.sources[0].broadcastId, "1yKAPPboWlDxb");
+      assert.equal(saved.sources[1].broadcastId, undefined);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("rejects extension DOM-bridge chat when its handle no longer matches an X source", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-stale-handle-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({ sources: [{ platform: "x", sourceHandle: "z", sourceLabel: "Z", enabled: true }] }),
+    );
+
+    const chatEvents = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: { syncSources() {}, stop() {} },
+      chatHub: {
+        broadcast(eventName, payload) {
+          chatEvents.push({ eventName, payload });
+        },
+        connect() {},
+      },
+    });
+    await listen(server);
+
+    try {
+      // An extension still watching the previous account's live page posts with
+      // the old handle; that must not leak into the remaining source.
+      const stale = await request(server, "POST", "/api/x-chat", { sourceHandle: "banks", author: "Nuckelx", handle: "nuckelx", body: "hello" });
+      assert.equal(stale.status, 404);
+      assert.equal(chatEvents.filter((event) => event.eventName === "chat").length, 0);
+
+      // A post without a handle still falls back to the first X source.
+      const unnamed = await request(server, "POST", "/api/x-chat", { author: "Nuckelx", handle: "nuckelx", body: "hello" });
+      assert.equal(unnamed.status, 204);
+
+      // A matching handle is delivered normally.
+      const matching = await request(server, "POST", "/api/x-chat", { sourceHandle: "z", author: "Nuckelx", handle: "nuckelx", body: "hello again" });
+      assert.equal(matching.status, 204);
+      assert.equal(chatEvents.filter((event) => event.eventName === "chat").length, 2);
+    } finally {
+      await close(server);
+    }
+  });
+
   it("gates X ingest routes behind the admin ingest token when a password is configured", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-x-gate-"));
     const configPath = join(tempDir, "sources.json");
@@ -833,6 +986,201 @@ describe("server contract", () => {
 
       const okBroadcast = await request(server, "POST", "/api/x-broadcast", { sourceHandle: "banks", broadcastId: "1yKAPPboWlDxb" }, "", { authorization: `Bearer ${token}` });
       assert.equal(okBroadcast.status, 200);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("drops Kick webhooks for unconfigured broadcasters before the chat stream", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-kick-webhook-drop-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [
+          {
+            broadcasterUserId: 81630,
+            enabled: true,
+            platform: "kick",
+            sourceHandle: "banks",
+            sourceId: "kick-banks",
+            sourceLabel: "Banks",
+            sourceName: "Banks",
+          },
+        ],
+      }),
+    );
+
+    const storedEvents = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      chatEventStore: {
+        append(eventName, payload) {
+          const event = { id: storedEvents.length + 1, eventName, payload };
+          storedEvents.push(event);
+          return event;
+        },
+        close() {},
+        getEventsAfter() {
+          return [];
+        },
+        getRecentEvents() {
+          return [];
+        },
+      },
+      configPath,
+      kickWebhookVerifier: () => true,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: null,
+    });
+    await listen(server);
+
+    const webhookHeaders = {
+      "kick-event-type": "chat.message.sent",
+      "kick-event-version": "1",
+    };
+
+    try {
+      // A genuine webhook for a broadcaster that is no longer configured (a
+      // stale app subscription) is acknowledged but never enters the stream.
+      const foreign = await request(
+        server,
+        "POST",
+        "/api/webhooks/kick",
+        {
+          message_id: "kick-foreign-1",
+          broadcaster: { user_id: 676, username: "xQc", channel_slug: "xqc" },
+          sender: { username: "ForeignViewer", channel_slug: "foreignviewer" },
+          content: "foreign chat",
+          created_at: "2026-06-11T18:00:00Z",
+        },
+        "",
+        webhookHeaders,
+      );
+      assert.equal(foreign.status, 204);
+      assert.deepEqual(storedEvents.filter((event) => event.eventName === "chat"), []);
+
+      // The configured broadcaster still flows, matched by user id even when
+      // the channel slug differs from the operator-typed handle.
+      const configured = await request(
+        server,
+        "POST",
+        "/api/webhooks/kick",
+        {
+          message_id: "kick-banks-1",
+          broadcaster: { user_id: 81630, username: "BanksKick", channel_slug: "fazebanks" },
+          sender: { username: "RiskOn", channel_slug: "riskon" },
+          content: "real kick chat",
+          created_at: "2026-06-11T18:00:01Z",
+        },
+        "",
+        webhookHeaders,
+      );
+      assert.equal(configured.status, 204);
+
+      const chatEvents = storedEvents.filter((event) => event.eventName === "chat");
+      assert.equal(chatEvents.length, 1);
+      assert.equal(chatEvents[0].payload.sourceId, "kick-banks");
+      assert.equal(chatEvents[0].payload.body, "real kick chat");
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("clears stored chat events from the admin panel", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-clear-chat-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(configPath, JSON.stringify({ sources: [] }));
+
+    let cleared = 0;
+    const server = createAppServer({
+      adminPasswordHash: await hashPassword("secret", { iterations: 1200, salt: "00112233445566778899aabbccddeeff" }),
+      chatEventStore: {
+        append(eventName, payload) {
+          return { id: 1, eventName, payload };
+        },
+        clear() {
+          cleared += 1;
+        },
+        close() {},
+        getEventsAfter() {
+          return [];
+        },
+        getRecentEvents() {
+          return [];
+        },
+      },
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: null,
+    });
+    await listen(server);
+
+    try {
+      const blocked = await request(server, "DELETE", "/api/admin/chat-events");
+      assert.equal(blocked.status, 401);
+      assert.equal(cleared, 0);
+
+      const login = await request(server, "POST", "/api/admin/login", { password: "secret" });
+      assert.equal(login.status, 204);
+      const cookie = login.headers.get("set-cookie").split(";")[0];
+
+      const clearResponse = await request(server, "DELETE", "/api/admin/chat-events", null, cookie);
+      assert.equal(clearResponse.status, 204);
+      assert.equal(cleared, 1);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("unsubscribes Kick chat webhooks for sources removed by an admin save", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-kick-unsubscribe-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [
+          {
+            broadcasterUserId: 676,
+            enabled: true,
+            platform: "kick",
+            sourceHandle: "xqc",
+            sourceId: "kick-xqc",
+            sourceLabel: "Xbob",
+            sourceName: "Xbob",
+          },
+          { platform: "twitch", sourceHandle: "marketbubble", sourceName: "Market Bubble" },
+        ],
+      }),
+    );
+
+    const removeCalls = [];
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      kickClient: {
+        async removeChatEventSubscriptions(broadcasterUserIds) {
+          removeCalls.push(broadcasterUserIds);
+          return { removed: [] };
+        },
+      },
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: null,
+    });
+    await listen(server);
+
+    try {
+      const update = await request(server, "PUT", "/api/admin/sources", {
+        sources: [{ platform: "twitch", sourceHandle: "marketbubble", sourceName: "Market Bubble" }],
+      });
+      assert.equal(update.status, 200);
+      assert.deepEqual(removeCalls, [[676]]);
     } finally {
       await close(server);
     }

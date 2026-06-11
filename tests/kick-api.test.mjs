@@ -171,6 +171,42 @@ describe("kick api client", () => {
     assert.equal(calls.length, 3);
   });
 
+  it("removes chat webhook subscriptions for dropped broadcasters", async () => {
+    const deletes = [];
+    const client = createKickApiClient({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      fetchImpl: async (url, options = {}) => {
+        if (String(url).includes("/oauth/token")) {
+          return jsonResponse({ access_token: "app-token", expires_in: 3600 });
+        }
+
+        assert.equal(options.headers.Authorization, "Bearer app-token");
+
+        if (options.method === "DELETE") {
+          deletes.push(String(url));
+          return jsonResponse({}, 204);
+        }
+
+        assert.equal(String(url), "https://api.kick.com/public/v1/events/subscriptions");
+        return jsonResponse({
+          data: [
+            { broadcaster_user_id: 676, event: "chat.message.sent", id: "sub-xqc", version: 1 },
+            { broadcaster_user_id: 81630, event: "chat.message.sent", id: "sub-banks", version: 1 },
+            { broadcaster_user_id: 676, event: "livestream.status.updated", id: "sub-xqc-live", version: 1 },
+          ],
+        });
+      },
+    });
+
+    const result = await client.removeChatEventSubscriptions([676]);
+
+    assert.deepEqual(result, {
+      removed: [{ broadcasterUserId: 676, subscriptionId: "sub-xqc" }],
+    });
+    assert.deepEqual(deletes, ["https://api.kick.com/public/v1/events/subscriptions?id=sub-xqc"]);
+  });
+
   it("returns offline Kick sources when the channel has no stream", async () => {
     const client = createKickApiClient({
       clientId: "client-id",

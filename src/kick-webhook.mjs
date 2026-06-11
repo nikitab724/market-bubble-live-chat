@@ -14,6 +14,11 @@ twIDAQAB
 
 export function normalizeKickChatWebhook({ payload, sources }) {
   const source = findKickSource(payload, sources);
+
+  if (!source) {
+    return null;
+  }
+
   const sender = payload.sender || {};
   const author = String(sender.username || "Unknown").trim();
   const handle = String(sender.channel_slug || sender.username || author).replace(/^@/, "").trim();
@@ -83,24 +88,29 @@ function normalizeKickBadges(badges) {
     .filter(Boolean);
 }
 
+// The Kick app keeps webhook subscriptions per broadcaster, and stale
+// subscriptions for channels that are no longer configured can keep
+// delivering genuine, signed events. A webhook that matches no configured
+// source must be dropped — a first-source fallback would label another
+// channel's chat as ours. The resolved broadcaster user id outranks the slug
+// because the operator-typed handle can differ from the channel's slug
+// (kick.com/fazebanks configured as "banks").
 function findKickSource(payload, sources) {
+  const broadcasterUserId = Number(payload.broadcaster?.user_id || 0);
   const broadcasterSlug = String(payload.broadcaster?.channel_slug || "")
     .replace(/^@/, "")
     .toLowerCase()
     .trim();
   const kickSources = (Array.isArray(sources) ? sources : []).filter((source) => source.platform === "kick");
-  const source = kickSources.find((item) => item.sourceHandle === broadcasterSlug) || kickSources[0];
 
-  if (source) {
-    return source;
-  }
+  const idMatch = broadcasterUserId > 0
+    ? kickSources.find((item) => Number(item.broadcasterUserId || 0) === broadcasterUserId)
+    : null;
+  const slugMatch = broadcasterSlug
+    ? kickSources.find((item) => item.sourceHandle === broadcasterSlug)
+    : null;
 
-  return {
-    sourceHandle: broadcasterSlug || "marketbubble",
-    sourceId: `kick-${broadcasterSlug || "marketbubble"}`,
-    sourceLabel: payload.broadcaster?.username || "Market Bubble",
-    sourceName: payload.broadcaster?.username || "Market Bubble",
-  };
+  return idMatch || slugMatch || null;
 }
 
 function toBadgeLabel(id) {

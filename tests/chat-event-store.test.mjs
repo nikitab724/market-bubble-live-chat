@@ -45,6 +45,25 @@ describe("chat event store", () => {
     }
   });
 
+  it("clears stored events while keeping replay ids monotonic", async () => {
+    const store = await createTempStore();
+
+    try {
+      store.append("chat", { body: "one" });
+      store.append("chat", { body: "two" });
+
+      store.clear();
+
+      assert.deepEqual(store.getRecentEvents(), []);
+      // Ids must not restart after a clear, or a browser reconnecting with a
+      // pre-clear Last-Event-ID would skip everything sent afterwards.
+      const next = store.append("chat", { body: "after clear" });
+      assert.equal(next.id, 3);
+    } finally {
+      store.close();
+    }
+  });
+
   it("keeps events available after the store is reopened", async () => {
     const dbPath = await createTempDbPath();
     const firstStore = createSqliteChatEventStore({ dbPath });

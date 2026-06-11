@@ -19,11 +19,12 @@
 - `GET /api/x-profile?handle=...`: guest-token X profile lookup (display name, verified mark, bio, follower count, avatar) cached server-side for 15 minutes; failures return `{ profile: null }`.
 - `GET /api/admin/x-ingest-token`: returns the X bridge ingest token; requires a valid admin session.
 - `GET /api/chat-events`: database-backed replaying server-sent events stream for normalized chat and connector status events.
-- `POST /api/x-chat`: X extension chat ingest, ignored for any X source that has a `broadcastId` (owned by the server-side connector) so messages are not delivered twice. Requires the bridge ingest token (`Authorization: Bearer` or `X-MB-Ingest-Token`) when `ADMIN_PASSWORD_HASH` is set.
+- `POST /api/x-chat`: X extension chat ingest, ignored for any X source that has a `broadcastId` (owned by the server-side connector) so messages are not delivered twice. A named `sourceHandle` must match a configured X source (404 otherwise); an empty handle falls back to the first X source. Requires the bridge ingest token (`Authorization: Bearer` or `X-MB-Ingest-Token`) when `ADMIN_PASSWORD_HASH` is set.
 - `POST /api/x-broadcast`: X extension reports the current live broadcast id, which the server writes to the matching enabled X source so the server-side X chat connector attaches without a manual paste. Requires the bridge ingest token when `ADMIN_PASSWORD_HASH` is set.
-- `POST /api/webhooks/kick`: Kick webhook chat ingest with signature verification.
+- `POST /api/webhooks/kick`: Kick webhook chat ingest with signature verification; events are matched to a Kick source by `broadcasterUserId` then slug, and events for unconfigured broadcasters (stale app subscriptions) are acknowledged and dropped.
 - `POST /api/dev/kick-chat`: local development injector outside production.
 - `POST /api/admin/password`: changes the admin password (requires a valid session plus the current password; sets the initial password when none is configured). The new hash is persisted to `admin-password.json` next to `sources.json`, all other sessions are invalidated, and the caller gets a fresh session cookie.
+- `DELETE /api/admin/chat-events`: empties the stored chat event log so the replay window starts fresh (admin session required when a password is set). Event ids stay monotonic across a clear, so reconnecting browsers with a pre-clear `Last-Event-ID` miss nothing sent afterwards. Triggered from the admin page's "Clear chat history" panel.
 - `/api/admin/*`: admin login/logout and source config reads/writes.
 
 API request bodies are capped at 1 MB, and X chat ingest truncates author/handle to 120 characters and message bodies to 2000 characters before broadcast.

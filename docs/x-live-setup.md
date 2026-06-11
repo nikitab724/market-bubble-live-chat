@@ -14,7 +14,7 @@ The server-side connector needs a broadcast id per X source. The extension fills
 4. Click the Market Bubble extension popup and select the matching X source.
 5. The content script reads the broadcast id from the URL and POSTs it to `POST /api/x-broadcast`. The server writes it to the matching X source and the server-side connector attaches to that broadcast's chat.
 
-X mints a new broadcast id each time the account goes live, so the extension re-reports it whenever the URL changes — no manual paste per stream. The admin editor has no broadcast id field: the X row's status line reads "Go live, then open your X live page in Chrome with the extension" until the id is captured, then flips to the connector's status. A captured `broadcastId` survives admin saves untouched.
+X mints a new broadcast id each time the account goes live, so the extension re-reports it whenever the URL changes — no manual paste per stream. The id is only readable from a `/broadcasts/<id>` URL: watching the stream from the home feed or a post page never reports anything (the popup says so on its second status line). The admin editor has no broadcast id field: the X row's status line reads "Go live, then open your X live page in Chrome with the extension" until the id is captured, then flips to the connector's status. A captured `broadcastId` is server-owned state: admin saves restore it from the stored config regardless of what the admin page had loaded (a save from a stale admin page used to wipe it) — unless the save changes the source's X handle. The id belongs to the previous account's broadcast, so a handle change drops it and disconnects the connector from that stream; the row returns to the "Go live..." prompt until the new handle's id is captured. Bridge chat posts that name a handle with no matching X source are rejected (404), so an extension tab still watching the old account cannot leak its chat into the new source — reselect the source in the popup on the new account's live page.
 
 ### Extension DOM bridge (fallback)
 
@@ -30,7 +30,11 @@ The extension popup includes a Backend URL field. Change it there when the deplo
 
 ### Bridge token (required in production)
 
-When the server has `ADMIN_PASSWORD_HASH` set, `/api/x-chat` and `/api/x-broadcast` reject anonymous posts — the extension must present a bridge token. Get it after logging into the admin page: open `/admin/`, unlock, expand **X Bridge token**, and copy the value. Paste it into the extension popup's **Bridge token** field and click Apply (stored in Chrome extension storage, sent as `Authorization: Bearer`). The token is derived from the admin password, so it stays valid until the password changes; rotating the admin password invalidates the old token and you re-copy the new one. Without a valid token the X tab console shows the bridge posting and the server replying `401`.
+When the server has an admin password configured (env `ADMIN_PASSWORD_HASH` or a saved `admin-password.json`), `/api/x-chat` and `/api/x-broadcast` reject anonymous posts — the extension must present a bridge token. Get it after logging into the admin page: open `/admin/`, unlock, expand **X Bridge token**, and copy the value. Paste it into the extension popup's **Bridge token** field and click Apply (stored in Chrome extension storage, sent as `Authorization: Bearer`).
+
+**The token is per backend.** It is derived from that server's admin password hash, so the local server and production have different tokens even with the same password. Always copy the token from the admin page of the same backend the popup's Backend URL points at. The token stays valid until that server's password changes; rotating the password invalidates it and you re-copy the new one.
+
+The popup shows the backend's verdict on a second status line after Apply: "Linked…" / "Token rejected…" / "Backend has no X source…" / "Open the stream's x.com/i/broadcasts/… page". A rejected token reads "Token rejected — copy it from this backend's admin page", and the X tab console logs the same warning.
 
 ## How Chat Is Captured
 
@@ -60,10 +64,12 @@ If X widgets cannot embed the live surface, or if `conversationId` is empty, the
 
 ## Debug Checklist
 
+- After updating the extension code, reload it on `chrome://extensions` (unpacked extensions do not self-update) and refresh the X tab; the version badge confirms the reload.
 - Confirm the X source exists and is enabled in `/admin/`.
-- Confirm the extension popup Backend URL points at the backend that serves `/api/public-config`.
+- Confirm the extension popup Backend URL points at the backend that serves `/api/public-config`, and that the Bridge token was copied from **that** backend's admin page (tokens differ per backend).
 - Confirm the extension popup source matches the X live page being watched.
-- For automatic broadcast id capture: open the broadcaster's `x.com/i/broadcasts/<id>` page, select the source in the popup, and check the X tab console for `[MB X Bridge] reported broadcast <id> for @handle`, then check server stdout for `[x-broadcast] <sourceId> -> <id>`.
+- Read the popup's second status line after Apply — it reports the backend's verdict (linked / token rejected / no source / open the broadcasts page / unreachable).
+- For automatic broadcast id capture: open the broadcaster's `x.com/i/broadcasts/<id>` page (not the home-feed or post-page player), select the source in the popup, and check the X tab console for `[MB X Bridge] reported broadcast <id> for @handle`, then check server stdout for `[x-broadcast] <sourceId> -> <id>`.
 - Confirm chat is enabled on the broadcast (X has a per-broadcast chat permission setting); a restricted broadcast yields a connected websocket with no messages.
 - For the DOM fallback: check the X tab console for `[MB X Bridge] Watching document.body...` and server stdout for `[x-chat] Source | Author: body`.
 - Open `/` or `/chat/` and confirm the message arrives through SSE.
