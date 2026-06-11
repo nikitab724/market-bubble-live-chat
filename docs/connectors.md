@@ -39,7 +39,7 @@ Kick native emotes arrive inline as `[emote:id:name]` tokens. `src/kick-webhook.
 
 Operators type only the Kick handle in admin. The resolved broadcaster user id is kept server-side state — the admin editor no longer shows it; the row's status line reports the connection instead.
 
-Kick source chips use `/api/live-state` `isLive` data for their live/offline status dot when the provider check succeeds. The dot is profile-aware: it is green when any source in the same profile is live, and orange when no profile source is live but Kick is connected and the Kick channel is offline.
+Kick source chips use `/api/live-state` `isLive` data for their live/offline status dot when the provider check succeeds. The dot is profile-aware: it is green when any source in the same profile is live, and gray when no profile source is live but Kick is connected and the Kick channel is offline.
 
 ## X
 

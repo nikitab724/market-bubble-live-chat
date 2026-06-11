@@ -18,6 +18,8 @@ const elements = {
   loginForm: document.querySelector("#loginForm"),
   loginPanel: document.querySelector("#loginPanel"),
   logoutButton: document.querySelector("#logoutButton"),
+  passwordForm: document.querySelector("#passwordForm"),
+  passwordPanel: document.querySelector("#passwordPanel"),
   profileCards: document.querySelector("#profileCards"),
   revealBridgeToken: document.querySelector("#revealBridgeToken"),
   saveSourcesButton: document.querySelector("#saveSourcesButton"),
@@ -97,6 +99,30 @@ elements.revealBridgeToken.addEventListener("click", () => {
   const revealed = elements.bridgeToken.type === "text";
   elements.bridgeToken.type = revealed ? "password" : "text";
   elements.revealBridgeToken.textContent = revealed ? "Show" : "Hide";
+});
+
+elements.passwordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const fields = new FormData(elements.passwordForm);
+  const response = await requestApi("/api/admin/password", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      currentPassword: fields.get("currentPassword"),
+      newPassword: fields.get("newPassword"),
+    }),
+  });
+
+  if (!response.ok) {
+    showStatus(await readError(response));
+    return;
+  }
+
+  elements.passwordForm.reset();
+  elements.passwordPanel.open = false;
+  showStatus("Password updated.");
+  // The X Bridge token derives from the password, so re-fetch the new one.
+  loadBridgeToken();
 });
 
 elements.copyBridgeToken.addEventListener("click", async () => {
@@ -555,6 +581,8 @@ function parseEventData(event) {
 function showLogin() {
   elements.loginPanel.hidden = false;
   elements.editorPanel.hidden = true;
+  elements.passwordForm.reset();
+  elements.passwordPanel.open = false;
   elements.bridgeToken.value = "";
   elements.bridgeToken.type = "password";
   elements.revealBridgeToken.textContent = "Show";

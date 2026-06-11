@@ -39,6 +39,8 @@ Do not commit secrets. Provider credentials and admin password hash belong in en
 
 Generate the admin password hash with `node scripts/hash-admin-password.mjs 'your-passphrase'` (or `ADMIN_PASSWORD=... node scripts/hash-admin-password.mjs`) and paste the printed `ADMIN_PASSWORD_HASH=...` line into the server `.env`. When `ADMIN_PASSWORD_HASH` is set, the admin panel requires login, failed logins are rate-limited (8 attempts per client, then a 15-minute lockout), and the X bridge ingest routes (`/api/x-chat`, `/api/x-broadcast`) require the bridge token. When it is unset (local dev), the admin panel and ingest routes are open.
 
+The env hash is only the seed. Once logged in, the admin panel's "Change password" panel rotates the password in place: the new hash is written to `admin-password.json` in the data directory (the persistent mount, so it survives container rebuilds) and outranks `ADMIN_PASSWORD_HASH` from then on. Changing the password rotates the X bridge ingest token, so re-copy it into the extension popup afterwards. If no password is configured at all, the first submit of that panel sets it.
+
 Common env vars:
 
 - `PORT`

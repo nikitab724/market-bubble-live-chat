@@ -36,7 +36,7 @@ http://localhost:4178/admin/
 ```
 
 The admin route uses a server-side session cookie. In production, run behind HTTPS so the cookie can use the `Secure` attribute.
-For now, admin is open when `ADMIN_PASSWORD_HASH` is unset. To turn password protection back on, generate a hash with `node server.mjs --hash-password "replace-this-password"` and start the server with `ADMIN_PASSWORD_HASH='pbkdf2$sha256$...'`.
+Admin is open when no password is configured. Set or change the password from the admin panel's "Change password" panel — it writes `data/admin-password.json` (gitignored), which outranks the `ADMIN_PASSWORD_HASH` env seed and survives restarts. Alternatively, generate an env seed with `node scripts/hash-admin-password.mjs 'replace-this-password'` and start the server with `ADMIN_PASSWORD_HASH='pbkdf2$sha256$...'`.
 
 ## Connectors
 

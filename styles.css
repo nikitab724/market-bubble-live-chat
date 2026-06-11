@@ -407,6 +407,10 @@ body.admin-body {
   border-radius: 32px;
   background: rgba(22, 22, 22, 0.86);
   box-shadow: none;
+  /* The social pill hangs above this panel's top edge in mini; the base
+     overflow: hidden would clip it invisible. The video keeps its rounded
+     clip from .video-frame's own overflow: hidden. */
+  overflow: visible;
 }
 
 .live-layout-mini .chat-view {
@@ -1354,7 +1358,7 @@ h2 {
 }
 
 .live-dot.offline {
-  background: #f5a623;
+  background: #555;
 }
 
 .live-dot.disconnected {
@@ -2189,7 +2193,8 @@ h2 {
   margin-bottom: 14px;
 }
 
-.admin-bridge-token {
+.admin-bridge-token,
+.admin-password-panel {
   margin-bottom: 14px;
   padding: 12px 14px;
   border: 1px solid var(--line-soft);
@@ -2197,7 +2202,8 @@ h2 {
   background: rgba(255, 255, 255, 0.02);
 }
 
-.admin-bridge-token summary {
+.admin-bridge-token summary,
+.admin-password-panel summary {
   cursor: pointer;
   font-family: var(--label-font);
   font-size: 12px;
@@ -2207,19 +2213,22 @@ h2 {
   color: var(--text);
 }
 
-.admin-bridge-token p {
+.admin-bridge-token p,
+.admin-password-panel p {
   margin: 8px 0 10px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
 }
 
-.admin-bridge-token-row {
+.admin-bridge-token-row,
+.admin-password-row {
   display: flex;
   gap: 8px;
 }
 
-.admin-bridge-token-row input {
+.admin-bridge-token-row input,
+.admin-password-row input {
   flex: 1;
   min-width: 0;
   padding: 7px 10px;
@@ -2231,7 +2240,8 @@ h2 {
   font-size: 12px;
 }
 
-.admin-bridge-token-row button {
+.admin-bridge-token-row button,
+.admin-password-row button {
   flex-shrink: 0;
 }
 
@@ -2573,9 +2583,15 @@ button:hover {
     min-height: 460px;
   }
 
-  .source-breakdown,
-  .chat-shell .source-breakdown {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* One shrinkable chip row: stacked rows overflow the fixed-height
+     topbar (overflow: visible), and its z-index 140 stacking context
+     paints above the stream panel — spilled chips sit over the social
+     pill and steal its clicks. Mini keeps its sidebar stack via its
+     higher-specificity .live-layout-mini rules. */
+  .live-layout-full .source-breakdown {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
   }
 
   .brand-mark {
@@ -2642,9 +2658,11 @@ button:hover {
     font-size: 10px;
   }
 
-  .source-breakdown,
-  .chat-shell .source-breakdown {
-    grid-template-columns: 1fr;
+  /* Five chips cannot shrink into a phone-width row, so keep them
+     readable and let the row scroll sideways instead of wrapping. */
+  .live-layout-full .source-breakdown {
+    grid-auto-columns: minmax(96px, 1fr);
+    overflow-x: auto;
   }
 
   .brand-mark {

@@ -469,6 +469,7 @@ describe("chat interaction contract", () => {
     assert.equal(viewer.includes('href="https://x.com/MarketBubble"'), true);
     assert.equal(viewer.includes('href="https://www.instagram.com/themarketbubble/"'), true);
     assert.equal(viewer.includes('href="https://www.tiktok.com/@marketbubble"'), true);
+    assert.equal(viewer.includes('href="https://www.youtube.com/@MarketBubble"'), true);
     // Spotify podcast link rounds out the social pill (URL is a swappable const).
     assert.equal(viewer.includes("SPOTIFY_PODCAST_URL"), true);
     assert.equal(viewer.includes('aria-label="Market Bubble podcast on Spotify"'), true);
@@ -476,6 +477,19 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.stream-socials\s*\{[^}]*border-radius: 999px/s);
     // Mini layout lifts the pill into the gap above the floating player.
     assert.match(styles, /\.live-layout-mini\s+\.stream-socials\s*\{[^}]*top: auto[^}]*bottom: calc\(100% \+ 12px\)/s);
+    // The lifted pill sits outside the panel box, so mini must unclip the
+    // panel — .stream-view is overflow: hidden by default, which would
+    // otherwise hide the pill entirely.
+    assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*overflow: visible/s);
+    // At narrow widths the full layout must keep source chips on a single
+    // row inside the fixed-height topbar. Stacked chip rows overflow the
+    // topbar (overflow: visible), and its z-index 140 stacking context
+    // paints above the stream panel — the spilled chips sit over the
+    // social pill and steal its clicks (the pill's z-index 30 is scoped
+    // inside .stream-view's own stacking context, so it can never win).
+    assert.match(styles, /\.live-layout-full \.source-breakdown\s*\{[^}]*grid-template-columns: none[^}]*grid-auto-flow: column[^}]*grid-auto-columns: minmax\(0, 1fr\)/s);
+    assert.match(styles, /\.live-layout-full \.source-breakdown\s*\{[^}]*grid-auto-columns: minmax\(96px, 1fr\)[^}]*overflow-x: auto/s);
+    assert.doesNotMatch(styles, /\.source-breakdown,\s*\.chat-shell \.source-breakdown\s*\{[^}]*grid-template-columns: (?:repeat\(2, minmax\(0, 1fr\)\)|1fr)/s);
     assert.equal(viewer.includes('className="brand-wordmark"'), true);
     assert.equal(viewer.includes('className="brand-wordmark-text"'), true);
     assert.equal(viewer.includes("Market Bubble"), true);
@@ -823,7 +837,7 @@ describe("chat interaction contract", () => {
       platform: "kick",
       viewerCount: 100,
     }), "connected");
-    assert.match(styles, /\.live-dot\.offline\s*\{[^}]*#f5a623/s);
+    assert.match(styles, /\.live-dot\.offline\s*\{[^}]*#555/s);
   });
 
   it("uses profile live-state before an offline source status", () => {

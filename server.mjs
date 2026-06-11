@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, extname, join, normalize, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,6 +36,8 @@ const DEFAULT_CONFIG_PATH = join(ROOT_DIR, "data", "sources.json");
 const DEFAULT_PORT = 4178;
 let devChatMessageSequence = 0;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+// Matches the minimum enforced by scripts/hash-admin-password.mjs.
+const MIN_ADMIN_PASSWORD_LENGTH = 12;
 const DEFAULT_CHAT_REPLAY_LIMIT = 1000;
 const DEFAULT_CHAT_RETENTION_HOURS = 2;
 const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
@@ -99,7 +102,14 @@ const PUBLIC_ASSETS = new Map([
 export function createAppServer(options = {}) {
   const rootDir = options.rootDir || ROOT_DIR;
   const configPath = options.configPath || DEFAULT_CONFIG_PATH;
-  const adminPasswordHash = options.adminPasswordHash || process.env.ADMIN_PASSWORD_HASH || "";
+  // Passwords set from the admin UI land next to sources.json (the persistent
+  // data mount in production), and outrank the ADMIN_PASSWORD_HASH env seed so
+  // a changed password survives restarts and redeploys.
+  const adminPasswordFile = options.adminPasswordFile || join(dirname(configPath), "admin-password.json");
+  let adminPasswordHash = readAdminPasswordHashFile(adminPasswordFile)
+    || options.adminPasswordHash
+    || process.env.ADMIN_PASSWORD_HASH
+    || "";
   const loginThrottle = options.loginThrottle || createLoginThrottle();
   const chatReplayLimit = getPositiveNumber(
     options.chatReplayLimit ?? process.env.CHAT_REPLAY_LIMIT,
@@ -334,6 +344,54 @@ export function createAppServer(options = {}) {
         }
 
         loginThrottle.recordSuccess(clientKey);
+        const token = createSessionToken();
+        sessions.set(token, Date.now() + SESSION_TTL_MS);
+        response.writeHead(204, {
+          "Set-Cookie": buildSessionCookie(token, {
+            maxAgeSeconds: SESSION_TTL_MS / 1000,
+            secure: secureCookies,
+          }),
+        });
+        return response.end();
+      }
+
+      if (url.pathname === "/api/admin/password" && request.method === "POST") {
+        if (adminPasswordHash && !isAuthenticated(request, sessions, secureCookies)) {
+          return sendJson(response, 401, { error: "Unauthorized" });
+        }
+
+        // Same brute-force guard as login, so a stolen session cookie cannot
+        // grind the current password out of this route.
+        const clientKey = getClientKey(request);
+        const gate = loginThrottle.check(clientKey);
+        if (!gate.allowed) {
+          response.setHeader("Retry-After", String(Math.ceil(gate.retryAfterMs / 1000)));
+          return sendJson(response, 429, { error: "Too many attempts. Try again later." });
+        }
+
+        const body = await readJsonBody(request);
+        const newPassword = String(body.newPassword || "");
+        if (newPassword.length < MIN_ADMIN_PASSWORD_LENGTH) {
+          return sendJson(response, 400, {
+            error: `New password must be at least ${MIN_ADMIN_PASSWORD_LENGTH} characters.`,
+          });
+        }
+
+        if (adminPasswordHash) {
+          const valid = await verifyPassword(body.currentPassword || "", adminPasswordHash);
+          if (!valid) {
+            loginThrottle.recordFailure(clientKey);
+            return sendJson(response, 401, { error: "Current password is incorrect." });
+          }
+          loginThrottle.recordSuccess(clientKey);
+        }
+
+        adminPasswordHash = await hashPassword(newPassword);
+        await writeAdminPasswordFile(adminPasswordFile, adminPasswordHash);
+
+        // Sessions minted under the old password die; the caller stays logged
+        // in on a fresh one. The X ingest token rotates with the hash.
+        sessions.clear();
         const token = createSessionToken();
         sessions.set(token, Date.now() + SESSION_TTL_MS);
         response.writeHead(204, {
@@ -621,6 +679,26 @@ export async function writeSources(configPath, sources) {
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(`${configPath}.tmp`, `${JSON.stringify({ sources }, null, 2)}\n`);
   await rename(`${configPath}.tmp`, configPath);
+}
+
+function readAdminPasswordHashFile(filePath) {
+  try {
+    return String(JSON.parse(readFileSync(filePath, "utf8")).passwordHash || "");
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return "";
+    }
+
+    // A present-but-unreadable password file fails startup loudly rather than
+    // silently falling back to an older password.
+    throw error;
+  }
+}
+
+async function writeAdminPasswordFile(filePath, passwordHash) {
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(`${filePath}.tmp`, `${JSON.stringify({ passwordHash }, null, 2)}\n`, { mode: 0o600 });
+  await rename(`${filePath}.tmp`, filePath);
 }
 
 function isIngestAuthorized(request, adminPasswordHash) {

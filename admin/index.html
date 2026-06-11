@@ -51,6 +51,15 @@
             <button id="copyBridgeToken" type="button">Copy</button>
           </div>
         </details>
+        <details id="passwordPanel" class="admin-password-panel">
+          <summary>Change password</summary>
+          <p>Takes effect immediately and rotates the X Bridge token above.</p>
+          <form id="passwordForm" class="admin-password-row">
+            <input name="currentPassword" type="password" placeholder="Current password" autocomplete="current-password" aria-label="Current password" />
+            <input name="newPassword" type="password" placeholder="New password (12+ characters)" autocomplete="new-password" required minlength="12" aria-label="New password" />
+            <button type="submit">Update</button>
+          </form>
+        </details>
         <div id="profileCards" class="profile-editor"></div>
       </section>
 

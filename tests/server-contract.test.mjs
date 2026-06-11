@@ -486,6 +486,127 @@ describe("server contract", () => {
     }
   });
 
+  it("changes the admin password from the admin session and persists it across restarts", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-admin-password-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(configPath, JSON.stringify({ sources: [] }));
+
+    // Plays the role of a stale ADMIN_PASSWORD_HASH env seed after a restart.
+    const serverOptions = {
+      adminPasswordHash: await hashPassword("old-password-123", {
+        iterations: 1200,
+        salt: "00112233445566778899aabbccddeeff",
+      }),
+      chatEventStore: null,
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: null,
+    };
+
+    let server = createAppServer(serverOptions);
+    await listen(server);
+
+    try {
+      const anonymous = await request(server, "POST", "/api/admin/password", {
+        currentPassword: "old-password-123",
+        newPassword: "new-password-456",
+      });
+      assert.equal(anonymous.status, 401);
+
+      const login = await request(server, "POST", "/api/admin/login", { password: "old-password-123" });
+      assert.equal(login.status, 204);
+      const cookie = login.headers.get("set-cookie").split(";")[0];
+
+      const oldToken = (await request(server, "GET", "/api/admin/x-ingest-token", null, cookie)).json.token;
+
+      const wrongCurrent = await request(
+        server,
+        "POST",
+        "/api/admin/password",
+        { currentPassword: "not-the-password", newPassword: "new-password-456" },
+        cookie,
+      );
+      assert.equal(wrongCurrent.status, 401);
+
+      const shortNew = await request(
+        server,
+        "POST",
+        "/api/admin/password",
+        { currentPassword: "old-password-123", newPassword: "short" },
+        cookie,
+      );
+      assert.equal(shortNew.status, 400);
+
+      const changed = await request(
+        server,
+        "POST",
+        "/api/admin/password",
+        { currentPassword: "old-password-123", newPassword: "new-password-456" },
+        cookie,
+      );
+      assert.equal(changed.status, 204);
+      assert.match(changed.headers.get("set-cookie"), /mb_admin=/);
+      const newCookie = changed.headers.get("set-cookie").split(";")[0];
+
+      // Sessions minted under the old password die; the caller's fresh one works.
+      assert.equal((await request(server, "GET", "/api/admin/sources", null, cookie)).status, 401);
+      assert.equal((await request(server, "GET", "/api/admin/sources", null, newCookie)).status, 200);
+
+      // The login password rotated, and with it the derived X Bridge token.
+      assert.equal((await request(server, "POST", "/api/admin/login", { password: "old-password-123" })).status, 401);
+      assert.equal((await request(server, "POST", "/api/admin/login", { password: "new-password-456" })).status, 204);
+      const newToken = (await request(server, "GET", "/api/admin/x-ingest-token", null, newCookie)).json.token;
+      assert.notEqual(newToken, oldToken);
+
+      // The new hash lands next to sources.json so the mounted data dir keeps it.
+      const stored = JSON.parse(await readFile(join(tempDir, "admin-password.json"), "utf8"));
+      assert.match(stored.passwordHash, /^pbkdf2\$sha256\$/);
+
+      // A restart still carrying the stale env hash honors the file instead.
+      await close(server);
+      server = createAppServer(serverOptions);
+      await listen(server);
+      assert.equal((await request(server, "POST", "/api/admin/login", { password: "old-password-123" })).status, 401);
+      assert.equal((await request(server, "POST", "/api/admin/login", { password: "new-password-456" })).status, 204);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("sets the initial admin password when none is configured", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-admin-bootstrap-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(configPath, JSON.stringify({ sources: [] }));
+
+    const server = createAppServer({
+      adminPasswordHash: "",
+      chatEventStore: null,
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: null,
+    });
+    await listen(server);
+
+    try {
+      assert.equal((await request(server, "GET", "/api/admin/sources")).status, 200);
+
+      const set = await request(server, "POST", "/api/admin/password", { newPassword: "first-password-12" });
+      assert.equal(set.status, 204);
+      const cookie = set.headers.get("set-cookie").split(";")[0];
+
+      // Setting the first password locks the panel and keeps the caller logged in.
+      assert.equal((await request(server, "GET", "/api/admin/sources")).status, 401);
+      assert.equal((await request(server, "GET", "/api/admin/sources", null, cookie)).status, 200);
+      assert.equal((await request(server, "POST", "/api/admin/login", { password: "first-password-12" })).status, 204);
+    } finally {
+      await close(server);
+    }
+  });
+
   it("merges X connector occupancy into /api/live-state", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-x-live-"));
     const configPath = join(tempDir, "sources.json");
