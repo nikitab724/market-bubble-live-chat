@@ -67,6 +67,8 @@ const state = {
 const el = {
   chatFeed:          document.querySelector("#chatFeed"),
   jumpToLive:        document.querySelector("#jumpToLive"),
+  mainGrid:          document.querySelector(".v2-main"),
+  offlineScreen:     document.querySelector("#offlineScreen"),
   platformBreakdown: document.querySelector("#platformBreakdown"),
   statActiveChatters:document.querySelector("#statActiveChatters"),
   statMsgPerMin:     document.querySelector("#statMsgPerMin"),
@@ -268,6 +270,9 @@ function updateStreamHeader() {
   } else {
     if (el.liveBadge) { el.liveBadge.textContent = "Offline"; el.liveBadge.dataset.state = "offline"; }
   }
+
+  if (el.mainGrid) el.mainGrid.hidden = !nowLive;
+  if (el.offlineScreen) el.offlineScreen.hidden = nowLive;
 
   // Reload the player if live status changed since last check
   if (lastLiveState !== null && lastLiveState !== nowLive) {

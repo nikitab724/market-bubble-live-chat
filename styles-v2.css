@@ -620,6 +620,39 @@ a { color: inherit; text-decoration: none; }
 .v2-platform-bar-fill.x      { background: var(--x); }
 .v2-platform-bar-fill.room   { background: var(--native); }
 
+/* ── Offline screen ──────────────────────────────────────────────────────── */
+
+.v2-offline-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.v2-offline-screen[hidden] { display: none; }
+
+.v2-offline-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.v2-offline-schedule {
+  font-family: var(--label-font);
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
+.v2-social-icon-lg {
+  width: 32px;
+  height: 32px;
+}
+
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 
 .v2-footer {
