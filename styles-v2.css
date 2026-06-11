@@ -738,7 +738,7 @@ a { color: inherit; text-decoration: none; }
 
 .v2-content-split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr) minmax(140px, 200px);
+  grid-template-columns: minmax(0, calc(1fr - 100px)) minmax(0, calc(2.4fr + 100px)) minmax(140px, 200px);
   gap: 18px;
   align-items: start;
 }
