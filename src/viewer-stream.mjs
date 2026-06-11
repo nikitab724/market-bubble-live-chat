@@ -169,11 +169,16 @@ function renderCornerCountdown(document, window) {
 
   stopOfflineCountdown(window);
   slot.hidden = false;
+  const digitCell = () => '<span class="countdown-digit">&nbsp;</span>';
   slot.innerHTML = `
     <span class="corner-countdown-label"><em class="corner-countdown-dot"></em>Offline · Back Thursday 1PM PST</span>
-    <strong class="corner-countdown-clock">--:--:--</strong>
+    <strong class="corner-countdown-clock">
+      <span class="countdown-days" hidden></span>
+      ${digitCell()}${digitCell()}<span class="countdown-colon">:</span>${digitCell()}${digitCell()}<span class="countdown-colon">:</span>${digitCell()}${digitCell()}
+    </strong>
   `;
-  const clockEl = slot.querySelector(".corner-countdown-clock");
+  const daysEl = slot.querySelector(".countdown-days");
+  const digitEls = [...slot.querySelectorAll(".countdown-digit")];
 
   let target = getNextBroadcastTime();
 
@@ -184,10 +189,22 @@ function renderCornerCountdown(document, window) {
     }
 
     const parts = getCountdownParts(target, now);
-    const clock = `${parts.days > 0 ? `${parts.days}d ` : ""}${pad(parts.hours)}:${pad(parts.minutes)}:${pad(parts.seconds)}`;
-    if (clockEl.textContent !== clock) {
-      clockEl.textContent = clock;
+    daysEl.hidden = parts.days === 0;
+    const days = `${parts.days}d`;
+    if (daysEl.textContent !== days) {
+      daysEl.textContent = days;
     }
+
+    const digits = `${pad(parts.hours)}${pad(parts.minutes)}${pad(parts.seconds)}`;
+    digitEls.forEach((digitEl, index) => {
+      if (digitEl.textContent === digits[index]) return;
+
+      digitEl.textContent = digits[index];
+      // Restart the roll animation for the digit that just changed.
+      digitEl.classList.remove("is-rolling");
+      void digitEl.offsetWidth;
+      digitEl.classList.add("is-rolling");
+    });
   }
 
   tick();

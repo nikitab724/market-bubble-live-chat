@@ -846,16 +846,73 @@ h2 {
   height: 6px;
   border-radius: 50%;
   background: #f5a623;
+  animation: pulse-live 1.6s ease-in-out infinite;
 }
 
 .corner-countdown-clock {
+  display: inline-flex;
+  align-items: baseline;
+  margin: 0;
   color: var(--text);
   font-family: var(--label-font);
-  font-size: 30px;
+  font-size: clamp(32px, 3.2vw, 42px);
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 26px rgba(228, 228, 228, 0.18);
+  text-shadow: 0 0 30px rgba(228, 228, 228, 0.2);
+}
+
+.countdown-days {
+  margin-right: 12px;
+  color: var(--muted);
+  font-size: 0.6em;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.countdown-days[hidden] {
+  display: none;
+}
+
+.countdown-digit {
+  display: inline-block;
+  min-width: 0.64em;
+  text-align: center;
+}
+
+.countdown-digit.is-rolling {
+  animation: countdown-digit-roll 480ms var(--ease-out);
+}
+
+@keyframes countdown-digit-roll {
+  0% {
+    opacity: 0;
+    transform: translateY(0.45em);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.countdown-colon {
+  margin: 0 5px;
+  color: rgba(228, 228, 228, 0.38);
+  font-weight: 700;
+  animation: countdown-colon-breathe 2s ease-in-out infinite;
+}
+
+@keyframes countdown-colon-breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.22; }
+}
+
+/* The visible countdown gets its own bottom strip in the full layout so it
+   never overlays the stream/VOD panel. */
+.live-layout-full .site-shell:has(.corner-countdown:not([hidden])) .app-shell {
+  padding-bottom: 104px;
 }
 
 @keyframes corner-countdown-rise {
@@ -2180,7 +2237,8 @@ button:hover {
 
   .corner-quote,
   .corner-schedule,
-  .corner-countdown {
+  .corner-countdown,
+  .countdown-digit {
     filter: none !important;
   }
 }

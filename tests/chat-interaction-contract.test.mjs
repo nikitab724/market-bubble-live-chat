@@ -752,10 +752,31 @@ describe("chat interaction contract", () => {
     assert.equal(styles.includes("@keyframes count-roll"), false);
   });
 
-  it("renders live status dots for Twitch and Kick source chips", () => {
+  it("renders live status dots for Twitch, Kick, and X source chips", () => {
     assert.equal(shouldRenderSourceStatusDot({ platform: "twitch" }), true);
     assert.equal(shouldRenderSourceStatusDot({ platform: "kick" }), true);
-    assert.equal(shouldRenderSourceStatusDot({ platform: "x" }), false);
+    // X liveness comes from the chat connector's occupancy in live-state.
+    assert.equal(shouldRenderSourceStatusDot({ platform: "x" }), true);
+    assert.equal(shouldRenderSourceStatusDot({ platform: "room" }), false);
+  });
+
+  it("uses X live-state from connector occupancy to choose the source chip status", () => {
+    assert.equal(getSourceStatus({
+      isLive: true,
+      platform: "x",
+      viewerCount: 108,
+      viewerCountLocked: true,
+    }), "connected");
+    assert.equal(getSourceStatus({
+      isLive: false,
+      platform: "x",
+      viewerCount: 0,
+      viewerCountLocked: true,
+    }), "offline");
+    assert.equal(getSourceStatus({
+      platform: "x",
+      viewerCount: 0,
+    }), "configured");
   });
 
   it("uses Kick live-state to choose the source chip status", () => {
@@ -998,5 +1019,15 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.corner-countdown\s*\{[^}]*position: absolute[^}]*left: 50%[^}]*bottom: 16px/s);
     assert.match(styles, /\.corner-countdown-clock\s*\{[^}]*font-variant-numeric: tabular-nums/s);
     assert.match(styles, /\.corner-countdown\[hidden\]\s*\{[^}]*display: none/s);
+
+    // Full layout reserves a bottom strip for the visible countdown so it
+    // never overlays the stream/VOD panel.
+    assert.match(styles, /\.live-layout-full\s+\.site-shell:has\(\.corner-countdown:not\(\[hidden\]\)\)\s+\.app-shell\s*\{[^}]*padding-bottom: 104px/s);
+
+    // Each clock digit rolls in on change instead of snapping.
+    assert.equal(app.includes('class="countdown-digit"'), true);
+    assert.equal(app.includes('classList.add("is-rolling")'), true);
+    assert.match(styles, /\.countdown-digit\.is-rolling\s*\{[^}]*animation: countdown-digit-roll/s);
+    assert.match(styles, /@keyframes countdown-digit-roll/);
   });
 });

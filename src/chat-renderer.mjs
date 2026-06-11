@@ -807,7 +807,7 @@ export function createChatRenderer({
 }
 
 export function shouldRenderSourceStatusDot(source) {
-  return source.platform === "twitch" || source.platform === "kick";
+  return ["twitch", "kick", "x"].includes(source.platform);
 }
 
 export function getProfileSourceStatus(source, profileSources = [], twitchStatuses = {}) {
@@ -831,7 +831,9 @@ export function getSourceStatus(source, twitchStatuses = {}) {
     return twitchStatuses[source.sourceId] || "connecting";
   }
 
-  if (source.platform === "kick" && source.viewerCountLocked) {
+  // Kick liveness comes from its HTTP API; X liveness comes from the chat
+  // connector's occupancy merged into the same live-state response.
+  if (["kick", "x"].includes(source.platform) && source.viewerCountLocked) {
     return source.isLive === true ? "connected" : "offline";
   }
 
