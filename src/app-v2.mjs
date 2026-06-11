@@ -111,10 +111,10 @@ async function initializeApp() {
   renderTabs();
 
   render();
+  await refreshLiveState();
   initTwitchPlayer();
   loadTwitchEmotes();
   startBackendChatEvents();
-  refreshLiveState();
 }
 
 async function loadPublicConfig() {
@@ -228,31 +228,31 @@ function updateBackendChatStatus(rawStatus) {
 async function refreshLiveState() {
   try {
     const r = await fetch("/api/live-state", { cache: "no-store" });
-    if (!r.ok) return;
-    const liveState = await r.json();
-    if (!Array.isArray(liveState.sources)) return;
-
-    const byId = new Map(liveState.sources.map((s) => [s.sourceId, s]));
-    state.sources = state.sources.map((source) => {
-      const live = byId.get(source.sourceId);
-      if (!live) return source;
-      return {
-        ...source,
-        gameName:     live.gameName || "",
-        isLive:       live.isLive === true,
-        startedAt:    live.startedAt || "",
-        streamTitle:  live.title || "",
-        thumbnailUrl: live.thumbnailUrl || "",
-        viewerCount:  Number(live.viewerCount || 0),
-        viewerCountLocked: true,
-      };
-    });
-
-    updateStreamHeader();
-    queueRender();
+    if (r.ok) {
+      const liveState = await r.json();
+      if (Array.isArray(liveState.sources)) {
+        const byId = new Map(liveState.sources.map((s) => [s.sourceId, s]));
+        state.sources = state.sources.map((source) => {
+          const live = byId.get(source.sourceId);
+          if (!live) return source;
+          return {
+            ...source,
+            gameName:     live.gameName || "",
+            isLive:       live.isLive === true,
+            startedAt:    live.startedAt || "",
+            streamTitle:  live.title || "",
+            thumbnailUrl: live.thumbnailUrl || "",
+            viewerCount:  Number(live.viewerCount || 0),
+            viewerCountLocked: true,
+          };
+        });
+      }
+    }
   } catch {
     // keep existing values
   }
+  updateStreamHeader();
+  queueRender();
 }
 
 let lastLiveState = null;
