@@ -24,6 +24,7 @@
 - `POST /api/webhooks/kick`: Kick webhook chat ingest with signature verification; events are matched to a Kick source by `broadcasterUserId` then slug, and events for unconfigured broadcasters (stale app subscriptions) are acknowledged and dropped.
 - `POST /api/dev/kick-chat`: local development injector outside production.
 - `POST /api/admin/password`: changes the admin password (requires a valid session plus the current password; sets the initial password when none is configured). The new hash is persisted to `admin-password.json` next to `sources.json`, all other sessions are invalidated, and the caller gets a fresh session cookie.
+- `DELETE /api/admin/chat-events`: empties the stored chat event log so the replay window starts fresh (admin session required when a password is set). Event ids stay monotonic across a clear, so reconnecting browsers with a pre-clear `Last-Event-ID` miss nothing sent afterwards. Triggered from the admin page's "Clear chat history" panel.
 - `/api/admin/*`: admin login/logout and source config reads/writes.
 
 API request bodies are capped at 1 MB, and X chat ingest truncates author/handle to 120 characters and message bodies to 2000 characters before broadcast.

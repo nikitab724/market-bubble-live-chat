@@ -13,6 +13,8 @@ const STATUS_TICK_MS = 5000;
 const elements = {
   addProfileButton: document.querySelector("#addProfileButton"),
   bridgeToken: document.querySelector("#bridgeToken"),
+  clearChatButton: document.querySelector("#clearChatButton"),
+  clearChatPanel: document.querySelector("#clearChatPanel"),
   copyBridgeToken: document.querySelector("#copyBridgeToken"),
   editorPanel: document.querySelector("#editorPanel"),
   loginForm: document.querySelector("#loginForm"),
@@ -123,6 +125,18 @@ elements.passwordForm.addEventListener("submit", async (event) => {
   showStatus("Password updated.");
   // The X Bridge token derives from the password, so re-fetch the new one.
   loadBridgeToken();
+});
+
+elements.clearChatButton.addEventListener("click", async () => {
+  const response = await requestApi("/api/admin/chat-events", { method: "DELETE" });
+
+  if (!response.ok) {
+    showStatus(await readError(response));
+    return;
+  }
+
+  elements.clearChatPanel.open = false;
+  showStatus("Chat history cleared.");
 });
 
 elements.copyBridgeToken.addEventListener("click", async () => {

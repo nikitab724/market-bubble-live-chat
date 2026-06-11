@@ -1041,6 +1041,54 @@ describe("server contract", () => {
     }
   });
 
+  it("clears stored chat events from the admin panel", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-clear-chat-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(configPath, JSON.stringify({ sources: [] }));
+
+    let cleared = 0;
+    const server = createAppServer({
+      adminPasswordHash: await hashPassword("secret", { iterations: 1200, salt: "00112233445566778899aabbccddeeff" }),
+      chatEventStore: {
+        append(eventName, payload) {
+          return { id: 1, eventName, payload };
+        },
+        clear() {
+          cleared += 1;
+        },
+        close() {},
+        getEventsAfter() {
+          return [];
+        },
+        getRecentEvents() {
+          return [];
+        },
+      },
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: null,
+    });
+    await listen(server);
+
+    try {
+      const blocked = await request(server, "DELETE", "/api/admin/chat-events");
+      assert.equal(blocked.status, 401);
+      assert.equal(cleared, 0);
+
+      const login = await request(server, "POST", "/api/admin/login", { password: "secret" });
+      assert.equal(login.status, 204);
+      const cookie = login.headers.get("set-cookie").split(";")[0];
+
+      const clearResponse = await request(server, "DELETE", "/api/admin/chat-events", null, cookie);
+      assert.equal(clearResponse.status, 204);
+      assert.equal(cleared, 1);
+    } finally {
+      await close(server);
+    }
+  });
+
   it("unsubscribes Kick chat webhooks for sources removed by an admin save", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-kick-unsubscribe-"));
     const configPath = join(tempDir, "sources.json");

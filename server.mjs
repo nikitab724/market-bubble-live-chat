@@ -467,6 +467,16 @@ export function createAppServer(options = {}) {
         }
       }
 
+      if (url.pathname === "/api/admin/chat-events" && request.method === "DELETE") {
+        if (adminPasswordHash && !isAuthenticated(request, sessions, secureCookies)) {
+          return sendJson(response, 401, { error: "Unauthorized" });
+        }
+
+        chatHub.clearEvents();
+        response.writeHead(204);
+        return response.end();
+      }
+
       if (request.method !== "GET") {
         return sendJson(response, 405, { error: "Method not allowed" });
       }

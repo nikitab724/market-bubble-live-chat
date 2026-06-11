@@ -45,6 +45,10 @@ export function createChatEventHub({
         writeEvent(client, eventText);
       }
     },
+
+    clearEvents() {
+      store.clear?.();
+    },
   };
 
   function replayMissedEvents(response, lastEventId) {

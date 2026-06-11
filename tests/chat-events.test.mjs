@@ -66,6 +66,24 @@ describe("chat event hub", () => {
     ]);
   });
 
+  it("clears stored events so new connections start fresh, without resetting ids", () => {
+    const hub = createChatEventHub({ heartbeatIntervalMs: 0, replayLimit: 5 });
+
+    hub.broadcast("chat", { body: "stale one" });
+    hub.broadcast("chat", { body: "stale two" });
+
+    hub.clearEvents();
+
+    const freshResponse = new FakeResponse();
+    hub.connect(freshResponse);
+    assert.deepEqual(freshResponse.writes.slice(1), []);
+
+    // Ids must not restart after a clear, or a browser reconnecting with a
+    // pre-clear Last-Event-ID would skip everything sent afterwards.
+    hub.broadcast("chat", { body: "after clear" });
+    assert.equal(freshResponse.writes.at(-1), 'id: 3\nevent: chat\ndata: {"body":"after clear"}\n\n');
+  });
+
   it("replays stored events after a hub restart", () => {
     const eventStore = createMemoryChatEventStore({ replayLimit: 5 });
     const firstHub = createChatEventHub({ eventStore, heartbeatIntervalMs: 0, replayLimit: 5 });
