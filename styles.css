@@ -425,14 +425,11 @@ body.admin-body {
   border-radius: 18px;
 }
 
-/* Hoisted above the panel edge like the social pill: anything overlapping the
-   video iframe trips Twitch's occlusion check and pauses playback on resize. */
 .live-layout-mini .layout-toggle {
-  --layout-toggle-radius: 14px;
-  --layout-toggle-size: 42px;
-  top: auto;
-  bottom: calc(100% + 12px);
-  left: 0;
+  --layout-toggle-radius: 18px;
+  --layout-toggle-size: 58px;
+  top: 14px;
+  left: 14px;
   right: auto;
 }
 
@@ -726,17 +723,6 @@ h2 {
 .stream-player {
   width: 100%;
   height: 100%;
-}
-
-/* Twitch's embed refuses autoplay and pauses playback when anything paints
-   over its iframe (the "style visibility" embedded-experiences check, which
-   re-runs on every player resize — so the layout toggle froze the stream).
-   In full layout the social pill and corner toggle therefore sit over a top
-   band of the card's own background instead of the video; the card looks the
-   same (#080808 matches the player letterbox) but the iframe rect stays clear. */
-.live-layout-full .stream-player {
-  margin-top: 68px;
-  height: calc(100% - 68px);
 }
 
 .stream-player iframe {

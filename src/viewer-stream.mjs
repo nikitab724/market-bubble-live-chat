@@ -123,14 +123,10 @@ export function getStreamSelectionKey(sources) {
   return [source.sourceId, source.platform, source.sourceHandle, source.conversationId || ""].join("|");
 }
 
-// Deliberately autoplay=false: allowed autoplay would start muted, and Twitch
-// pauses muted players whenever the tab is hidden or the window is covered,
-// with no recovery hook the page can rely on. Click-to-play starts with sound,
-// and an audible tab keeps playing through tab and app switches.
 function createTwitchStreamFrame({ source, window }) {
   const parent = window.location.hostname || "localhost";
   const iframe = window.document.createElement("iframe");
-  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(source.sourceHandle)}&parent=${encodeURIComponent(parent)}&autoplay=false`;
+  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(source.sourceHandle)}&parent=${encodeURIComponent(parent)}&autoplay=true`;
   iframe.allowFullscreen = true;
   iframe.allow = "autoplay; fullscreen; picture-in-picture";
   iframe.title = `${source.sourceName} on Twitch`;
