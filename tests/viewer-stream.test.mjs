@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { getSelectedStreamSource, getStreamSelectionKey } from "../src/viewer-stream.mjs";
@@ -41,5 +42,15 @@ describe("stream selection", () => {
 
   it("returns an empty key when there are no sources", () => {
     assert.equal(getStreamSelectionKey([]), "");
+  });
+});
+
+describe("twitch embed playback mode", () => {
+  it("loads the live channel embed without autoplay so playback starts audible on click", () => {
+    // Muted autoplay is the state Twitch pauses in background tabs and never
+    // resumes; click-to-play starts with sound, and audible tabs keep playing
+    // through tab and app switches.
+    const source = readFileSync(new URL("../src/viewer-stream.mjs", import.meta.url), "utf8");
+    assert.match(source, /player\.twitch\.tv\/\?channel=\$\{encodeURIComponent\(source\.sourceHandle\)\}&parent=\$\{encodeURIComponent\(parent\)\}&autoplay=false/);
   });
 });
