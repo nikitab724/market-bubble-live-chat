@@ -54,7 +54,27 @@ export function createXApiClient({
 
   const profileCache = new Map();
 
-  return { bootstrapBroadcast, getUserProfile };
+  return { bootstrapBroadcast, getBroadcastOwner, getUserProfile };
+
+  // Owner check for /api/x-broadcast: a tab navigating between two live pages
+  // reports the new page's broadcast id under its previously selected source,
+  // so the server verifies who the broadcast belongs to before storing it.
+  // Returns "" when the show payload carries no username.
+  async function getBroadcastOwner(input) {
+    const broadcastId = extractBroadcastId(input);
+    const guestToken = await activateGuestToken();
+
+    const show = await requestJson(
+      `${BROADCAST_SHOW_URL}?ids=${encodeURIComponent(broadcastId)}`,
+      { headers: xApiHeaders(guestToken) },
+    );
+    const broadcast = show.broadcasts?.[broadcastId];
+
+    return String(broadcast?.twitter_username || broadcast?.username || "")
+      .replace(/^@/, "")
+      .trim()
+      .toLowerCase();
+  }
 
   async function bootstrapBroadcast(input) {
     const broadcastId = extractBroadcastId(input);

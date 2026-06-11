@@ -47,7 +47,7 @@ let status = "idle"; // "idle" | "watching" | "no-container"
 // posts are actually accepted. Result states come from backend responses and
 // stick; guidance states (soft) only fill in when there is no result yet.
 let bridge = { state: "idle", message: "" };
-const BRIDGE_RESULT_STATES = new Set(["linked", "unauthorized", "no-source", "error"]);
+const BRIDGE_RESULT_STATES = new Set(["linked", "unauthorized", "no-source", "wrong-owner", "error"]);
 
 // ─── State broadcasting ───────────────────────────────────────────────────────
 
@@ -147,6 +147,11 @@ function reportBroadcastId() {
         setBridge("unauthorized", `backend ${backendBaseUrl} rejected the bridge token (401)`);
       } else if (response.status === 404) {
         setBridge("no-source", `backend ${backendBaseUrl} has no enabled X source for @${currentSourceHandle} (404)`);
+      } else if (response.status === 409) {
+        // This tab is on someone else's live page (e.g. it navigated between
+        // two watched streams); the backend refused to repoint the source.
+        const data = await response.json().catch(() => ({}));
+        setBridge("wrong-owner", data.error || `this broadcast does not belong to @${currentSourceHandle} — reselect the source`);
       } else {
         setBridge("error", `broadcast report failed with HTTP ${response.status}`);
       }

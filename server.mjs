@@ -363,7 +363,7 @@ export function createAppServer(options = {}) {
         if (request.method === "POST") {
           const body = await readJsonBody(request);
           const sources = await readSources(configPath);
-          const result = applyXBroadcastId(body, sources);
+          const result = applyXBroadcastId(body, sources, await resolveXBroadcastOwner(body));
 
           if (!result.ok) {
             return sendJson(response, result.status, { error: result.error });
@@ -618,6 +618,17 @@ export function createAppServer(options = {}) {
     twitchChatService?.syncSources?.(sources);
     xChatService?.syncSources?.(sources);
   }
+
+  // Owner lookup for bridge broadcast reports. Soft: "" (unknown) on any
+  // failure so X API flakiness cannot block auto-capture — only a confirmed
+  // mismatch rejects the report.
+  async function resolveXBroadcastOwner(body) {
+    try {
+      return await xApiClient.getBroadcastOwner(body?.broadcastId || body?.broadcastUrl || "");
+    } catch {
+      return "";
+    }
+  }
 }
 
 function getPositiveNumber(value, fallback) {
@@ -718,7 +729,7 @@ function normalizeXChatMessage(body, sources) {
 // X live page, the extension reports the broadcast id so the server-side X chat
 // connector can attach without a manual paste. It can only set broadcastId on an
 // existing enabled X source matched by handle — no source creation or other edits.
-function applyXBroadcastId(body, sources) {
+function applyXBroadcastId(body, sources, broadcastOwner = "") {
   const requestedHandle = String(body.sourceHandle || "").replace(/^@/, "").toLowerCase().trim();
   if (!requestedHandle) {
     return { ok: false, status: 400, error: "sourceHandle is required" };
@@ -736,6 +747,17 @@ function applyXBroadcastId(body, sources) {
   );
   if (!source) {
     return { ok: false, status: 404, error: `No enabled X source for handle @${requestedHandle}` };
+  }
+
+  // An extension tab that navigates from one live page to another re-reports
+  // the new page's broadcast id under its previously selected source, which
+  // would silently point this source at someone else's stream.
+  if (broadcastOwner && broadcastOwner !== source.sourceHandle) {
+    return {
+      ok: false,
+      status: 409,
+      error: `Broadcast ${broadcastId} belongs to @${broadcastOwner}, not @${requestedHandle} — reselect the source in the popup`,
+    };
   }
 
   const changed = source.broadcastId !== broadcastId;

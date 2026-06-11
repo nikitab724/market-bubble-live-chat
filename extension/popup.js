@@ -11,6 +11,7 @@ const BRIDGE_LABELS = {
   "chat-ok": { tone: "ok", text: "Backend is accepting bridged chat" },
   unauthorized: { tone: "err", text: "Token rejected — copy it from this backend's admin page" },
   "no-source": { tone: "err", text: "Backend has no X source for the selected handle" },
+  "wrong-owner": { tone: "err", text: "This broadcast belongs to a different account — reselect the source" },
   error: { tone: "err", text: "Backend unreachable — check the Backend URL" },
   "no-broadcast-url": { tone: "warn", text: "Open the stream's x.com/i/broadcasts/… page to link it" },
   "no-source-selected": { tone: "warn", text: "Pick a source below, then Apply" },

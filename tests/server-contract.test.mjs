@@ -697,6 +697,7 @@ describe("server contract", () => {
         },
         stop() {},
       },
+      xApiClient: { async getBroadcastOwner() { return "banks"; } },
     });
     await listen(server);
 
@@ -733,6 +734,72 @@ describe("server contract", () => {
     }
   });
 
+  it("rejects a bridge report whose broadcast belongs to a different X account", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "mb-x-owner-"));
+    const configPath = join(tempDir, "sources.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        sources: [
+          { platform: "x", sourceHandle: "blknoiz06", sourceLabel: "Ansem", enabled: true, broadcastId: "1ansem" },
+          { platform: "x", sourceHandle: "marketbubble", sourceLabel: "MB", enabled: true },
+        ],
+      }),
+    );
+
+    const synced = [];
+    const owners = { "1ansem": "blknoiz06", "1mb": "marketbubble" };
+    const server = createAppServer({
+      adminPasswordHash: "",
+      configPath,
+      rootDir: fileURLToPath(new URL("..", import.meta.url)),
+      secureCookies: false,
+      twitchChatService: null,
+      xChatService: {
+        syncSources(sources) {
+          synced.push(sources.filter((source) => source.platform === "x").map((source) => source.broadcastId));
+        },
+        stop() {},
+      },
+      xApiClient: {
+        async getBroadcastOwner(id) {
+          if (!(id in owners)) throw new Error("owner lookup unavailable");
+          return owners[id];
+        },
+      },
+    });
+    await listen(server);
+
+    try {
+      // A tab whose popup still has Ansem selected navigates to MB's live page
+      // and reports MB's broadcast id under Ansem's handle. The report is
+      // rejected and neither source is touched.
+      const mismatch = await request(server, "POST", "/api/x-broadcast", { sourceHandle: "blknoiz06", broadcastId: "1mb" });
+      assert.equal(mismatch.status, 409);
+      assert.match(mismatch.json.error, /@marketbubble/);
+      let saved = JSON.parse(await readFile(configPath, "utf8"));
+      assert.equal(saved.sources[0].broadcastId, "1ansem");
+      assert.equal(saved.sources[1].broadcastId ?? "", "");
+      assert.deepEqual(synced, []);
+
+      // The same id reported under the source that owns it is stored.
+      const match = await request(server, "POST", "/api/x-broadcast", { sourceHandle: "marketbubble", broadcastId: "1mb" });
+      assert.equal(match.status, 200);
+      saved = JSON.parse(await readFile(configPath, "utf8"));
+      assert.equal(saved.sources[1].broadcastId, "1mb");
+      assert.deepEqual(synced, [["1ansem", "1mb"]]);
+
+      // Owner lookup failures stay soft so X API flakiness cannot block the
+      // auto-capture path; the report is accepted as before the check existed.
+      const soft = await request(server, "POST", "/api/x-broadcast", { sourceHandle: "blknoiz06", broadcastId: "1newAnsem" });
+      assert.equal(soft.status, 200);
+      saved = JSON.parse(await readFile(configPath, "utf8"));
+      assert.equal(saved.sources[0].broadcastId, "1newAnsem");
+    } finally {
+      await close(server);
+    }
+  });
+
   it("ignores extension DOM-bridge chat for an X source owned by the server-side connector", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "mb-x-dedupe-"));
     const configPath = join(tempDir, "sources.json");
@@ -749,6 +816,7 @@ describe("server contract", () => {
       secureCookies: false,
       twitchChatService: null,
       xChatService: { syncSources() {}, stop() {} },
+      xApiClient: { async getBroadcastOwner() { return "banks"; } },
       chatHub: {
         broadcast(eventName, payload) {
           chatEvents.push({ eventName, payload });
@@ -1002,6 +1070,7 @@ describe("server contract", () => {
       secureCookies: false,
       twitchChatService: null,
       xChatService: { syncSources() {}, stop() {} },
+      xApiClient: { async getBroadcastOwner() { return "banks"; } },
       chatHub: {
         broadcast(eventName, payload) {
           chatEvents.push({ eventName, payload });

@@ -106,6 +106,36 @@ describe("x-api bootstrap handshake", () => {
   });
 });
 
+describe("x-api broadcast owner lookup", () => {
+  it("resolves the broadcast owner's X handle from broadcasts/show", async () => {
+    const fetchImpl = async (url) => {
+      if (url.includes("guest/activate.json")) return jsonResponse({ guest_token: "g" });
+      if (url.includes("broadcasts/show.json")) {
+        return jsonResponse({ broadcasts: { "1mb": { media_key: "mk-1", state: "RUNNING", twitter_username: "MarketBubble" } } });
+      }
+      throw new Error(`unexpected ${url}`);
+    };
+
+    const client = createXApiClient({ fetchImpl });
+    assert.equal(await client.getBroadcastOwner("1mb"), "marketbubble");
+    assert.equal(await client.getBroadcastOwner("https://x.com/i/broadcasts/1mb"), "marketbubble");
+  });
+
+  it("falls back to the periscope username and reports unknown owners as empty", async () => {
+    const fetchImpl = async (url) => {
+      if (url.includes("guest/activate.json")) return jsonResponse({ guest_token: "g" });
+      if (url.includes("broadcasts/show.json")) {
+        return jsonResponse({ broadcasts: { "1p": { media_key: "mk-2", username: "@Banks" }, "1x": { media_key: "mk-3" } } });
+      }
+      throw new Error(`unexpected ${url}`);
+    };
+
+    const client = createXApiClient({ fetchImpl });
+    assert.equal(await client.getBroadcastOwner("1p"), "banks");
+    assert.equal(await client.getBroadcastOwner("1x"), "");
+  });
+});
+
 describe("x-api profile lookup", () => {
   it("resolves an X profile through the guest GraphQL lookup and caches it", async () => {
     const calls = [];
