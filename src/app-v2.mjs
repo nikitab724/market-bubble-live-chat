@@ -135,7 +135,9 @@ async function loadPublicConfig() {
 function initTwitchPlayer(channel) {
   if (!el.twitchPlayer) return;
 
-  const twitchChannel = channel || getActiveTab()?.twitchChannel;
+  const twitchChannel = channel
+    || getActiveTab()?.twitchChannel
+    || connectedSources.find((s) => s.platform === "twitch")?.sourceHandle;
   if (!twitchChannel) return;
 
   setTwitchPlayerChannel(twitchChannel);
