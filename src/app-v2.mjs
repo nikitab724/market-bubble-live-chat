@@ -135,8 +135,11 @@ async function loadPublicConfig() {
 function initTwitchPlayer(channel) {
   if (!el.twitchPlayer) return;
 
+  // Prefer the source explicitly marked showStream, then the active tab channel,
+  // then the first available Twitch source.
   const twitchChannel = channel
     || getActiveTab()?.twitchChannel
+    || connectedSources.find((s) => s.platform === "twitch" && s.showStream)?.sourceHandle
     || connectedSources.find((s) => s.platform === "twitch")?.sourceHandle;
   if (!twitchChannel) return;
 
@@ -146,7 +149,9 @@ function initTwitchPlayer(channel) {
 function setTwitchPlayerChannel(channel) {
   const parent = window.location.hostname || "localhost";
   const iframe = document.createElement("iframe");
-  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${encodeURIComponent(parent)}&autoplay=true`;
+  // muted=true is required for autoplay in modern browsers; without it the
+  // browser blocks the stream and the player shows a blank black screen.
+  iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${encodeURIComponent(parent)}&autoplay=true&muted=true`;
   iframe.allowFullscreen = true;
   iframe.allow = "autoplay; fullscreen";
   iframe.title = `${channel} on Twitch`;
