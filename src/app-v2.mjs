@@ -139,9 +139,9 @@ function initTwitchPlayer(channel) {
 
   if (!twitchChannel) return;
 
-  const twitchSource = connectedSources.find(
+  const twitchSource = state.sources.find(
     (s) => s.platform === "twitch" && s.sourceHandle === twitchChannel,
-  ) || connectedSources.find((s) => s.platform === "twitch");
+  ) || state.sources.find((s) => s.platform === "twitch");
 
   if (twitchSource) {
     if (el.streamerName) el.streamerName.textContent = twitchSource.sourceLabel || twitchSource.sourceName || twitchChannel;
@@ -150,7 +150,7 @@ function initTwitchPlayer(channel) {
     if (el.subscribeBtn) el.subscribeBtn.href = `https://twitch.tv/subs/${twitchChannel}`;
   }
 
-  const source = twitchSource || connectedSources.find((s) => s.platform === "twitch");
+  const source = twitchSource || state.sources.find((s) => s.platform === "twitch");
   const isLive = source?.isLive === true;
 
   if (isLive) {
