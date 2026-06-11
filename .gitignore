@@ -11,3 +11,6 @@ data/admin-password.json
 
 # Local debug/preview screenshots
 /*.png
+
+# Claude Code local settings (machine-specific permission grants)
+.claude/settings.local.json

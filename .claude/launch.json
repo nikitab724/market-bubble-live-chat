@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "market-bubble",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--env-file=.env", "server.mjs"],
+      "port": 4178
+    }
+  ]
+}
