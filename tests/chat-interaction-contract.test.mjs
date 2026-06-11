@@ -253,7 +253,7 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.layout-toggle\s*\{[^}]*view-transition-name: mb-toggle/s);
     assert.match(styles, /\.live-layout-mini\s+\.stream-view\s*\{[^}]*align-self: center[^}]*aspect-ratio: 16 \/ 10[^}]*border-radius: 32px/s);
     assert.match(styles, /\.live-layout-mini\s+\.chat-view\s*\{[^}]*background: transparent[^}]*box-shadow: none/s);
-    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*--layout-toggle-radius: 18px[^}]*--layout-toggle-size: 58px[^}]*top: 14px[^}]*left: 14px/s);
+    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*--layout-toggle-radius: 14px[^}]*--layout-toggle-size: 42px[^}]*top: auto[^}]*bottom: calc\(100% \+ 12px\)[^}]*left: 0/s);
     assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="expand"]'), false);
     assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="minimize"]'), false);
     assert.match(styles, /\.live-layout-mini\s+\.source-popover\s*\{[^}]*right: auto[^}]*left: calc\(100% - 1px\)[^}]*top: 50%[^}]*transform: translateY\(-50%\)/s);
@@ -888,7 +888,7 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.stream-view:hover\s+\.layout-toggle::after,\s*\.layout-toggle:hover::after,\s*\.layout-toggle:focus-visible::after\s*\{[^}]*opacity: 0\.7[^}]*transform: translate\(2px, 2px\)/s);
     assert.match(styles, /\.layout-toggle::before\s*\{[^}]*border-top: 2px solid[^}]*border-left: 2px solid[^}]*border-top-left-radius: var\(--layout-toggle-radius, 14px\)/s);
     assert.match(styles, /\.layout-toggle::after\s*\{[^}]*border-top: 1px solid[^}]*border-left: 1px solid/s);
-    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*--layout-toggle-radius: 18px[^}]*--layout-toggle-size: 58px[^}]*top: 14px[^}]*left: 14px[^}]*right: auto/s);
+    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*--layout-toggle-radius: 14px[^}]*--layout-toggle-size: 42px[^}]*top: auto[^}]*bottom: calc\(100% \+ 12px\)[^}]*left: 0[^}]*right: auto/s);
     assert.match(styles, /\.layout-toggle-icon\s*\{[^}]*display: none/s);
     assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="expand"]'), false);
     assert.equal(styles.includes('.layout-toggle-icon[data-layout-action="minimize"]'), false);
@@ -905,12 +905,29 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.live-surface\[data-entered="true"\]\s+\.broadcast-topbar,\s*\.live-surface\[data-entered="true"\]\s+\.stream-view,\s*\.live-surface\[data-entered="true"\]\s+\.chat-view\s*\{[^}]*animation: none/s);
   });
 
+  it("keeps the stream player clear of overlays so Twitch's embed visibility rules allow playback", () => {
+    const viewer = readViewerRuntime();
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    // Anything painted over the player iframe trips Twitch's "style visibility"
+    // embed requirement: autoplay is refused, and the check re-runs on every
+    // player resize, pausing the stream on each layout toggle.
+    assert.match(styles, /\.live-layout-full\s+\.stream-player\s*\{[^}]*margin-top/s);
+    assert.match(styles, /\.live-layout-mini\s+\.layout-toggle\s*\{[^}]*bottom: calc\(100% \+ 12px\)/s);
+    assert.match(styles, /\.live-layout-mini\s+\.stream-socials\s*\{[^}]*bottom: calc\(100% \+ 12px\)/s);
+
+    // The view-transition overlay also covers the player mid-morph, which
+    // Twitch reads as hidden; toggles switch instantly while a provider
+    // iframe is mounted.
+    assert.match(viewer, /const hasEmbeddedPlayer = Boolean\(document\.querySelector\("#streamPlayer iframe"\)\);/);
+  });
+
   it("keeps Firefox on calm animations where Gecko text rendering shimmers", () => {
     const viewer = readViewerRuntime();
     const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
     assert.equal(viewer.includes('/firefox/i.test(navigator.userAgent)'), true);
-    assert.match(viewer, /if \(!prefersInstantLayoutSwitch && typeof document\.startViewTransition === "function"\)/);
+    assert.match(viewer, /if \(!prefersInstantLayoutSwitch && !hasEmbeddedPlayer && typeof document\.startViewTransition === "function"\)/);
     assert.match(styles, /@supports \(-moz-appearance: none\)\s*\{[\s\S]*?\.chat-message\s*\{[^}]*animation: none/);
     assert.match(styles, /@supports \(-moz-appearance: none\)\s*\{[\s\S]*?filter: none !important/);
   });

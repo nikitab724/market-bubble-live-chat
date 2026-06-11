@@ -72,7 +72,15 @@ export function ViewerApp({ surface = "viewer" }) {
     // the panels and blanks the view transition's new-state snapshot.
     setEntered(true);
 
-    if (!prefersInstantLayoutSwitch && typeof document.startViewTransition === "function") {
+    // The view-transition overlay covers the live player for the length of
+    // the morph, and Twitch's embed reads that as the player being hidden
+    // while it resizes — it pauses the stream and stays paused (the same
+    // occlusion rule the styles.css stream-player band exists for). Morph
+    // only when no provider iframe is mounted; a playing video gets an
+    // instant switch instead of a frozen-frame morph.
+    const hasEmbeddedPlayer = Boolean(document.querySelector("#streamPlayer iframe"));
+
+    if (!prefersInstantLayoutSwitch && !hasEmbeddedPlayer && typeof document.startViewTransition === "function") {
       document.startViewTransition(() => {
         flushSync(() => setLayoutMode(nextLayout));
       });
