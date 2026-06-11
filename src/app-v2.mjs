@@ -135,29 +135,10 @@ async function loadPublicConfig() {
 function initTwitchPlayer(channel) {
   if (!el.twitchPlayer) return;
 
-  const twitchChannel = channel || getActiveTab()?.twitchChannel || "xqc";
-
+  const twitchChannel = channel || getActiveTab()?.twitchChannel;
   if (!twitchChannel) return;
 
-  const twitchSource = state.sources.find(
-    (s) => s.platform === "twitch" && s.sourceHandle === twitchChannel,
-  ) || state.sources.find((s) => s.platform === "twitch");
-
-  if (twitchSource) {
-    if (el.streamerName) el.streamerName.textContent = twitchSource.sourceLabel || twitchSource.sourceName || twitchChannel;
-    if (el.streamerAvatar) el.streamerAvatar.textContent = (twitchSource.sourceLabel || twitchChannel).charAt(0).toUpperCase();
-    if (el.followBtn) el.followBtn.href = `https://twitch.tv/${twitchChannel}`;
-    if (el.subscribeBtn) el.subscribeBtn.href = `https://twitch.tv/subs/${twitchChannel}`;
-  }
-
-  const source = twitchSource || state.sources.find((s) => s.platform === "twitch");
-  const isLive = source?.isLive === true;
-
-  if (isLive) {
-    setTwitchPlayerChannel(twitchChannel);
-  } else {
-    loadLatestVod(twitchChannel);
-  }
+  setTwitchPlayerChannel(twitchChannel);
 }
 
 function setTwitchPlayerChannel(channel) {
@@ -168,25 +149,6 @@ function setTwitchPlayerChannel(channel) {
   iframe.allow = "autoplay; fullscreen";
   iframe.title = `${channel} on Twitch`;
   el.twitchPlayer.replaceChildren(iframe);
-}
-
-async function loadLatestVod(channel) {
-  try {
-    const r = await fetch(`/api/twitch-vod?channel=${encodeURIComponent(channel)}`, { cache: "no-store" });
-    if (!r.ok) return setTwitchPlayerChannel(channel);
-    const data = await r.json();
-    if (!data.vod?.id) return setTwitchPlayerChannel(channel);
-
-    const parent = window.location.hostname || "localhost";
-    const iframe = document.createElement("iframe");
-    iframe.src = `https://player.twitch.tv/?video=${encodeURIComponent(data.vod.id)}&parent=${encodeURIComponent(parent)}&autoplay=false`;
-    iframe.allowFullscreen = true;
-    iframe.allow = "autoplay; fullscreen";
-    iframe.title = data.vod.title || `${channel} on Twitch`;
-    el.twitchPlayer.replaceChildren(iframe);
-  } catch {
-    setTwitchPlayerChannel(channel);
-  }
 }
 
 // ── Connectors ────────────────────────────────────────────────────────────────
@@ -276,16 +238,10 @@ function updateStreamHeader() {
   if (el.footerCenter) el.footerCenter.classList.toggle("v2-hidden", !nowLive);
   if (el.offlineScreen) el.offlineScreen.hidden = nowLive;
 
-  // Reload the player if live status changed since last check
-  if (lastLiveState !== null && lastLiveState !== nowLive) {
+  // Start the player when going live
+  if (lastLiveState !== null && !lastLiveState && nowLive) {
     const twitchChannel = tab.twitchChannel || connectedSources.find((s) => s.platform === "twitch")?.sourceHandle;
-    if (twitchChannel) {
-      if (nowLive) {
-        setTwitchPlayerChannel(twitchChannel);
-      } else {
-        loadLatestVod(twitchChannel);
-      }
-    }
+    if (twitchChannel) setTwitchPlayerChannel(twitchChannel);
   }
   lastLiveState = nowLive;
 }
