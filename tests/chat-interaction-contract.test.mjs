@@ -499,7 +499,7 @@ describe("chat interaction contract", () => {
     assert.match(styles, /\.broadcast-topbar\s*\{[^}]*height: 52px[^}]*padding: 8px 14px 7px[^}]*background: linear-gradient/s);
     assert.match(styles, /\.broadcast-metrics\s*\{[^}]*grid-template-columns: auto minmax\(0, 1fr\)[^}]*gap: 7px/s);
     assert.match(styles, /\.app-shell\s*\{[^}]*flex: 1 1 auto[^}]*min-height: 0[^}]*padding: 10px 12px 56px/s);
-    assert.match(styles, /\.viewer-shell\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(360px, 420px\)[^}]*gap: 10px/s);
+    assert.match(styles, /\.viewer-shell\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(340px, 384px\)[^}]*gap: 10px/s);
     // The viewer surface wraps everything in one rounded inset shell.
     assert.equal(viewer.includes('className="site-shell"'), true);
     assert.match(styles, /\.live-surface\[data-surface="viewer"\]\s*\{[^}]*padding: 12px/s);
@@ -913,6 +913,24 @@ describe("chat interaction contract", () => {
     assert.match(viewer, /if \(!prefersInstantLayoutSwitch && typeof document\.startViewTransition === "function"\)/);
     assert.match(styles, /@supports \(-moz-appearance: none\)\s*\{[\s\S]*?\.chat-message\s*\{[^}]*animation: none/);
     assert.match(styles, /@supports \(-moz-appearance: none\)\s*\{[\s\S]*?filter: none !important/);
+  });
+
+  it("freezes the twitch iframe size and scales it so layout changes never resize the player", () => {
+    const viewerStream = readFileSync(new URL("../src/viewer-stream.mjs", import.meta.url), "utf8");
+    const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+    // Twitch re-runs its embedded-experiences check (and pauses the stream)
+    // whenever the player iframe is resized; CSS transforms scale the output
+    // without resizing the iframe's window, so the check never re-runs.
+    assert.match(viewerStream, /freezeTwitchPlayerSize\(\{ iframe, playerEl, window \}\)/);
+    assert.match(viewerStream, /const baseWidth = 1280;/);
+    assert.match(viewerStream, /const baseHeight = 720;/);
+    assert.match(viewerStream, /new window\.ResizeObserver\(applyScale\)/);
+    assert.match(viewerStream, /transform = `translate\(\$\{offsetX\}px, \$\{offsetY\}px\) scale\(\$\{scale\}\)`/);
+
+    // Stream column share agreed with the operator: chat caps at 384px so the
+    // full-layout video band keeps its larger size.
+    assert.match(styles, /\.viewer-shell\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(340px, 384px\)/s);
   });
 
   it("keeps fixed profile cards anchored to the viewport after panel entrance animations", () => {

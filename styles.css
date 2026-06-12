@@ -289,7 +289,7 @@ body.admin-body {
 
 .viewer-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 384px);
   gap: 10px;
 }
 

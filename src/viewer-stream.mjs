@@ -67,7 +67,9 @@ function renderEmbedContent(playerEl, { document, window, sources }) {
   }
 
   if (streamSource.platform === "twitch") {
-    playerEl.append(createTwitchStreamFrame({ source: streamSource, window }));
+    const iframe = createTwitchStreamFrame({ source: streamSource, window });
+    playerEl.append(iframe);
+    freezeTwitchPlayerSize({ iframe, playerEl, window });
     return;
   }
 
@@ -121,6 +123,44 @@ export function getStreamSelectionKey(sources) {
   if (!source) return "";
 
   return [source.sourceId, source.platform, source.sourceHandle, source.conversationId || ""].join("|");
+}
+
+// EXPERIMENT: Twitch re-runs its embedded-experiences check (and pauses the
+// stream) whenever the player iframe is resized. Freeze the iframe's internal
+// size at its mount-time dimensions and fit it to the container with a CSS
+// transform instead — transforms scale the rendered output without resizing
+// the iframe's window, so layout toggles and window resizes never reach the
+// player as a resize and the check never re-runs.
+function freezeTwitchPlayerSize({ iframe, playerEl, window }) {
+  // 16:9 base: Twitch letterboxes its video to 16:9 internally, so a 16:9
+  // frame contain-fit into either layout's panel puts the video band exactly
+  // where the old fluid iframe put it, with our matching #080808 as the bars.
+  const baseWidth = 1280;
+  const baseHeight = 720;
+  iframe.style.width = `${baseWidth}px`;
+  iframe.style.height = `${baseHeight}px`;
+  iframe.style.transformOrigin = "top left";
+
+  const observer = new window.ResizeObserver(applyScale);
+
+  function applyScale() {
+    if (!iframe.isConnected) {
+      observer.disconnect();
+      return;
+    }
+
+    const width = playerEl.clientWidth;
+    const height = playerEl.clientHeight;
+    if (!width || !height) return;
+
+    const scale = Math.min(width / baseWidth, height / baseHeight);
+    const offsetX = (width - baseWidth * scale) / 2;
+    const offsetY = (height - baseHeight * scale) / 2;
+    iframe.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  }
+
+  applyScale();
+  observer.observe(playerEl);
 }
 
 function createTwitchStreamFrame({ source, window }) {
